@@ -1,20 +1,11 @@
-import { StyleSheet } from 'react-native';
+import { Text, View } from 'react-native';
+import { styles } from './AnalyticsScreen.styles';
 
-export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F1115',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '500',
-    color: '#F5F2E8',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#8B8F98',
-  },
-});
+export default function AnalyticsScreen() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Analytics</Text>
+      <Text style={styles.subtitle}>Your money story, coming soon</Text>
+    </View>
+  );
+}
