@@ -1,5 +1,6 @@
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
 import { styles } from './HomeScreen.styles';
 
@@ -12,7 +13,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <HomeHeader />
-        {/* Hero card comes next task */}
+        <HeroCard />
       </ScrollView>
     </SafeAreaView>
   );
