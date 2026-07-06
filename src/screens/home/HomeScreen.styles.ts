@@ -18,4 +18,13 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Space.sm + 2,
   },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Corpus.text,
+    marginTop: Space.sm,
+  },
+  budgets: {
+    gap: Space.sm + 4,
+  },
 });
