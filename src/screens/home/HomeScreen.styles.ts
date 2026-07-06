@@ -14,4 +14,8 @@ export const styles = StyleSheet.create({
     paddingBottom: 100,
     gap: Space.md,
   },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Space.sm + 2,
+  },
 });
