@@ -7,6 +7,45 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+// ─── Corpus Design System ───────────────────────────────
+export const Corpus = {
+  // Surfaces
+  bg: '#0F1115',        // app background
+  card: '#1A1D24',      // cards
+  cardAlt: '#23262E',   // icon circles, nested elements
+  border: '#2A2E38',    // hairline borders
+
+  // Brand
+  gold: '#C9A227',      // THE color — hero numbers, active states
+  goldSoft: '#E8D48A',  // lighter gold for subtle accents
+
+  // Text
+  text: '#F5F2E8',      // primary (warm cream)
+  textMuted: '#8B8F98', // secondary labels
+  textFaint: '#575B64', // disabled, inactive
+
+  // Semantic
+  income: '#4CAF7D',    // green for money in
+  danger: '#E05252',    // red for over-budget
+  warning: '#E0A452',   // amber for 80% alerts
+};
+
+export const Space = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+};
+
+export const Radius = {
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+};
+// ────────────────────────────────────────────────────────
+
 export const Colors = {
   light: {
     text: '#000000',
