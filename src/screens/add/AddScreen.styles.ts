@@ -43,4 +43,9 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 0,
   },
+  sectionLabel: {
+    fontSize: 12,
+    color: Corpus.textMuted,
+    letterSpacing: 0.4,
+  },
 });
