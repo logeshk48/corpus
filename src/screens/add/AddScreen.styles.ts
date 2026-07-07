@@ -1,20 +1,46 @@
+import { Corpus, Space } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: '#0F1115',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    backgroundColor: Corpus.bg,
   },
-  title: {
-    fontSize: 22,
+  content: {
+    padding: Space.lg,
+    paddingBottom: 120,
+    gap: Space.lg,
+  },
+  heading: {
+    fontSize: 17,
     fontWeight: '500',
-    color: '#F5F2E8',
+    color: Corpus.text,
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#8B8F98',
+  amountSection: {
+    alignItems: 'center',
+    paddingVertical: Space.lg,
+  },
+  amountLabel: {
+    fontSize: 12,
+    color: Corpus.textMuted,
+    letterSpacing: 0.4,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Space.sm,
+  },
+  rupee: {
+    fontSize: 32,
+    color: Corpus.textMuted,
+    marginRight: 4,
+  },
+  amountInput: {
+    fontSize: 44,
+    fontWeight: '500',
+    color: Corpus.gold,
+    minWidth: 120,
+    textAlign: 'center',
+    padding: 0,
   },
 });
