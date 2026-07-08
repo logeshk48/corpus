@@ -1,2 +1,1 @@
-export { default } from '@/screens/analytics/AnalyticsScreen';
-
+export { default } from '@/screens/transactions/TransactionsScreen';
