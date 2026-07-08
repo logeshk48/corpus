@@ -1,10 +1,11 @@
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { useState } from 'react';
-import { ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './AddScreen.styles';
 import CategoryGrid from './components/CategoryGrid';
+import SaveButton from './components/SaveButton';
 import TypeToggle, { TxType } from './components/TypeToggle';
 
 export default function AddScreen() {
@@ -14,9 +15,34 @@ export default function AddScreen() {
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
+  const isValid = Number(amount) > 0 && category !== null;
+
   const handleTypeChange = (newType: TxType) => {
     setType(newType);
-    setCategory(null); // reset selection when switching type
+    setCategory(null);
+  };
+
+  const handleSave = () => {
+    const transaction = {
+      type,
+      amount: Number(amount),
+      category,
+      date: new Date().toISOString(),
+    };
+    console.log('SAVED:', transaction);
+
+    const message = `${type === 'expense' ? 'Expense' : 'Income'} of ₹${Number(
+      amount
+    ).toLocaleString('en-IN')} saved`;
+    if (Platform.OS === 'web') {
+      window.alert(message);
+    } else {
+      Alert.alert('Saved', message);
+    }
+
+    // reset the form
+    setAmount('');
+    setCategory(null);
   };
 
   return (
@@ -53,7 +79,7 @@ export default function AddScreen() {
           onSelect={setCategory}
         />
 
-        {/* Save button — final task */}
+        <SaveButton enabled={isValid} onPress={handleSave} />
       </ScrollView>
     </SafeAreaView>
   );
