@@ -27,4 +27,7 @@ export const styles = StyleSheet.create({
   budgets: {
     gap: Space.sm + 4,
   },
+  recentList: {
+    gap: Space.md,
+  },
 });
