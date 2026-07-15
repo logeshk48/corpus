@@ -1,3 +1,4 @@
+import { Corpus } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
@@ -6,11 +7,11 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#C9A227',
-        tabBarInactiveTintColor: '#575B64',
+        tabBarActiveTintColor: Corpus.gold,
+        tabBarInactiveTintColor: Corpus.textFaint,
         tabBarStyle: {
-          backgroundColor: '#0F1115',
-          borderTopColor: '#2A2E38',
+          backgroundColor: Corpus.bg,
+          borderTopColor: Corpus.border,
         },
       }}
     >
@@ -37,7 +38,7 @@ export default function TabsLayout() {
         options={{
           title: 'Add',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size + 6} color="#C9A227" />
+            <Ionicons name="add-circle" size={size + 6} color={Corpus.gold} />
           ),
         }}
       />
