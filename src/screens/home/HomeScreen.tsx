@@ -1,4 +1,5 @@
 import { MOCK_TRANSACTIONS } from '@/constants/mockTransactions';
+import { db } from '@/services/firebase';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BudgetBar from './components/BudgetBar';
@@ -9,6 +10,8 @@ import TransactionRow from './components/TransactionRow';
 import { styles } from './HomeScreen.styles';
 
 export default function HomeScreen() {
+  console.log('Firebase connected, project:', db.app.options.projectId);
+
   const recent = MOCK_TRANSACTIONS.slice(0, 5);
 
   return (
