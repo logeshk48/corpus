@@ -1,3 +1,4 @@
+import { validateEmail, validatePassword } from '@/utils/validation';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -8,8 +9,16 @@ import { styles } from './LoginScreen.styles';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const handleLogin = () => {
+    const newErrors = {
+      email: validateEmail(email),
+      password: validatePassword(password),
+    };
+    setErrors(newErrors);
+    if (Object.values(newErrors).some((e) => e !== undefined)) return;
+
     console.log('LOGIN:', { email });
     // Firebase wiring — Day 8
   };
@@ -30,6 +39,7 @@ export default function LoginScreen() {
           placeholder="you@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
+          error={errors.email}
         />
 
         <AuthInput
@@ -39,6 +49,7 @@ export default function LoginScreen() {
           onChangeText={setPassword}
           placeholder="Your password"
           secureTextEntry
+          error={errors.password}
         />
 
         <Pressable style={styles.button} onPress={handleLogin}>
