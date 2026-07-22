@@ -1,14 +1,16 @@
 import { validateEmail, validatePassword } from '@/utils/validation';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AuthButton from './components/AuthButton';
 import AuthInput from './components/AuthInput';
 import { styles } from './LoginScreen.styles';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const handleLogin = () => {
@@ -19,8 +21,9 @@ export default function LoginScreen() {
     setErrors(newErrors);
     if (Object.values(newErrors).some((e) => e !== undefined)) return;
 
+    setLoading(true);
     console.log('LOGIN:', { email });
-    // Firebase wiring — Day 8
+    setTimeout(() => setLoading(false), 1500); // simulates network — real call tomorrow
   };
 
   return (
@@ -52,9 +55,7 @@ export default function LoginScreen() {
           error={errors.password}
         />
 
-        <Pressable style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonLabel}>Sign in</Text>
-        </Pressable>
+        <AuthButton label="Sign in" loading={loading} onPress={handleLogin} />
 
         <View style={styles.switchRow}>
           <Text style={styles.switchText}>New to Corpus?</Text>

@@ -1,8 +1,9 @@
 import { validateConfirm, validateEmail, validatePassword } from '@/utils/validation';
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AuthButton from './components/AuthButton';
 import AuthInput from './components/AuthInput';
 import { styles } from './SignupScreen.styles';
 
@@ -10,6 +11,7 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
@@ -27,8 +29,9 @@ export default function SignupScreen() {
     const hasErrors = Object.values(newErrors).some((e) => e !== undefined);
     if (hasErrors) return;
 
+    setLoading(true);
     console.log('SIGNUP:', { email });
-    // Firebase wiring — Day 8
+    setTimeout(() => setLoading(false), 1500); // simulates network — real call tomorrow
   };
 
   return (
@@ -70,9 +73,7 @@ export default function SignupScreen() {
           error={errors.confirm}
         />
 
-        <Pressable style={styles.button} onPress={handleSignup}>
-          <Text style={styles.buttonLabel}>Create account</Text>
-        </Pressable>
+        <AuthButton label="Create account" loading={loading} onPress={handleSignup} />
 
         <View style={styles.switchRow}>
           <Text style={styles.switchText}>Already have an account?</Text>
