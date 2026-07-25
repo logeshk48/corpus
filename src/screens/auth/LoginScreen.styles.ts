@@ -58,4 +58,9 @@ export const styles = StyleSheet.create({
     color: Corpus.gold,
     fontWeight: '500',
   },
+  formError: {
+    fontSize: 13,
+    color: Corpus.danger,
+    textAlign: 'center',
+  },
 });

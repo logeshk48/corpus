@@ -1,5 +1,7 @@
+import { signUp } from '@/services/auth';
+import { friendlyAuthError } from '@/utils/authErrors';
 import { validateConfirm, validateEmail, validatePassword } from '@/utils/validation';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,17 +10,19 @@ import AuthInput from './components/AuthInput';
 import { styles } from './SignupScreen.styles';
 
 export default function SignupScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | undefined>();
   const [errors, setErrors] = useState<{
     email?: string;
     password?: string;
     confirm?: string;
   }>({});
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     const newErrors = {
       email: validateEmail(email),
       password: validatePassword(password),
@@ -30,8 +34,16 @@ export default function SignupScreen() {
     if (hasErrors) return;
 
     setLoading(true);
-    console.log('SIGNUP:', { email });
-    setTimeout(() => setLoading(false), 1500); // simulates network — real call tomorrow
+    setFormError(undefined);
+    try {
+      const user = await signUp(email, password);
+      console.log('Account created:', user.uid);
+      router.replace('/'); // into the app
+    } catch (e: any) {
+      setFormError(friendlyAuthError(e.code));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,6 +84,8 @@ export default function SignupScreen() {
           secureTextEntry
           error={errors.confirm}
         />
+
+        {formError && <Text style={styles.formError}>{formError}</Text>}
 
         <AuthButton label="Create account" loading={loading} onPress={handleSignup} />
 
