@@ -1,5 +1,7 @@
+import { signIn } from '@/services/auth';
+import { friendlyAuthError } from '@/utils/authErrors';
 import { validateEmail, validatePassword } from '@/utils/validation';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,12 +10,14 @@ import AuthInput from './components/AuthInput';
 import { styles } from './LoginScreen.styles';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState<string | undefined>();
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const newErrors = {
       email: validateEmail(email),
       password: validatePassword(password),
@@ -22,8 +26,16 @@ export default function LoginScreen() {
     if (Object.values(newErrors).some((e) => e !== undefined)) return;
 
     setLoading(true);
-    console.log('LOGIN:', { email });
-    setTimeout(() => setLoading(false), 1500); // simulates network — real call tomorrow
+    setFormError(undefined);
+    try {
+      const user = await signIn(email, password);
+      console.log('Signed in:', user.uid);
+      router.replace('/');
+    } catch (e: any) {
+      setFormError(friendlyAuthError(e.code));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -54,6 +66,8 @@ export default function LoginScreen() {
           secureTextEntry
           error={errors.password}
         />
+
+        {formError && <Text style={styles.formError}>{formError}</Text>}
 
         <AuthButton label="Sign in" loading={loading} onPress={handleLogin} />
 
