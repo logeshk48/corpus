@@ -1,5 +1,4 @@
 import { MOCK_TRANSACTIONS } from '@/constants/mockTransactions';
-import { daysLeftInMonth, getRange } from '@/utils/dates';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BudgetBar from './components/BudgetBar';
@@ -10,10 +9,6 @@ import TransactionRow from './components/TransactionRow';
 import { styles } from './HomeScreen.styles';
 
 export default function HomeScreen() {
-  // TEMP TEST: remove after checking the console
-  console.log('This month:', getRange('month'));
-  console.log('Days left:', daysLeftInMonth());
-
   const recent = MOCK_TRANSACTIONS.slice(0, 5);
 
   return (
