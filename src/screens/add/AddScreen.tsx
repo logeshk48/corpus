@@ -1,5 +1,6 @@
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
+import { addTransaction } from '@/services/transactions';
 import { useState } from 'react';
 import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,13 +9,21 @@ import CategoryGrid from './components/CategoryGrid';
 import SaveButton from './components/SaveButton';
 import TypeToggle, { TxType } from './components/TypeToggle';
 
+function notify(title: string, message: string) {
+  if (Platform.OS === 'web') {
+    window.alert(message);
+  } else {
+    Alert.alert(title, message);
+  }
+}
+
 export default function AddScreen() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-
   const isValid = Number(amount) > 0 && category !== null;
 
   const handleTypeChange = (newType: TxType) => {
@@ -22,27 +31,31 @@ export default function AddScreen() {
     setCategory(null);
   };
 
-  const handleSave = () => {
-    const transaction = {
-      type,
-      amount: Number(amount),
-      category,
-      date: new Date().toISOString(),
-    };
-    console.log('SAVED:', transaction);
+  const handleSave = async () => {
+    if (!isValid || !category) return;
 
-    const message = `${type === 'expense' ? 'Expense' : 'Income'} of ₹${Number(
-      amount
-    ).toLocaleString('en-IN')} saved`;
-    if (Platform.OS === 'web') {
-      window.alert(message);
-    } else {
-      Alert.alert('Saved', message);
+    setSaving(true);
+    try {
+      const id = await addTransaction({
+        type,
+        amount: Number(amount),
+        category,
+        date: new Date().toISOString(),
+      });
+      console.log('Saved to Firestore:', id);
+
+      notify(
+        'Saved',
+        `${type === 'expense' ? 'Expense' : 'Income'} of ₹${Number(amount).toLocaleString('en-IN')} saved`
+      );
+      setAmount('');
+      setCategory(null);
+    } catch (e: any) {
+      console.error('Save failed:', e);
+      notify('Could not save', 'Something went wrong. Check your connection and try again.');
+    } finally {
+      setSaving(false);
     }
-
-    // reset the form
-    setAmount('');
-    setCategory(null);
   };
 
   return (
@@ -79,7 +92,7 @@ export default function AddScreen() {
           onSelect={setCategory}
         />
 
-        <SaveButton enabled={isValid} onPress={handleSave} />
+        <SaveButton enabled={isValid && !saving} onPress={handleSave} />
       </ScrollView>
     </SafeAreaView>
   );
