@@ -1,7 +1,8 @@
+import type { TxType } from '@/types/transaction';
 import { Pressable, Text, View } from 'react-native';
 import { styles } from './TypeToggle.styles';
 
-export type TxType = 'expense' | 'income';
+export type { TxType } from '@/types/transaction';
 
 type TypeToggleProps = {
   value: TxType;
