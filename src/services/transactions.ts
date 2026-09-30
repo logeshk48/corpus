@@ -1,15 +1,16 @@
 import type { NewTransaction, Transaction } from '@/types/transaction';
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
@@ -36,7 +37,7 @@ export async function addTransaction(tx: NewTransaction): Promise<string> {
   return ref.id;
 }
 
-// READ: transactions between two dates, newest first
+// READ (once): transactions between two dates, newest first
 export async function getTransactions(start: Date, end: Date): Promise<Transaction[]> {
   const q = query(
     txCollection(),
@@ -56,4 +57,27 @@ export async function updateTransaction(id: string, changes: Partial<NewTransact
 // DELETE
 export async function deleteTransaction(id: string) {
   await deleteDoc(doc(txCollection(), id));
+}
+
+// LIVE READ: calls onChange now, and again every time the data changes.
+// Returns an "unsubscribe" function to stop listening.
+export function subscribeTransactions(
+  start: Date,
+  end: Date,
+  onChange: (txs: Transaction[]) => void,
+  onError?: (error: Error) => void
+) {
+  const q = query(
+    txCollection(),
+    where('date', '>=', start.toISOString()),
+    where('date', '<', end.toISOString()),
+    orderBy('date', 'desc')
+  );
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      onChange(snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as NewTransaction) })));
+    },
+    onError
+  );
 }
