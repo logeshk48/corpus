@@ -1,5 +1,7 @@
-import { MOCK_TRANSACTIONS } from '@/constants/mockTransactions';
-import { ScrollView, Text, View } from 'react-native';
+import { Corpus } from '@/constants/theme';
+import { useTransactions } from '@/hooks/useTransactions';
+import { formatINR } from '@/utils/format';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BudgetBar from './components/BudgetBar';
 import HeroCard from './components/HeroCard';
@@ -9,7 +11,17 @@ import TransactionRow from './components/TransactionRow';
 import { styles } from './HomeScreen.styles';
 
 export default function HomeScreen() {
-  const recent = MOCK_TRANSACTIONS.slice(0, 5);
+  const { transactions, loading, error } = useTransactions('month');
+
+  const income = transactions
+    .filter((t) => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const spent = transactions
+    .filter((t) => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const recent = transactions.slice(0, 5);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -21,8 +33,8 @@ export default function HomeScreen() {
         <HomeHeader />
         <HeroCard />
         <View style={styles.statsRow}>
-          <StatCard label="Income this month" value="₹72,500" />
-          <StatCard label="Spent" value="₹28,320" />
+          <StatCard label="Income this month" value={formatINR(income)} />
+          <StatCard label="Spent this month" value={formatINR(spent)} />
         </View>
 
         <Text style={styles.sectionTitle}>Budgets</Text>
@@ -33,11 +45,21 @@ export default function HomeScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Recent</Text>
-        <View style={styles.recentList}>
-          {recent.map((tx) => (
-            <TransactionRow key={tx.id} tx={tx} />
-          ))}
-        </View>
+        {loading ? (
+          <ActivityIndicator color={Corpus.gold} style={styles.loader} />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : recent.length === 0 ? (
+          <Text style={styles.emptyText}>
+            No transactions this month yet. Tap the gold + to add one.
+          </Text>
+        ) : (
+          <View style={styles.recentList}>
+            {recent.map((tx) => (
+              <TransactionRow key={tx.id} tx={tx} />
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -30,4 +30,17 @@ export const styles = StyleSheet.create({
   recentList: {
     gap: Space.md,
   },
+  loader: {
+    paddingVertical: Space.lg,
+  },
+  emptyText: {
+    fontSize: 12,
+    color: Corpus.textMuted,
+    paddingVertical: Space.md,
+  },
+  errorText: {
+    fontSize: 12,
+    color: Corpus.danger,
+    paddingVertical: Space.md,
+  },
 });
