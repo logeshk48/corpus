@@ -1,4 +1,4 @@
-import { Transaction } from '@/constants/mockTransactions';
+import type { Transaction } from '@/types/transaction';
 
 export type TxSection = {
   title: string;

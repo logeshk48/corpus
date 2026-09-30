@@ -1,6 +1,6 @@
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
-import { Transaction } from '@/constants/mockTransactions';
 import { Corpus } from '@/constants/theme';
+import type { Transaction } from '@/types/transaction';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 import { styles } from './TransactionRow.styles';

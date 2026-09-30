@@ -1,21 +1,30 @@
-import { MOCK_TRANSACTIONS } from '@/constants/mockTransactions';
 import { Corpus } from '@/constants/theme';
+import { useTransactions } from '@/hooks/useTransactions';
 import TransactionRow from '@/screens/home/components/TransactionRow';
 import { groupByDay } from '@/utils/groupTransactions';
 import { Ionicons } from '@expo/vector-icons';
-import { ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './TransactionsScreen.styles';
 
 export default function TransactionsScreen() {
-  const sections = groupByDay(MOCK_TRANSACTIONS);
+  const { transactions, loading, error } = useTransactions('year');
+  const sections = groupByDay(transactions);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.heading}>Transactions</Text>
 
-        {sections.length === 0 ? (
+        {loading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator color={Corpus.gold} />
+          </View>
+        ) : error ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>{error}</Text>
+          </View>
+        ) : sections.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={32} color={Corpus.textFaint} />
             <Text style={styles.emptyTitle}>No transactions yet</Text>
