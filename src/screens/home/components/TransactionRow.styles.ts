@@ -7,6 +7,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Space.sm + 2,
   },
+  rowPressed: {
+    opacity: 0.6,
+  },
   iconCircle: {
     width: 34,
     height: 34,

@@ -3,7 +3,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { formatINR } from '@/utils/format';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import BudgetBar from './components/BudgetBar';
 import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
@@ -12,6 +12,7 @@ import TransactionRow from './components/TransactionRow';
 import { styles } from './HomeScreen.styles';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { transactions, loading, error } = useTransactions('month');
 
   const income = transactions
@@ -62,7 +63,11 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.recentList}>
             {recent.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} />
+              <TransactionRow
+                key={tx.id}
+                tx={tx}
+                onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })}
+              />
             ))}
           </View>
         )}

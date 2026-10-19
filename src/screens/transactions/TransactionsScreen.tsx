@@ -117,7 +117,11 @@ export default function TransactionsScreen() {
                 <Text style={styles.sectionTitle}>{section.title}</Text>
                 <View style={styles.list}>
                   {section.data.map((tx) => (
-                    <TransactionRow key={tx.id} tx={tx} />
+                    <TransactionRow
+                      key={tx.id}
+                      tx={tx}
+                      onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })}
+                    />
                   ))}
                 </View>
               </View>

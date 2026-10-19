@@ -10,6 +10,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="transactions" />
+          <Stack.Screen name="edit/[id]" />
         </Stack>
       </AuthGate>
     </AuthProvider>

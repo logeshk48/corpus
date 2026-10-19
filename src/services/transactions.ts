@@ -3,7 +3,9 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   orderBy,
@@ -50,8 +52,21 @@ export async function getTransactions(start: Date, end: Date): Promise<Transacti
 }
 
 // UPDATE: change only the fields you pass
+// READ ONE: a single transaction by id (null if it doesn't exist)
+export async function getTransaction(id: string): Promise<Transaction | null> {
+  const snap = await getDoc(doc(txCollection(), id));
+  return snap.exists() ? { id: snap.id, ...(snap.data() as NewTransaction) } : null;
+}
+
+// UPDATE: change only the fields you pass.
+// A field passed as `undefined` is REMOVED (e.g. clearing a note);
+// fields you don't pass at all are left untouched.
 export async function updateTransaction(id: string, changes: Partial<NewTransaction>) {
-  await updateDoc(doc(txCollection(), id), clean(changes));
+  const data: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(changes)) {
+    data[key] = value === undefined ? deleteField() : value;
+  }
+  await updateDoc(doc(txCollection(), id), data);
 }
 
 // DELETE
