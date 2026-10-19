@@ -24,6 +24,22 @@ export const styles = StyleSheet.create({
     color: Corpus.text,
     marginTop: Space.sm,
   },
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Space.sm,
+  },
+  sectionTitleInline: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Corpus.text,
+  },
+  viewAll: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Corpus.gold,
+  },
   budgets: {
     gap: Space.sm + 4,
   },

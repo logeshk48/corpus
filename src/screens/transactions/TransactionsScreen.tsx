@@ -3,18 +3,30 @@ import { useTransactions } from '@/hooks/useTransactions';
 import TransactionRow from '@/screens/home/components/TransactionRow';
 import { groupByDay } from '@/utils/groupTransactions';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './TransactionsScreen.styles';
 
 export default function TransactionsScreen() {
+  const router = useRouter();
   const { transactions, loading, error } = useTransactions('year');
+
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
   const sections = groupByDay(transactions);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.heading}>Transactions</Text>
+        <View style={styles.headerRow}>
+          <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
+            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
+          </Pressable>
+          <Text style={styles.heading}>Transactions</Text>
+        </View>
 
         {loading ? (
           <View style={styles.empty}>

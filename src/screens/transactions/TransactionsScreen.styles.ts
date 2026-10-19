@@ -11,6 +11,19 @@ export const styles = StyleSheet.create({
     paddingBottom: 100,
     gap: Space.md,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
+  },
+  backButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Corpus.card,
+  },
   heading: {
     fontSize: 17,
     fontWeight: '500',

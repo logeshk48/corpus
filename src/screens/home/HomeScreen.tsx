@@ -3,6 +3,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { formatINR } from '@/utils/format';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Link } from 'expo-router';
 import BudgetBar from './components/BudgetBar';
 import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
@@ -44,7 +45,12 @@ export default function HomeScreen() {
           <BudgetBar label="Shopping" spent={4800} total={4000} />
         </View>
 
-        <Text style={styles.sectionTitle}>Recent</Text>
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitleInline}>Recent</Text>
+          <Link href="/transactions">
+            <Text style={styles.viewAll}>View all</Text>
+          </Link>
+        </View>
         {loading ? (
           <ActivityIndicator color={Corpus.gold} style={styles.loader} />
         ) : error ? (
