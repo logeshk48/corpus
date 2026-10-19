@@ -1,4 +1,4 @@
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Radius, Space } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -47,5 +47,15 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
+  },
+  noteInput: {
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.md,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    paddingHorizontal: Space.md,
+    paddingVertical: 14,
+    fontSize: 14,
+    color: Corpus.text,
   },
 });

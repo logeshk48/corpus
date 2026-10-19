@@ -21,6 +21,7 @@ export default function AddScreen() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
+  const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
@@ -40,6 +41,7 @@ export default function AddScreen() {
         type,
         amount: Number(amount),
         category,
+        note: note.trim() || undefined,
         date: new Date().toISOString(),
       });
       console.log('Saved to Firestore:', id);
@@ -50,6 +52,7 @@ export default function AddScreen() {
       );
       setAmount('');
       setCategory(null);
+      setNote('');
     } catch (e: any) {
       console.error('Save failed:', e);
       notify('Could not save', 'Something went wrong. Check your connection and try again.');
@@ -90,6 +93,16 @@ export default function AddScreen() {
           categories={categories}
           selected={category}
           onSelect={setCategory}
+        />
+
+        <Text style={styles.sectionLabel}>NOTE (OPTIONAL)</Text>
+        <TextInput
+          style={styles.noteInput}
+          value={note}
+          onChangeText={setNote}
+          placeholder={type === 'expense' ? 'e.g. Filter coffee' : 'e.g. Client payment'}
+          placeholderTextColor={Corpus.textFaint}
+          maxLength={60}
         />
 
         <SaveButton enabled={isValid && !saving} onPress={handleSave} />
