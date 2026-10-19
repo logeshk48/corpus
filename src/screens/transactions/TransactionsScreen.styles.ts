@@ -1,4 +1,4 @@
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Radius, Space } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -27,6 +27,22 @@ export const styles = StyleSheet.create({
   heading: {
     fontSize: 17,
     fontWeight: '500',
+    color: Corpus.text,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.md,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    paddingHorizontal: Space.md,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 11,
+    fontSize: 13,
     color: Corpus.text,
   },
   summary: {

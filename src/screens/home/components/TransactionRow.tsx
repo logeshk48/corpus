@@ -1,14 +1,9 @@
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
+import { findCategory } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import type { Transaction } from '@/types/transaction';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 import { styles } from './TransactionRow.styles';
-
-function getCategoryMeta(tx: Transaction) {
-  const list = tx.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-  return list.find((c) => c.id === tx.category);
-}
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-IN', {
@@ -18,7 +13,7 @@ function formatTime(iso: string) {
 }
 
 export default function TransactionRow({ tx }: { tx: Transaction }) {
-  const cat = getCategoryMeta(tx);
+  const cat = findCategory(tx.type, tx.category);
   const isIncome = tx.type === 'income';
 
   return (

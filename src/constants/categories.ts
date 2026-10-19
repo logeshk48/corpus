@@ -21,3 +21,9 @@ export const INCOME_CATEGORIES: Category[] = [
   { id: 'business', label: 'Business', icon: 'storefront' },
   { id: 'other',    label: 'Other',    icon: 'ellipsis-horizontal' },
 ];
+
+// Look up a category by transaction type + id (shared by rows, search, budgets)
+export function findCategory(type: 'expense' | 'income', id: string): Category | undefined {
+  const list = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  return list.find((c) => c.id === id);
+}
