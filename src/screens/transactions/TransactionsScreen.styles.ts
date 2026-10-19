@@ -29,6 +29,10 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     color: Corpus.text,
   },
+  summary: {
+    fontSize: 12,
+    color: Corpus.textMuted,
+  },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '500',

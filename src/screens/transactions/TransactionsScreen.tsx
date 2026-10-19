@@ -1,22 +1,52 @@
+import FilterChips, { ChipOption } from '@/components/FilterChips';
 import { Corpus } from '@/constants/theme';
 import { useTransactions } from '@/hooks/useTransactions';
 import TransactionRow from '@/screens/home/components/TransactionRow';
+import { formatINR } from '@/utils/format';
 import { groupByDay } from '@/utils/groupTransactions';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './TransactionsScreen.styles';
 
+type Filter = 'all' | 'expense' | 'income';
+
+const FILTERS: ChipOption<Filter>[] = [
+  { id: 'all', label: 'All' },
+  { id: 'expense', label: 'Expenses' },
+  { id: 'income', label: 'Income' },
+];
+
 export default function TransactionsScreen() {
   const router = useRouter();
   const { transactions, loading, error } = useTransactions('year');
+  const [filter, setFilter] = useState<Filter>('all');
 
   const goBack = () => {
     if (router.canGoBack()) router.back();
     else router.replace('/');
   };
-  const sections = groupByDay(transactions);
+
+  const visible =
+    filter === 'all' ? transactions : transactions.filter((t) => t.type === filter);
+  const total = visible.reduce((sum, t) => sum + t.amount, 0);
+  const sections = groupByDay(visible);
+
+  const summary =
+    filter === 'all'
+      ? `${visible.length} transaction${visible.length === 1 ? '' : 's'} this year`
+      : filter === 'expense'
+      ? `${formatINR(total)} spent this year`
+      : `${formatINR(total)} earned this year`;
+
+  const emptyTitle =
+    transactions.length === 0
+      ? 'No transactions yet'
+      : filter === 'income'
+      ? 'No income this year'
+      : 'No expenses this year';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -27,6 +57,8 @@ export default function TransactionsScreen() {
           </Pressable>
           <Text style={styles.heading}>Transactions</Text>
         </View>
+
+        <FilterChips options={FILTERS} value={filter} onChange={setFilter} />
 
         {loading ? (
           <View style={styles.empty}>
@@ -39,20 +71,23 @@ export default function TransactionsScreen() {
         ) : sections.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={32} color={Corpus.textFaint} />
-            <Text style={styles.emptyTitle}>No transactions yet</Text>
-            <Text style={styles.emptyText}>Add your first one from the gold + tab</Text>
+            <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+            <Text style={styles.emptyText}>Add one from the gold + tab</Text>
           </View>
         ) : (
-          sections.map((section) => (
-            <View key={section.title}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              <View style={styles.list}>
-                {section.data.map((tx) => (
-                  <TransactionRow key={tx.id} tx={tx} />
-                ))}
+          <>
+            <Text style={styles.summary}>{summary}</Text>
+            {sections.map((section) => (
+              <View key={section.title}>
+                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <View style={styles.list}>
+                  {section.data.map((tx) => (
+                    <TransactionRow key={tx.id} tx={tx} />
+                  ))}
+                </View>
               </View>
-            </View>
-          ))
+            ))}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
