@@ -1,90 +1,83 @@
 import { EXPENSE_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
+import { useToast } from '@/context/ToastContext';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { saveCategoryBudgets } from '@/services/settings';
-import { budgetState, spentByCategory } from '@/utils/budgets';
+import { buildBudgetStatuses, spentByCategory } from '@/utils/budgets';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import BudgetCard from './components/BudgetCard';
+import BudgetEditorSheet from './components/BudgetEditorSheet';
+import BudgetSummary from './components/BudgetSummary';
+import UnbudgetedRow from './components/UnbudgetedRow';
 import { styles } from './BudgetsScreen.styles';
-
-const STATE_COLOR = {
-  ok: Corpus.income,
-  warning: Corpus.warning,
-  over: Corpus.danger,
-};
-
-// Turn the saved map into editable text drafts: { food: "8000", ... }
-function toDrafts(budgets: Record<string, number> | undefined): Record<string, string> {
-  const drafts: Record<string, string> = {};
-  for (const [id, value] of Object.entries(budgets ?? {})) drafts[id] = String(value);
-  return drafts;
-}
-
-// Same limits, regardless of key order?
-function sameBudgets(a: Record<string, number>, b: Record<string, number>): boolean {
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  return keysA.length === keysB.length && keysA.every((k) => a[k] === b[k]);
-}
 
 export default function BudgetsScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const { settings, loading: settingsLoading } = useSettings();
   const { transactions, loading: txLoading } = useTransactions('month');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Refresh drafts whenever the saved budgets change
   const saved = settings.categoryBudgets ?? {};
-  const savedKey = Object.keys(saved)
-    .sort()
-    .map((k) => `${k}:${saved[k]}`)
-    .join(',');
-  useEffect(() => {
-    setDrafts(toDrafts(settings.categoryBudgets));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedKey]);
-
   const spent = spentByCategory(transactions);
+  const active = buildBudgetStatuses(transactions, saved);
+  const unbudgeted = EXPENSE_CATEGORIES.filter((c) => !saved[c.id]).sort(
+    (a, b) => (spent.get(b.id) ?? 0) - (spent.get(a.id) ?? 0)
+  );
 
-  // Parse drafts → numbers; empty means "no budget"
-  const parsed: Record<string, number> = {};
-  const invalid = new Set<string>();
-  for (const [id, text] of Object.entries(drafts)) {
-    if (text.trim() === '') continue;
-    const n = Number(text);
-    if (!Number.isFinite(n) || n <= 0) invalid.add(id);
-    else parsed[id] = n;
-  }
-
-  const isDirty = !sameBudgets(parsed, saved);
-  const canSave = isDirty && invalid.size === 0 && !saving;
-  const limitsTotal = Object.values(parsed).reduce((sum, n) => sum + n, 0);
+  // Summary: the overall monthly budget if set, otherwise the budgeted categories combined
   const monthly = settings.monthlyBudget;
+  const allSpent = transactions
+    .filter((t) => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+  const summary = monthly
+    ? { title: 'This month', spent: allSpent, limit: monthly }
+    : active.length > 0
+    ? {
+        title: 'Budgeted categories',
+        spent: active.reduce((sum, b) => sum + b.spent, 0),
+        limit: active.reduce((sum, b) => sum + b.limit, 0),
+      }
+    : null;
+
+  const editingCategory = EXPENSE_CATEGORIES.find((c) => c.id === editingId) ?? null;
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const openSettings = () => router.push('/settings' as Href);
 
-  const handleSave = async () => {
-    if (!canSave) return;
-    setSaving(true);
-    setError(null);
+  const handleSave = async (limit: number) => {
+    if (!editingCategory) return;
     try {
-      await saveCategoryBudgets(parsed);
-      setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 2000);
+      await saveCategoryBudgets({ ...saved, [editingCategory.id]: limit });
+      setEditingId(null);
+      showToast({ message: `${editingCategory.label} budget set to ${formatINR(limit)}` });
     } catch (e) {
-      console.error('Save budgets failed:', e);
-      setError('Could not save budgets. Try again.');
-    } finally {
-      setSaving(false);
+      console.error('Save budget failed:', e);
+      showToast({ message: 'Could not save. Check your connection.' });
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!editingCategory) return;
+    const before = { ...saved };
+    const { [editingCategory.id]: _removed, ...rest } = saved;
+    try {
+      await saveCategoryBudgets(rest);
+      setEditingId(null);
+      showToast({
+        message: `${editingCategory.label} limit removed`,
+        actionLabel: 'Undo',
+        onAction: () => saveCategoryBudgets(before),
+      });
+    } catch (e) {
+      console.error('Remove budget failed:', e);
+      showToast({ message: 'Could not remove. Check your connection.' });
     }
   };
 
@@ -92,20 +85,13 @@ export default function BudgetsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
             <Ionicons name="chevron-back" size={22} color={Corpus.text} />
           </Pressable>
           <Text style={styles.heading}>Budgets</Text>
         </View>
-        <Text style={styles.intro}>
-          Set a monthly limit for the categories you want to watch. Leave a field empty for no limit.
-        </Text>
 
         {loading ? (
           <View style={styles.center}>
@@ -113,93 +99,76 @@ export default function BudgetsScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.totalCard}>
-              <Text style={styles.totalLabel}>CATEGORY LIMITS ADD UP TO</Text>
-              <Text style={styles.totalValue}>{formatINR(limitsTotal)}</Text>
-              {monthly ? (
-                limitsTotal > monthly ? (
-                  <Text style={styles.totalWarn}>
-                    {formatINR(limitsTotal - monthly)} more than your {formatINR(monthly)} monthly budget
-                  </Text>
-                ) : (
-                  <Text style={styles.totalHint}>
-                    Within your {formatINR(monthly)} monthly budget · {formatINR(monthly - limitsTotal)} unassigned
-                  </Text>
-                )
-              ) : (
-                <Text style={styles.totalHint}>Set an overall monthly budget in Settings to compare</Text>
-              )}
-            </View>
-
-            <View style={styles.group}>
-              {EXPENSE_CATEGORIES.map((cat, index) => {
-                const s = spent.get(cat.id) ?? 0;
-                const limit = parsed[cat.id];
-                const state = limit ? budgetState(s, limit) : 'ok';
-                const percent = limit ? Math.min((s / limit) * 100, 100) : 0;
-                const bad = invalid.has(cat.id);
-                return (
-                  <View key={cat.id} style={[styles.row, index > 0 && styles.rowDivider]}>
-                    <View style={styles.rowTop}>
-                      <View style={styles.iconCircle}>
-                        <Ionicons name={cat.icon as any} size={15} color={Corpus.textMuted} />
-                      </View>
-                      <View style={styles.rowBody}>
-                        <Text style={styles.rowLabel}>{cat.label}</Text>
-                        <Text style={styles.rowSpent}>
-                          {limit
-                            ? `${formatINR(s)} of ${formatINR(limit)} this month`
-                            : `${formatINR(s)} spent this month`}
-                        </Text>
-                      </View>
-                      <View style={[styles.limitBox, bad && styles.limitBoxError]}>
-                        <Text style={styles.rupee}>₹</Text>
-                        <TextInput
-                          style={styles.limitInput}
-                          value={drafts[cat.id] ?? ''}
-                          onChangeText={(text) => setDrafts((d) => ({ ...d, [cat.id]: text }))}
-                          placeholder="No limit"
-                          placeholderTextColor={Corpus.textFaint}
-                          keyboardType="numeric"
-                        />
-                      </View>
-                    </View>
-                    {limit ? (
-                      <View style={styles.track}>
-                        <View
-                          style={[
-                            styles.fill,
-                            { width: `${percent}%`, backgroundColor: STATE_COLOR[state] },
-                          ]}
-                        />
-                      </View>
-                    ) : null}
-                  </View>
-                );
-              })}
-            </View>
-
-            <Pressable
-              style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-              onPress={handleSave}
-              disabled={!canSave}
-            >
-              {saving ? (
-                <ActivityIndicator color="#0F1115" />
-              ) : (
-                <Text style={[styles.saveText, !canSave && styles.saveTextDisabled]}>
-                  Save budgets
+            {summary ? (
+              <BudgetSummary title={summary.title} spent={summary.spent} limit={summary.limit} />
+            ) : (
+              <View style={styles.welcome}>
+                <View style={styles.welcomeIcon}>
+                  <Ionicons name="pie-chart-outline" size={24} color={Corpus.gold} />
+                </View>
+                <Text style={styles.welcomeTitle}>Take control of your month</Text>
+                <Text style={styles.welcomeText}>
+                  Pick a category below and set a monthly limit. Corpus will track it live and
+                  tell you how much you can spend per day.
                 </Text>
-              )}
-            </Pressable>
-            {invalid.size > 0 && (
-              <Text style={styles.errorText}>Limits must be numbers greater than 0</Text>
+              </View>
             )}
-            {justSaved && <Text style={styles.savedNote}>Saved ✓</Text>}
-            {error && <Text style={styles.errorText}>{error}</Text>}
+
+            <Pressable style={styles.monthlyLink} onPress={openSettings}>
+              <Ionicons name="wallet-outline" size={14} color={Corpus.textMuted} />
+              <Text style={styles.monthlyText}>
+                {monthly
+                  ? `Overall monthly budget: ${formatINR(monthly)}`
+                  : 'No overall monthly budget set'}
+              </Text>
+              <Text style={styles.monthlyAction}>{monthly ? 'Change' : 'Set'}</Text>
+            </Pressable>
+
+            {active.length > 0 && (
+              <>
+                <View style={styles.sectionRow}>
+                  <Text style={styles.sectionLabel}>ACTIVE BUDGETS</Text>
+                  <Text style={styles.sectionMeta}>Tap to edit</Text>
+                </View>
+                <View style={styles.list}>
+                  {active.map((b) => (
+                    <BudgetCard key={b.categoryId} budget={b} onPress={() => setEditingId(b.categoryId)} />
+                  ))}
+                </View>
+              </>
+            )}
+
+            {unbudgeted.length > 0 && (
+              <>
+                <View style={styles.sectionRow}>
+                  <Text style={styles.sectionLabel}>NOT BUDGETED</Text>
+                  <Text style={styles.sectionMeta}>Sorted by spending</Text>
+                </View>
+                <View style={styles.group}>
+                  {unbudgeted.map((c, i) => (
+                    <UnbudgetedRow
+                      key={c.id}
+                      category={c}
+                      spent={spent.get(c.id) ?? 0}
+                      first={i === 0}
+                      onPress={() => setEditingId(c.id)}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
           </>
         )}
       </ScrollView>
+
+      <BudgetEditorSheet
+        category={editingCategory}
+        spent={editingId ? spent.get(editingId) ?? 0 : 0}
+        currentLimit={editingId ? saved[editingId] : undefined}
+        onClose={() => setEditingId(null)}
+        onSave={handleSave}
+        onRemove={handleRemove}
+      />
     </SafeAreaView>
   );
 }

@@ -73,3 +73,35 @@ export function overallBudget(transactions: Transaction[], monthlyBudget: number
     state: budgetState(spent, monthlyBudget),
   };
 }
+
+// ── Pace & planning helpers (Budgets screen) ────────────────
+
+// Fraction of the month that has passed, counting today (e.g. 20 Oct → 20/31)
+export function monthProgress(now: Date = new Date()): number {
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return now.getDate() / daysInMonth;
+}
+
+// How much you can spend per day for the rest of the month
+export function perDayLeft(remaining: number, now: Date = new Date()): number {
+  if (remaining <= 0) return 0;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInMonth - now.getDate() + 1;
+  return remaining / daysLeft;
+}
+
+export type Pace = 'onTrack' | 'fast' | 'over';
+
+// Compare spending with where you "should" be at this point in the month
+export function spendingPace(spent: number, limit: number, now: Date = new Date()): Pace {
+  if (spent > limit) return 'over';
+  const expectedByNow = limit * monthProgress(now);
+  return spent > expectedByNow * 1.1 ? 'fast' : 'onTrack';
+}
+
+// Suggest a limit from your current pace: projected month spend, rounded up to ₹500
+export function suggestLimit(spent: number, now: Date = new Date()): number | null {
+  if (spent <= 0) return null;
+  const projected = spent / monthProgress(now);
+  return Math.ceil(projected / 500) * 500;
+}

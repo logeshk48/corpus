@@ -74,14 +74,17 @@ export default function HomeScreen() {
           </Pressable>
         </View>
         {hasBudgets ? (
-          <View style={styles.budgets}>
+          <Pressable
+            style={({ pressed }) => [styles.budgets, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push('/budgets')}
+          >
             {overall && (
               <BudgetBar label="Whole month" spent={overall.spent} total={overall.limit} />
             )}
             {topBudgets.map((b) => (
               <BudgetBar key={b.categoryId} label={b.label} spent={b.spent} total={b.limit} />
             ))}
-          </View>
+          </Pressable>
         ) : (
           <Pressable onPress={() => router.push('/budgets')}>
             <Text style={styles.emptyText}>

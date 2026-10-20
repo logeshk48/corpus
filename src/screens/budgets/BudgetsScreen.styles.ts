@@ -32,36 +32,23 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     color: Corpus.text,
   },
-  intro: {
-    fontSize: 12,
-    color: Corpus.textMuted,
-    lineHeight: 18,
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginTop: Space.sm,
   },
-  totalCard: {
-    backgroundColor: Corpus.card,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    padding: Space.md,
-    gap: 6,
-  },
-  totalLabel: {
+  sectionLabel: {
     fontSize: 11,
     color: Corpus.textMuted,
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
   },
-  totalValue: {
-    fontSize: 20,
-    fontWeight: '500',
-    color: Corpus.gold,
-  },
-  totalHint: {
+  sectionMeta: {
     fontSize: 11,
-    color: Corpus.textMuted,
+    color: Corpus.textFaint,
   },
-  totalWarn: {
-    fontSize: 11,
-    color: Corpus.warning,
+  list: {
+    gap: Space.sm + 2,
   },
   group: {
     backgroundColor: Corpus.card,
@@ -70,102 +57,51 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     overflow: 'hidden',
   },
-  row: {
-    paddingHorizontal: Space.md,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  rowDivider: {
-    borderTopWidth: 0.5,
-    borderTopColor: Corpus.border,
-  },
-  rowTop: {
+  monthlyLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Space.sm + 2,
+    gap: Space.sm,
+    paddingVertical: 4,
   },
-  iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Corpus.cardAlt,
+  monthlyText: {
+    flex: 1,
+    fontSize: 12,
+    color: Corpus.textMuted,
+  },
+  monthlyAction: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Corpus.gold,
+  },
+  welcome: {
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    padding: Space.lg,
+    alignItems: 'center',
+    gap: Space.sm,
+  },
+  welcomeIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#2E2712',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Space.xs,
   },
-  rowBody: {
-    flex: 1,
-  },
-  rowLabel: {
-    fontSize: 13,
+  welcomeTitle: {
+    fontSize: 16,
     fontWeight: '500',
     color: Corpus.text,
   },
-  rowSpent: {
-    fontSize: 11,
-    color: Corpus.textMuted,
-    marginTop: 1,
-  },
-  limitBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    width: 112,
-    backgroundColor: Corpus.bg,
-    borderRadius: Radius.sm,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    paddingHorizontal: Space.sm,
-  },
-  limitBoxError: {
-    borderColor: Corpus.danger,
-  },
-  rupee: {
-    fontSize: 13,
-    color: Corpus.textMuted,
-  },
-  limitInput: {
-    flex: 1,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: Corpus.text,
-    textAlign: 'right',
-  },
-  track: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: Corpus.border,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: 5,
-    borderRadius: 3,
-  },
-  saveButton: {
-    backgroundColor: Corpus.gold,
-    borderRadius: Radius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: Corpus.cardAlt,
-  },
-  saveText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0F1115',
-  },
-  saveTextDisabled: {
-    color: Corpus.textFaint,
-  },
-  savedNote: {
+  welcomeText: {
     fontSize: 12,
-    color: Corpus.income,
+    color: Corpus.textMuted,
     textAlign: 'center',
-  },
-  errorText: {
-    fontSize: 12,
-    color: Corpus.danger,
-    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 320,
   },
   center: {
     alignItems: 'center',
