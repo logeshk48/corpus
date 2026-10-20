@@ -4,8 +4,14 @@ import { styles as form } from '@/screens/add/AddScreen.styles';
 import CategoryGrid from '@/screens/add/components/CategoryGrid';
 import SaveButton from '@/screens/add/components/SaveButton';
 import TypeToggle from '@/screens/add/components/TypeToggle';
-import { deleteTransaction, getTransaction, updateTransaction } from '@/services/transactions';
-import type { TxType } from '@/types/transaction';
+import {
+  deleteTransaction,
+  getTransaction,
+  restoreTransaction,
+  updateTransaction,
+} from '@/services/transactions';
+import { useToast } from '@/context/ToastContext';
+import type { Transaction, TxType } from '@/types/transaction';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -52,6 +58,8 @@ export default function EditTransactionScreen() {
   const [note, setNote] = useState('');
   const [day, setDay] = useState(() => new Date());
   const [busy, setBusy] = useState(false);
+  const [original, setOriginal] = useState<Transaction | null>(null); // for Undo
+  const { showToast } = useToast();
 
   // Load the transaction once and pre-fill the form
   useEffect(() => {
@@ -64,6 +72,7 @@ export default function EditTransactionScreen() {
           setNotFound(true);
           return;
         }
+        setOriginal(tx);
         setAmount(String(tx.amount));
         setType(tx.type);
         setCategory(tx.category);
@@ -121,7 +130,16 @@ export default function EditTransactionScreen() {
       setBusy(true);
       try {
         await deleteTransaction(id);
+        const deleted = original; // the version as it was before any edits
         goBack();
+        if (deleted) {
+          const { id: deletedId, ...data } = deleted;
+          showToast({
+            message: 'Transaction deleted',
+            actionLabel: 'Undo',
+            onAction: () => restoreTransaction(deletedId, data),
+          });
+        }
       } catch (e) {
         console.error('Delete failed:', e);
         notify('Could not delete. Try again.');

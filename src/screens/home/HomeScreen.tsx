@@ -1,5 +1,6 @@
 import { Corpus } from '@/constants/theme';
 import { useTransactions } from '@/hooks/useTransactions';
+import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +24,12 @@ export default function HomeScreen() {
     .filter((t) => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
 
+  // Today is always inside this month, so filter the month's list — no extra query
+  const todayRange = getRange('today');
+  const spentToday = transactions
+    .filter((t) => t.type === 'expense' && isInRange(t.date, todayRange))
+    .reduce((sum, t) => sum + t.amount, 0);
+
   const recent = transactions.slice(0, 5);
 
   return (
@@ -35,8 +42,9 @@ export default function HomeScreen() {
         <HomeHeader />
         <HeroCard />
         <View style={styles.statsRow}>
-          <StatCard label="Income this month" value={formatINR(income)} />
-          <StatCard label="Spent this month" value={formatINR(spent)} />
+          <StatCard label="Spent today" value={formatINR(spentToday)} />
+          <StatCard label="Month income" value={formatINR(income)} />
+          <StatCard label="Month spent" value={formatINR(spent)} />
         </View>
 
         <Text style={styles.sectionTitle}>Budgets</Text>

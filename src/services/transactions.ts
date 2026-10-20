@@ -11,6 +11,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -95,4 +96,13 @@ export function subscribeTransactions(
     },
     onError
   );
+}
+
+// RESTORE: put a deleted transaction back under its ORIGINAL id (used by Undo).
+// Keeps its original createdAt if we have it, otherwise stamps a new one.
+export async function restoreTransaction(id: string, tx: NewTransaction) {
+  await setDoc(doc(txCollection(), id), {
+    createdAt: serverTimestamp(),
+    ...clean(tx),
+  });
 }
