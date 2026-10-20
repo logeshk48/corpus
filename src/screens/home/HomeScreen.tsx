@@ -1,11 +1,13 @@
 import { Corpus } from '@/constants/theme';
+import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
+import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, useRouter } from 'expo-router';
+import { Link, useRouter, type Href } from 'expo-router';
 import BudgetBar from './components/BudgetBar';
 import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
@@ -16,6 +18,12 @@ import { styles } from './HomeScreen.styles';
 export default function HomeScreen() {
   const router = useRouter();
   const { transactions, loading, error } = useTransactions('month');
+  const { settings } = useSettings();
+
+  // Real budgets: overall month + the 3 categories closest to their limit
+  const overall = overallBudget(transactions, settings.monthlyBudget);
+  const topBudgets = buildBudgetStatuses(transactions, settings.categoryBudgets).slice(0, 3);
+  const hasBudgets = overall !== null || topBudgets.length > 0;
 
   const income = transactions
     .filter((t) => t.type === 'income')
@@ -50,7 +58,7 @@ export default function HomeScreen() {
 
         <Pressable
           style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/income')}
+          onPress={() => router.push('/income' as Href)}
         >
           <View style={styles.linkIcon}>
             <Ionicons name="git-branch-outline" size={16} color={Corpus.income} />
@@ -59,12 +67,28 @@ export default function HomeScreen() {
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>
 
-        <Text style={styles.sectionTitle}>Budgets</Text>
-        <View style={styles.budgets}>
-          <BudgetBar label="Food" spent={6200} total={8000} />
-          <BudgetBar label="Travel" spent={3450} total={4000} />
-          <BudgetBar label="Shopping" spent={4800} total={4000} />
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitleInline}>Budgets</Text>
+          <Pressable onPress={() => router.push('/budgets')} hitSlop={8}>
+            <Text style={styles.viewAll}>{hasBudgets ? 'Manage' : 'Set up'}</Text>
+          </Pressable>
         </View>
+        {hasBudgets ? (
+          <View style={styles.budgets}>
+            {overall && (
+              <BudgetBar label="Whole month" spent={overall.spent} total={overall.limit} />
+            )}
+            {topBudgets.map((b) => (
+              <BudgetBar key={b.categoryId} label={b.label} spent={b.spent} total={b.limit} />
+            ))}
+          </View>
+        ) : (
+          <Pressable onPress={() => router.push('/budgets')}>
+            <Text style={styles.emptyText}>
+              No budgets yet. Set monthly limits to see how your spending is tracking.
+            </Text>
+          </Pressable>
+        )}
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitleInline}>Recent</Text>

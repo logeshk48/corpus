@@ -27,3 +27,14 @@ export function subscribeSettings(
 export async function saveSettings(changes: Partial<Settings>) {
   await setDoc(settingsDoc(), toUpdateData(changes), { merge: true });
 }
+
+// SAVE CATEGORY BUDGETS: replaces the whole map.
+// (A plain merge would deep-merge maps, so a budget you removed would
+//  silently survive. `mergeFields` overwrites just this one field entirely.)
+export async function saveCategoryBudgets(budgets: Record<string, number>) {
+  await setDoc(
+    settingsDoc(),
+    { categoryBudgets: budgets },
+    { mergeFields: ['categoryBudgets'] }
+  );
+}

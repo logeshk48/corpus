@@ -15,6 +15,7 @@ export default function RootLayout() {
             <Stack.Screen name="edit/[id]" />
             <Stack.Screen name="income/index" />
             <Stack.Screen name="income/[id]" />
+            <Stack.Screen name="budgets" />
           </Stack>
         </AuthGate>
       </ToastProvider>

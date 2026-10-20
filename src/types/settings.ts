@@ -1,6 +1,7 @@
 export type Settings = {
   displayName?: string;   // shown in the Home greeting
   monthlyBudget?: number; // total spending budget per month, in INR
+  categoryBudgets?: Record<string, number>; // expense category id → monthly limit, e.g. { food: 8000 }
   currency: 'INR';
 };
 

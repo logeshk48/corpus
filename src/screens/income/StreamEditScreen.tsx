@@ -12,7 +12,7 @@ import {
 } from '@/services/incomeStreams';
 import { STREAM_TYPES, type StreamType } from '@/types/incomeStream';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -105,7 +105,7 @@ export default function StreamEditScreen() {
     }
   }, [existing, prefilled]);
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/income'));
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/income' as Href));
 
   const expectedNumber = expected.trim() === '' ? undefined : Number(expected);
   const expectedInvalid =

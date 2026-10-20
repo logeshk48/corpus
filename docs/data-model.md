@@ -42,6 +42,7 @@ TypeScript source of truth: `src/types/transaction.ts`
 |---------------|---------|-----------------------------------------|
 | displayName   | string? | Shown in the Home greeting              |
 | monthlyBudget | number? | Total monthly spending budget, INR      |
+| categoryBudgets | map? | Expense category id → monthly limit, e.g. `{ food: 8000 }` |
 | currency      | string  | `"INR"` (only option for now)           |
 
 Missing fields fall back to `DEFAULT_SETTINGS` (`src/types/settings.ts`).
