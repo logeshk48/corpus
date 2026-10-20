@@ -37,6 +37,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  linkIconGold: {
+    backgroundColor: '#2E2712',
+  },
+  linkValue: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Corpus.gold,
+  },
   linkText: {
     flex: 1,
     fontSize: 13,

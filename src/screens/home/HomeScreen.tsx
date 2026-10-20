@@ -2,6 +2,7 @@ import { Corpus } from '@/constants/theme';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
+import { hasVaults, vaultTotals } from '@/utils/vaults';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   const overall = overallBudget(transactions, settings.monthlyBudget);
   const topBudgets = buildBudgetStatuses(transactions, settings.categoryBudgets).slice(0, 3);
   const hasBudgets = overall !== null || topBudgets.length > 0;
+  const vaults = vaultTotals(transactions, settings);
 
   const income = transactions
     .filter((t) => t.type === 'income')
@@ -64,6 +66,20 @@ export default function HomeScreen() {
             <Ionicons name="git-branch-outline" size={16} color={Corpus.income} />
           </View>
           <Text style={styles.linkText}>Income streams</Text>
+          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/vaults')}
+        >
+          <View style={[styles.linkIcon, styles.linkIconGold]}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={Corpus.gold} />
+          </View>
+          <Text style={styles.linkText}>Vaults</Text>
+          <Text style={styles.linkValue}>
+            {hasVaults(settings) ? `${formatINR(vaults.reserved)} set aside` : 'Set up'}
+          </Text>
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>
 

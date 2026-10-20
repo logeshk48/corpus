@@ -43,6 +43,10 @@ TypeScript source of truth: `src/types/transaction.ts`
 | displayName   | string? | Shown in the Home greeting              |
 | monthlyBudget | number? | Total monthly spending budget, INR      |
 | categoryBudgets | map? | Expense category id → monthly limit, e.g. `{ food: 8000 }` |
+| taxVaultPercent | number? | % of taxable income reserved for tax |
+| savingsVaultPercent | number? | % of all income reserved for savings |
+| taxIncludesSalary | boolean? | Apply the tax vault to salary too (default false — TDS) |
+| vaultMoved | map? | `'YYYY-MM'` → `{ tax, savings }` amounts the user marked as transferred |
 | currency      | string  | `"INR"` (only option for now)           |
 
 Missing fields fall back to `DEFAULT_SETTINGS` (`src/types/settings.ts`).
