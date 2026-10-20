@@ -27,6 +27,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateStepper from '@/components/DateStepper';
+import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
+import type { IncomeStream } from '@/types/incomeStream';
 import { styles } from './EditTransactionScreen.styles';
 
 function notify(message: string) {
@@ -57,6 +59,7 @@ export default function EditTransactionScreen() {
   const [category, setCategory] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [day, setDay] = useState(() => new Date());
+  const [streamId, setStreamId] = useState(NO_STREAM);
   const [busy, setBusy] = useState(false);
   const [original, setOriginal] = useState<Transaction | null>(null); // for Undo
   const { showToast } = useToast();
@@ -77,6 +80,7 @@ export default function EditTransactionScreen() {
         setType(tx.type);
         setCategory(tx.category);
         setNote(tx.note ?? '');
+        setStreamId(tx.streamId ?? NO_STREAM);
         setDay(new Date(tx.date));
       })
       .catch((e) => {
@@ -102,7 +106,15 @@ export default function EditTransactionScreen() {
   const handleTypeChange = (newType: TxType) => {
     setType(newType);
     setCategory(null);
+    setStreamId(NO_STREAM);
   };
+
+  // Picking a stream also picks the matching income category (ids line up)
+  const handleStreamChange = (id: string, stream?: IncomeStream) => {
+    setStreamId(id);
+    if (stream) setCategory(stream.type);
+  };
+
 
   const handleSave = async () => {
     if (!id || !isValid || !category) return;
@@ -113,6 +125,8 @@ export default function EditTransactionScreen() {
         amount: Number(amount),
         category,
         note: note.trim() || undefined, // empty note → field removed
+        // switching to expense or None removes the link
+        streamId: type === 'income' && streamId !== NO_STREAM ? streamId : undefined,
         date: day.toISOString(), // stepper keeps the original time of day
       });
       goBack();
@@ -193,6 +207,13 @@ export default function EditTransactionScreen() {
 
             <Text style={form.sectionLabel}>DATE</Text>
             <DateStepper value={day} onChange={setDay} />
+
+            {type === 'income' && (
+              <>
+                <Text style={form.sectionLabel}>FROM</Text>
+                <StreamPicker value={streamId} onChange={handleStreamChange} />
+              </>
+            )}
 
             <Text style={form.sectionLabel}>CATEGORY</Text>
             <CategoryGrid categories={categories} selected={category} onSelect={setCategory} />

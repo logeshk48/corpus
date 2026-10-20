@@ -6,7 +6,7 @@ All user data lives under one root, protected by security rules
 ```
 users/{uid}/
 ├── transactions/{txId}      ← live (Day 9)
-├── incomeStreams/{streamId} ← Day 16
+├── incomeStreams/{streamId} ← live (Day 15)
 ├── investments/{invId}      ← Day 39
 └── settings/main            ← live (Day 13)
 ```
@@ -20,6 +20,7 @@ users/{uid}/
 | category    | string    | Category id, e.g. `"food"`, `"salary"`     |
 | note        | string?   | Optional, omitted when empty               |
 | date        | string    | ISO 8601 — when the money moved            |
+| streamId    | string?   | Income only — links to incomeStreams/{id}  |
 | recurringId | string?   | Set for auto-logged recurring items        |
 | createdAt   | timestamp | Server time — when the record was saved    |
 
@@ -44,4 +45,16 @@ TypeScript source of truth: `src/types/transaction.ts`
 | currency      | string  | `"INR"` (only option for now)           |
 
 Missing fields fall back to `DEFAULT_SETTINGS` (`src/types/settings.ts`).
+
+## incomeStreams/{streamId}
+
+| Field           | Type      | Notes                                         |
+|-----------------|-----------|-----------------------------------------------|
+| name            | string    | e.g. "Salary", "Zenith Studio"                |
+| type            | string    | `salary` · `client` · `business` · `other`    |
+| expectedMonthly | number?   | Expected income per month, INR                |
+| createdAt       | timestamp | Server time                                   |
+
+Deleting a stream does not touch past transactions; their `streamId`
+simply no longer resolves and they show as unlinked income.
 

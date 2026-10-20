@@ -2,7 +2,8 @@ import { Corpus } from '@/constants/theme';
 import { useTransactions } from '@/hooks/useTransactions';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import BudgetBar from './components/BudgetBar';
@@ -46,6 +47,17 @@ export default function HomeScreen() {
           <StatCard label="Month income" value={formatINR(income)} />
           <StatCard label="Month spent" value={formatINR(spent)} />
         </View>
+
+        <Pressable
+          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/income')}
+        >
+          <View style={styles.linkIcon}>
+            <Ionicons name="git-branch-outline" size={16} color={Corpus.income} />
+          </View>
+          <Text style={styles.linkText}>Income streams</Text>
+          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
+        </Pressable>
 
         <Text style={styles.sectionTitle}>Budgets</Text>
         <View style={styles.budgets}>

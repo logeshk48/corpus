@@ -3,7 +3,6 @@ import {
   addDoc,
   collection,
   deleteDoc,
-  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -16,19 +15,13 @@ import {
   where,
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { clean, toUpdateData } from './firestoreUtils';
 
 // The signed-in user's transactions folder
 function txCollection() {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error('Not signed in');
   return collection(db, 'users', uid, 'transactions');
-}
-
-// Firestore rejects `undefined` values, so drop empty optional fields
-function clean<T extends object>(obj: T) {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, value]) => value !== undefined)
-  );
 }
 
 // CREATE: returns the new transaction's id
@@ -63,11 +56,7 @@ export async function getTransaction(id: string): Promise<Transaction | null> {
 // A field passed as `undefined` is REMOVED (e.g. clearing a note);
 // fields you don't pass at all are left untouched.
 export async function updateTransaction(id: string, changes: Partial<NewTransaction>) {
-  const data: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(changes)) {
-    data[key] = value === undefined ? deleteField() : value;
-  }
-  await updateDoc(doc(txCollection(), id), data);
+  await updateDoc(doc(txCollection(), id), toUpdateData(changes));
 }
 
 // DELETE

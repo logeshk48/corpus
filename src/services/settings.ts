@@ -1,6 +1,7 @@
 import { DEFAULT_SETTINGS, type Settings } from '@/types/settings';
-import { deleteField, doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { toUpdateData } from './firestoreUtils';
 
 // One document per user: users/{uid}/settings/main
 function settingsDoc() {
@@ -24,9 +25,5 @@ export function subscribeSettings(
 // SAVE: merges the fields you pass; a field passed as `undefined` is removed.
 // Works even if the document doesn't exist yet (merge creates it).
 export async function saveSettings(changes: Partial<Settings>) {
-  const data: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(changes)) {
-    data[key] = value === undefined ? deleteField() : value;
-  }
-  await setDoc(settingsDoc(), data, { merge: true });
+  await setDoc(settingsDoc(), toUpdateData(changes), { merge: true });
 }

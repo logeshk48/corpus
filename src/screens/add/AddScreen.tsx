@@ -6,6 +6,8 @@ import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateStepper from '@/components/DateStepper';
 import { withTimeOf } from '@/utils/dates';
+import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
+import type { IncomeStream } from '@/types/incomeStream';
 import { styles } from './AddScreen.styles';
 import CategoryGrid from './components/CategoryGrid';
 import SaveButton from './components/SaveButton';
@@ -25,6 +27,7 @@ export default function AddScreen() {
   const [category, setCategory] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [day, setDay] = useState(() => new Date());
+  const [streamId, setStreamId] = useState(NO_STREAM);
   const [saving, setSaving] = useState(false);
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
@@ -33,7 +36,15 @@ export default function AddScreen() {
   const handleTypeChange = (newType: TxType) => {
     setType(newType);
     setCategory(null);
+    setStreamId(NO_STREAM);
   };
+
+  // Picking a stream also picks the matching income category (ids line up)
+  const handleStreamChange = (id: string, stream?: IncomeStream) => {
+    setStreamId(id);
+    if (stream) setCategory(stream.type);
+  };
+
 
   const handleSave = async () => {
     if (!isValid || !category) return;
@@ -45,6 +56,7 @@ export default function AddScreen() {
         amount: Number(amount),
         category,
         note: note.trim() || undefined,
+        streamId: type === 'income' && streamId !== NO_STREAM ? streamId : undefined,
         date: withTimeOf(day, new Date()).toISOString(), // chosen day, current time
       });
       console.log('Saved to Firestore:', id);
@@ -57,6 +69,7 @@ export default function AddScreen() {
       setCategory(null);
       setNote('');
       setDay(new Date()); // next entry defaults to today again
+      setStreamId(NO_STREAM);
     } catch (e: any) {
       console.error('Save failed:', e);
       notify('Could not save', 'Something went wrong. Check your connection and try again.');
@@ -94,6 +107,13 @@ export default function AddScreen() {
 
         <Text style={styles.sectionLabel}>DATE</Text>
         <DateStepper value={day} onChange={setDay} />
+
+        {type === 'income' && (
+          <>
+            <Text style={styles.sectionLabel}>FROM</Text>
+            <StreamPicker value={streamId} onChange={handleStreamChange} />
+          </>
+        )}
 
         <Text style={styles.sectionLabel}>CATEGORY</Text>
         <CategoryGrid

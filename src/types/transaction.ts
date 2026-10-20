@@ -7,6 +7,7 @@ export type Transaction = {
   category: string;
   note?: string;
   date: string;          // ISO string: when the money moved
+  streamId?: string;     // income only: which income stream it came from
   recurringId?: string;  // set later for auto-logged bills (Day 23)
 };
 

@@ -1,4 +1,4 @@
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Radius, Space } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -17,6 +17,31 @@ export const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: Space.sm + 2,
+  },
+  linkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm + 4,
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.md,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    paddingVertical: 12,
+    paddingHorizontal: Space.md,
+  },
+  linkIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#1D2A22',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: Corpus.text,
   },
   sectionTitle: {
     fontSize: 13,

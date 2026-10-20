@@ -4,6 +4,7 @@ import { Corpus, Space } from '@/constants/theme';
 export const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Space.sm,
   },
   chip: {
