@@ -8,7 +8,7 @@ users/{uid}/
 ├── transactions/{txId}      ← live (Day 9)
 ├── incomeStreams/{streamId} ← Day 16
 ├── investments/{invId}      ← Day 39
-└── settings (doc)           ← Day 15 / 18
+└── settings/main            ← live (Day 13)
 ```
 
 ## transactions/{txId}
@@ -34,3 +34,14 @@ TypeScript source of truth: `src/types/transaction.ts`
   (`₹6,200`) happens only in the UI with `toLocaleString('en-IN')`.
 - **No `undefined` fields** — the service layer strips them before writing.
 - Screens never call Firestore directly; they go through `src/services/*`.
+
+## settings/main
+
+| Field         | Type    | Notes                                   |
+|---------------|---------|-----------------------------------------|
+| displayName   | string? | Shown in the Home greeting              |
+| monthlyBudget | number? | Total monthly spending budget, INR      |
+| currency      | string  | `"INR"` (only option for now)           |
+
+Missing fields fall back to `DEFAULT_SETTINGS` (`src/types/settings.ts`).
+
