@@ -3,6 +3,9 @@ import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
 import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
+import { computeSafeToSpend } from '@/utils/safeToSpend';
+import { useState } from 'react';
+import SafeToSpendSheet from './components/SafeToSpendSheet';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +23,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const { transactions, loading, error } = useTransactions('month');
   const { settings } = useSettings();
-  const { vaults, total: jarsTotal } = useVaults();
+  const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
+  const [showSafe, setShowSafe] = useState(false);
+
+  // The heart of Corpus: how much can I safely spend today?
+  const safe = computeSafeToSpend({
+    monthTransactions: transactions,
+    jars: vaults,
+    monthlyBudget: settings.monthlyBudget,
+  });
 
   // Real budgets: overall month + the 3 categories closest to their limit
   const overall = overallBudget(transactions, settings.monthlyBudget);
@@ -51,7 +62,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <HomeHeader />
-        <HeroCard />
+        <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
         <View style={styles.statsRow}>
           <StatCard label="Spent today" value={formatINR(spentToday)} />
           <StatCard label="Month income" value={formatINR(income)} />
@@ -135,6 +146,7 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+      <SafeToSpendSheet visible={showSafe} result={safe} onClose={() => setShowSafe(false)} />
     </SafeAreaView>
   );
 }
