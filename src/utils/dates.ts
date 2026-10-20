@@ -1,4 +1,4 @@
-export type Period = 'today' | 'week' | 'month' | 'year';
+export type Period = 'today' | 'week' | 'month' | 'year' | 'last12Months';
 
 export type DateRange = {
   start: Date; // inclusive
@@ -36,6 +36,12 @@ export function getRange(period: Period, now: Date = new Date()): DateRange {
     case 'year': {
       const start = new Date(now.getFullYear(), 0, 1);
       const end = new Date(now.getFullYear() + 1, 0, 1);
+      return { start, end };
+    }
+    case 'last12Months': {
+      // e.g. on 20 Oct 2026: 1 Nov 2025 → 1 Nov 2026
+      const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       return { start, end };
     }
   }

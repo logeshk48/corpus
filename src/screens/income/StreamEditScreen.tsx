@@ -54,7 +54,7 @@ export default function StreamEditScreen() {
   const existing = isNew ? undefined : streams.find((s) => s.id === id);
 
   // Payments from this stream (this year, newest first)
-  const { transactions: yearTx } = useTransactions('year');
+  const { transactions: yearTx } = useTransactions('last12Months');
   const payments = isNew
     ? []
     : yearTx.filter((t) => t.type === 'income' && t.streamId === id);
@@ -62,8 +62,32 @@ export default function StreamEditScreen() {
   const monthTotal = payments
     .filter((t) => isInRange(t.date, monthRange))
     .reduce((sum, t) => sum + t.amount, 0);
-  const yearTotal = payments.reduce((sum, t) => sum + t.amount, 0);
+  const yearRange = getRange('year');
+  const yearTotal = payments
+    .filter((t) => isInRange(t.date, yearRange))
+    .reduce((sum, t) => sum + t.amount, 0);
   const shownPayments = payments.slice(0, 10);
+
+  // Month-by-month totals for the last 12 months, newest first
+  const now = new Date();
+  const history = Array.from({ length: 12 }, (_, i) => {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    const total = payments
+      .filter((t) => isInRange(t.date, { start: monthStart, end: monthEnd }))
+      .reduce((sum, t) => sum + t.amount, 0);
+    return {
+      key: `${monthStart.getFullYear()}-${monthStart.getMonth()}`,
+      label: monthStart.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+      total,
+    };
+  });
+  // Bars measure against the expected amount, or the best month if none is set
+  const barScale = Math.max(
+    existing?.expectedMonthly ?? 0,
+    ...history.map((h) => h.total),
+    1
+  );
 
   const [name, setName] = useState('');
   const [type, setType] = useState<StreamType>('salary');
@@ -168,7 +192,29 @@ export default function StreamEditScreen() {
               </View>
             </View>
 
-            <Text style={styles.label}>PAYMENTS THIS YEAR</Text>
+            <Text style={styles.label}>MONTHLY HISTORY</Text>
+            <View style={styles.history}>
+              {history.map((m) => (
+                <View key={m.key} style={styles.historyRow}>
+                  <Text style={styles.historyMonth}>{m.label}</Text>
+                  <View style={styles.historyTrack}>
+                    {m.total > 0 && (
+                      <View
+                        style={[
+                          styles.historyFill,
+                          { width: `${Math.min((m.total / barScale) * 100, 100)}%` },
+                        ]}
+                      />
+                    )}
+                  </View>
+                  <Text style={[styles.historyAmount, m.total === 0 && styles.historyNone]}>
+                    {m.total > 0 ? formatINR(m.total) : '—'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <Text style={styles.label}>RECENT PAYMENTS</Text>
             {shownPayments.length === 0 ? (
               <Text style={styles.hint}>
                 No payments linked yet. When you add income, choose this stream under FROM.

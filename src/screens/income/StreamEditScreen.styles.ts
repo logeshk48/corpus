@@ -55,6 +55,48 @@ export const styles = StyleSheet.create({
     color: Corpus.income,
     marginTop: 2,
   },
+  history: {
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    paddingVertical: Space.sm,
+    paddingHorizontal: Space.md,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm + 2,
+    paddingVertical: 7,
+  },
+  historyMonth: {
+    width: 64,
+    fontSize: 12,
+    color: Corpus.textMuted,
+  },
+  historyTrack: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Corpus.border,
+    overflow: 'hidden',
+  },
+  historyFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Corpus.income,
+  },
+  historyAmount: {
+    width: 78,
+    textAlign: 'right',
+    fontSize: 12,
+    fontWeight: '500',
+    color: Corpus.text,
+  },
+  historyNone: {
+    color: Corpus.textFaint,
+    fontWeight: '400',
+  },
   payments: {
     gap: Space.md,
   },
