@@ -20,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateStepper from '@/components/DateStepper';
 import { styles } from './EditTransactionScreen.styles';
 
 function notify(message: string) {
@@ -49,6 +50,7 @@ export default function EditTransactionScreen() {
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const [day, setDay] = useState(() => new Date());
   const [busy, setBusy] = useState(false);
 
   // Load the transaction once and pre-fill the form
@@ -66,6 +68,7 @@ export default function EditTransactionScreen() {
         setType(tx.type);
         setCategory(tx.category);
         setNote(tx.note ?? '');
+        setDay(new Date(tx.date));
       })
       .catch((e) => {
         console.error('Load failed:', e);
@@ -101,6 +104,7 @@ export default function EditTransactionScreen() {
         amount: Number(amount),
         category,
         note: note.trim() || undefined, // empty note → field removed
+        date: day.toISOString(), // stepper keeps the original time of day
       });
       goBack();
     } catch (e) {
@@ -168,6 +172,9 @@ export default function EditTransactionScreen() {
                 />
               </View>
             </View>
+
+            <Text style={form.sectionLabel}>DATE</Text>
+            <DateStepper value={day} onChange={setDay} />
 
             <Text style={form.sectionLabel}>CATEGORY</Text>
             <CategoryGrid categories={categories} selected={category} onSelect={setCategory} />

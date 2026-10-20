@@ -52,3 +52,29 @@ export function daysLeftInMonth(now: Date = new Date()): number {
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   return lastDay - now.getDate() + 1;
 }
+// ── Day helpers (used by the date stepper) ─────────────────
+export function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r; // keeps the time of day
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+// The calendar day of `day` with the clock time of `time`
+export function withTimeOf(day: Date, time: Date): Date {
+  return new Date(
+    day.getFullYear(),
+    day.getMonth(),
+    day.getDate(),
+    time.getHours(),
+    time.getMinutes(),
+    time.getSeconds()
+  );
+}

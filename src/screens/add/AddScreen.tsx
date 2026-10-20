@@ -4,6 +4,8 @@ import { addTransaction } from '@/services/transactions';
 import { useState } from 'react';
 import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateStepper from '@/components/DateStepper';
+import { withTimeOf } from '@/utils/dates';
 import { styles } from './AddScreen.styles';
 import CategoryGrid from './components/CategoryGrid';
 import SaveButton from './components/SaveButton';
@@ -22,6 +24,7 @@ export default function AddScreen() {
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
   const [note, setNote] = useState('');
+  const [day, setDay] = useState(() => new Date());
   const [saving, setSaving] = useState(false);
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
@@ -42,7 +45,7 @@ export default function AddScreen() {
         amount: Number(amount),
         category,
         note: note.trim() || undefined,
-        date: new Date().toISOString(),
+        date: withTimeOf(day, new Date()).toISOString(), // chosen day, current time
       });
       console.log('Saved to Firestore:', id);
 
@@ -53,6 +56,7 @@ export default function AddScreen() {
       setAmount('');
       setCategory(null);
       setNote('');
+      setDay(new Date()); // next entry defaults to today again
     } catch (e: any) {
       console.error('Save failed:', e);
       notify('Could not save', 'Something went wrong. Check your connection and try again.');
@@ -87,6 +91,9 @@ export default function AddScreen() {
             />
           </View>
         </View>
+
+        <Text style={styles.sectionLabel}>DATE</Text>
+        <DateStepper value={day} onChange={setDay} />
 
         <Text style={styles.sectionLabel}>CATEGORY</Text>
         <CategoryGrid
