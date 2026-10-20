@@ -1,8 +1,8 @@
 import { Corpus } from '@/constants/theme';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useVaults } from '@/hooks/useVaults';
 import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
-import { hasVaults, vaultTotals } from '@/utils/vaults';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,12 +20,12 @@ export default function HomeScreen() {
   const router = useRouter();
   const { transactions, loading, error } = useTransactions('month');
   const { settings } = useSettings();
+  const { vaults, total: jarsTotal } = useVaults();
 
   // Real budgets: overall month + the 3 categories closest to their limit
   const overall = overallBudget(transactions, settings.monthlyBudget);
   const topBudgets = buildBudgetStatuses(transactions, settings.categoryBudgets).slice(0, 3);
   const hasBudgets = overall !== null || topBudgets.length > 0;
-  const vaults = vaultTotals(transactions, settings);
 
   const income = transactions
     .filter((t) => t.type === 'income')
@@ -74,11 +74,11 @@ export default function HomeScreen() {
           onPress={() => router.push('/vaults')}
         >
           <View style={[styles.linkIcon, styles.linkIconGold]}>
-            <Ionicons name="shield-checkmark-outline" size={16} color={Corpus.gold} />
+            <Ionicons name="file-tray-stacked-outline" size={16} color={Corpus.gold} />
           </View>
           <Text style={styles.linkText}>Vaults</Text>
           <Text style={styles.linkValue}>
-            {hasVaults(settings) ? `${formatINR(vaults.reserved)} set aside` : 'Set up'}
+            {vaults.length > 0 ? `${formatINR(jarsTotal)} in jars` : 'Start a jar'}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>

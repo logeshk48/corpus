@@ -1,110 +1,117 @@
+import { findCategory } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
-import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
-import { saveSettings } from '@/services/settings';
+import { useVaults } from '@/hooks/useVaults';
+import { addVault, addVaultEntry, deleteVault, updateVault } from '@/services/vaults';
+import { STARTER_VAULTS, type NewVault, type VaultEntryType, type VaultWithBalance } from '@/types/vault';
 import { formatINR } from '@/utils/format';
-import { hasVaults, monthKey, movedThisMonth, vaultTotals, VAULT_PROFILES } from '@/utils/vaults';
+import {
+  averageMonthlyExpenses,
+  jarPlan,
+  recommendedEmergencyMonths,
+  savingStreak,
+} from '@/utils/jarInsights';
+import { suggestJarTip } from '@/utils/jarTips';
+import { moneyMovedMessage } from './celebrate';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import IncomeSplitCard, { VAULT_COLORS } from './components/IncomeSplitCard';
-import IncomeSplitList from './components/IncomeSplitList';
-import QuickSetup from './components/QuickSetup';
-import VaultCard from './components/VaultCard';
-import VaultEditorSheet, { type VaultKind } from './components/VaultEditorSheet';
+import JarCard from './components/JarCard';
+import JarSheet, { type JarSheetMode } from './components/JarSheet';
+import MoneySheet from './components/MoneySheet';
+import StarterJars from './components/StarterJars';
 import { styles } from './VaultsScreen.styles';
 
-type Profile = (typeof VAULT_PROFILES)[number];
+type MoneyMode = { jarId: string; type: VaultEntryType; amount?: number } | null;
 
 export default function VaultsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { settings, loading: settingsLoading } = useSettings();
-  const { transactions: monthTx, loading: monthLoading } = useTransactions('month');
-  const { transactions: yearTx, loading: yearLoading } = useTransactions('year');
-  const [editing, setEditing] = useState<VaultKind | null>(null);
-  const [showHelp, setShowHelp] = useState<boolean | null>(null); // null = automatic
+  const { vaults, entries, total, addedThisMonth, loading } = useVaults();
+  const { transactions: monthTx } = useTransactions('month');
+  const { transactions: yearTx } = useTransactions('last12Months');
 
-  const month = vaultTotals(monthTx, settings);
-  const year = vaultTotals(yearTx, settings);
-  const taxPct = settings.taxVaultPercent ?? 0;
-  const savingsPct = settings.savingsVaultPercent ?? 0;
-  const includeSalary = settings.taxIncludesSalary ?? false;
-  const active = hasVaults(settings);
-  const incomes = monthTx.filter((t) => t.type === 'income');
-  const helpOpen = showHelp ?? !active; // open by default until vaults are set up
+  // Context for smart insights
+  const context = {
+    avgExpenses: averageMonthlyExpenses(yearTx),
+    recommendedMonths: recommendedEmergencyMonths(yearTx),
+  };
+  const streak = savingStreak(entries);
 
-  // Worked example on a ₹10,000 payment, using your % (or freelancer defaults)
-  const exTax = active ? taxPct : 15;
-  const exSav = active ? savingsPct : 20;
-  const example = { tax: 10000 * (exTax / 100), savings: 10000 * (exSav / 100) };
+  // This month's plan across every jar that has a goal + target date
+  let planTotal = 0;
+  let planDone = 0;
+  for (const v of vaults) {
+    const p = jarPlan(v);
+    if (!p || p.status === 'done' || p.status === 'overdue') continue;
+    planTotal += p.perMonth;
+    planDone += Math.min(p.addedThisMonth, p.perMonth);
+  }
+  const [money, setMoney] = useState<MoneyMode>(null);
+  const [jarMode, setJarMode] = useState<JarSheetMode>(null);
+  const [dismissedTip, setDismissedTip] = useState<string | null>(null);
+
+  const moneyJar = money ? vaults.find((v) => v.id === money.jarId) ?? null : null;
+  const tip = suggestJarTip(monthTx, vaults, entries);
+  const showTip = tip && tip.income.id !== dismissedTip;
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-  const handleSave = async (percent: number, salary: boolean) => {
-    if (!editing) return;
-    const name = editing === 'tax' ? 'Tax vault' : 'Savings vault';
+  const createJar = async (vault: NewVault) => {
     try {
-      if (editing === 'tax') {
-        await saveSettings({
-          taxVaultPercent: percent > 0 ? percent : undefined,
-          taxIncludesSalary: salary ? true : undefined,
-        });
-      } else {
-        await saveSettings({ savingsVaultPercent: percent > 0 ? percent : undefined });
-      }
-      setEditing(null);
-      showToast({ message: percent > 0 ? `${name} set to ${percent}%` : `${name} turned off` });
+      await addVault(vault);
+      setJarMode(null);
+      showToast({ message: `${vault.name} jar created` });
     } catch (e) {
-      console.error('Save vault failed:', e);
+      console.error('Create jar failed:', e);
+      showToast({ message: 'Could not create the jar. Try again.' });
+    }
+  };
+
+  const saveJar = async (vault: NewVault) => {
+    if (jarMode?.kind === 'edit') {
+      try {
+        await updateVault(jarMode.jar.id, vault);
+        setJarMode(null);
+        showToast({ message: 'Jar updated' });
+      } catch (e) {
+        console.error('Update jar failed:', e);
+        showToast({ message: 'Could not save. Try again.' });
+      }
+    } else {
+      await createJar(vault);
+    }
+  };
+
+  const removeJar = async (jar: VaultWithBalance) => {
+    try {
+      await deleteVault(jar.id);
+      setJarMode(null);
+      showToast({ message: `${jar.name} jar deleted` });
+    } catch (e) {
+      console.error('Delete jar failed:', e);
+      showToast({ message: 'Could not delete. Try again.' });
+    }
+  };
+
+  const moveMoney = async (amount: number, note?: string) => {
+    if (!money || !moneyJar) return;
+    const type = money.type;
+    try {
+      await addVaultEntry({ vaultId: moneyJar.id, type, amount, note, date: new Date().toISOString() });
+      setMoney(null);
+      showToast({ message: moneyMovedMessage(moneyJar, type, amount) });
+    } catch (e) {
+      console.error('Move money failed:', e);
       showToast({ message: 'Could not save. Check your connection.' });
     }
   };
 
-  const applyProfile = async (p: Profile) => {
-    const before = { taxVaultPercent: settings.taxVaultPercent, savingsVaultPercent: settings.savingsVaultPercent };
-    try {
-      await saveSettings({
-        taxVaultPercent: p.tax > 0 ? p.tax : undefined,
-        savingsVaultPercent: p.savings > 0 ? p.savings : undefined,
-      });
-      showToast({
-        message: `${p.label} setup applied`,
-        actionLabel: 'Undo',
-        onAction: () => saveSettings(before),
-      });
-    } catch (e) {
-      console.error('Apply profile failed:', e);
-      showToast({ message: 'Could not apply. Check your connection.' });
-    }
-  };
-
-  const markMoved = async (vault: VaultKind, amount: number) => {
-    const key = monthKey();
-    const previous = movedThisMonth(settings, vault);
-    try {
-      // merge:true deep-merges, so other months and the other vault are kept
-      await saveSettings({ vaultMoved: { [key]: { [vault]: amount } } });
-      const label = vault === 'tax' ? 'tax' : 'savings';
-      showToast(
-        amount > 0
-          ? {
-              message: `${formatINR(amount)} marked as moved to ${label}`,
-              actionLabel: 'Undo',
-              onAction: () => saveSettings({ vaultMoved: { [key]: { [vault]: previous } } }),
-            }
-          : { message: 'Marked as not moved' }
-      );
-    } catch (e) {
-      console.error('Mark moved failed:', e);
-      showToast({ message: 'Could not update. Check your connection.' });
-    }
-  };
-
-  const loading = settingsLoading || monthLoading || yearLoading;
+  const incomeName = (t: NonNullable<typeof tip>['income']) =>
+    t.note ?? findCategory(t.type, t.category)?.label ?? 'income';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -114,119 +121,138 @@ export default function VaultsScreen() {
             <Ionicons name="chevron-back" size={22} color={Corpus.text} />
           </Pressable>
           <Text style={styles.heading}>Vaults</Text>
-          <Pressable style={styles.helpButton} onPress={() => setShowHelp(!helpOpen)}>
-            <Ionicons name={helpOpen ? 'close' : 'help-circle-outline'} size={14} color={Corpus.textMuted} />
-            <Text style={styles.helpText}>{helpOpen ? 'Hide guide' : 'How it works'}</Text>
-          </Pressable>
+          {vaults.length > 0 && (
+            <Pressable style={styles.newButton} onPress={() => setJarMode({ kind: 'new' })}>
+              <Ionicons name="add" size={14} color="#0F1115" />
+              <Text style={styles.newText}>New jar</Text>
+            </Pressable>
+          )}
         </View>
 
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Corpus.gold} />
           </View>
+        ) : vaults.length === 0 ? (
+          <StarterJars
+            existingNames={[]}
+            onCreate={createJar}
+            onCustom={() => setJarMode({ kind: 'new' })}
+          />
         ) : (
           <>
-            {helpOpen && (
-              <View style={styles.explainer}>
-                <Text style={styles.explainerTitle}>Vaults protect money before you spend it</Text>
-                {[
-                  {
-                    title: 'Income arrives',
-                    text: 'Say a client pays you ₹10,000.',
-                  },
-                  {
-                    title: 'Corpus splits it instantly',
-                    text: `${exTax}% → Tax ${formatINR(example.tax)} · ${exSav}% → Savings ${formatINR(example.savings)}. Salary skips the tax vault (TDS is already deducted).`,
-                  },
-                  {
-                    title: 'You move it, then spend freely',
-                    text: `Transfer those amounts to a separate account or SIP and tap "Mark moved". The remaining ${formatINR(10000 - example.tax - example.savings)} is truly yours.`,
-                  },
-                ].map((s, i) => (
-                  <View key={s.title} style={styles.step}>
-                    <View style={styles.stepNumber}>
-                      <Text style={styles.stepNumberText}>{i + 1}</Text>
-                    </View>
-                    <View style={styles.stepBody}>
-                      <Text style={styles.stepTitle}>{s.title}</Text>
-                      <Text style={styles.stepText}>{s.text}</Text>
-                    </View>
+            <View style={styles.hero}>
+              <Text style={styles.heroLabel}>MONEY IN YOUR JARS</Text>
+              <Text style={styles.heroAmount}>{formatINR(total)}</Text>
+              <Text style={styles.heroSub}>
+                {addedThisMonth > 0
+                  ? `+${formatINR(addedThisMonth)} added this month`
+                  : `${vaults.length} jar${vaults.length === 1 ? '' : 's'} · nothing added this month yet`}
+              </Text>
+
+              {streak > 0 && (
+                <View style={styles.streak}>
+                  <Text style={styles.streakText}>
+                    🔥 {streak}-month saving streak{streak >= 3 ? ' — brilliant!' : ''}
+                  </Text>
+                </View>
+              )}
+
+              {planTotal > 0 && (
+                <View style={styles.plan}>
+                  <View style={styles.planRow}>
+                    <Text style={styles.planLabel}>This month's plan</Text>
+                    <Text style={styles.planValue}>
+                      {formatINR(planDone)} of {formatINR(planTotal)}
+                    </Text>
                   </View>
-                ))}
+                  <View style={styles.planTrack}>
+                    <View
+                      style={[styles.planFill, { width: `${Math.min((planDone / planTotal) * 100, 100)}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.planHint}>
+                    {planDone >= planTotal
+                      ? '✓ Every goal is on track this month'
+                      : `${formatINR(planTotal - planDone)} more keeps all your goals on schedule`}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {showTip && tip && (
+              <View style={styles.tip}>
+                <View style={styles.tipTop}>
+                  <Ionicons name="sparkles" size={16} color={Corpus.gold} />
+                  <Text style={styles.tipText}>
+                    You received {formatINR(tip.income.amount)} from {incomeName(tip.income)}.{' '}
+                    <Text style={styles.tipMuted}>
+                      Put {formatINR(tip.amount)} ({tip.percent}%) in {tip.jar.name}?
+                    </Text>
+                  </Text>
+                </View>
+                <View style={styles.tipActions}>
+                  <Pressable style={styles.tipLater} onPress={() => setDismissedTip(tip.income.id)}>
+                    <Text style={styles.tipLaterText}>Not now</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.tipAdd}
+                    onPress={() => setMoney({ jarId: tip.jar.id, type: 'in', amount: tip.amount })}
+                  >
+                    <Text style={styles.tipAddText}>Add {formatINR(tip.amount)}</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
 
-            {active ? (
-              <IncomeSplitCard totals={month} taxPct={taxPct} savingsPct={savingsPct} />
-            ) : (
-              <QuickSetup onPick={applyProfile} />
-            )}
-
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionLabel}>YOUR VAULTS</Text>
-              <Text style={styles.sectionMeta}>Tap to change %</Text>
-            </View>
             <View style={styles.list}>
-              <VaultCard
-                icon="shield-checkmark-outline"
-                name="Tax vault"
-                color={VAULT_COLORS.tax}
-                tint="#2E2712"
-                percent={taxPct}
-                baseLabel={includeSalary ? 'income' : 'client & business income'}
-                baseAmount={month.taxableIncome}
-                thisMonth={month.tax}
-                thisYear={year.tax}
-                moved={movedThisMonth(settings, 'tax')}
-                onEdit={() => setEditing('tax')}
-                onMarkMoved={(amount) => markMoved('tax', amount)}
-              />
-              <VaultCard
-                icon="leaf-outline"
-                name="Savings vault"
-                color={VAULT_COLORS.savings}
-                tint="#1A2530"
-                percent={savingsPct}
-                baseLabel="income"
-                baseAmount={month.totalIncome}
-                thisMonth={month.savings}
-                thisYear={year.savings}
-                moved={movedThisMonth(settings, 'savings')}
-                onEdit={() => setEditing('savings')}
-                onMarkMoved={(amount) => markMoved('savings', amount)}
-              />
+              {vaults.map((jar) => (
+                <JarCard
+                  key={jar.id}
+                  jar={jar}
+                  context={context}
+                  onOpen={() => router.push({ pathname: '/vault/[id]', params: { id: jar.id } })}
+                  onAdd={() => setMoney({ jarId: jar.id, type: 'in' })}
+                  onTakeOut={() => setMoney({ jarId: jar.id, type: 'out' })}
+                />
+              ))}
             </View>
 
-            {active && incomes.length > 0 && (
+            {STARTER_VAULTS.some(
+              (s) => !vaults.some((v) => v.name.toLowerCase() === s.name.toLowerCase())
+            ) && (
               <>
-                <View style={styles.sectionRow}>
-                  <Text style={styles.sectionLabel}>HOW EACH INCOME WAS SPLIT</Text>
-                  <Text style={styles.sectionMeta}>This month</Text>
-                </View>
-                <IncomeSplitList incomes={incomes} settings={settings} />
+                <Text style={styles.suggestLabel}>SUGGESTED JARS</Text>
+                <StarterJars
+                  compact
+                  existingNames={vaults.map((v) => v.name)}
+                  onCreate={createJar}
+                  onCustom={() => setJarMode({ kind: 'new' })}
+                />
               </>
             )}
 
-            {active && (
-              <View style={styles.reminder}>
-                <Ionicons name="information-circle-outline" size={18} color={VAULT_COLORS.savings} />
-                <Text style={styles.reminderText}>
-                  <Text style={styles.reminderStrong}>Corpus plans, your bank holds the money. </Text>
-                  Move each vault's amount to a separate account, FD or SIP, then tap "Mark moved" so
-                  you always know what's done.
-                </Text>
-              </View>
-            )}
+            <Pressable style={styles.another} onPress={() => setJarMode({ kind: 'new' })}>
+              <Ionicons name="add-circle-outline" size={16} color={Corpus.gold} />
+              <Text style={styles.anotherText}>Create another jar</Text>
+            </Pressable>
           </>
         )}
       </ScrollView>
 
-      <VaultEditorSheet
-        kind={editing}
-        settings={settings}
-        monthTransactions={monthTx}
-        onClose={() => setEditing(null)}
-        onSave={handleSave}
+      <MoneySheet
+        jar={moneyJar}
+        type={money?.type ?? 'in'}
+        initialAmount={money?.amount}
+        onClose={() => setMoney(null)}
+        onSubmit={moveMoney}
+      />
+      <JarSheet
+        mode={jarMode}
+        context={context}
+        onClose={() => setJarMode(null)}
+        onSave={saveJar}
+        onDelete={removeJar}
       />
     </SafeAreaView>
   );

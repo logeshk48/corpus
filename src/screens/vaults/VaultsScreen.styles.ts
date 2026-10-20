@@ -33,98 +33,161 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
     color: Corpus.text,
   },
-  helpButton: {
+  newButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: Corpus.gold,
     borderRadius: 999,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
   },
-  helpText: {
-    fontSize: 12,
-    color: Corpus.textMuted,
-  },
-  explainer: {
-    backgroundColor: Corpus.card,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    padding: Space.md,
-    gap: Space.md,
-  },
-  explainerTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
-  step: {
-    flexDirection: 'row',
-    gap: Space.sm + 4,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2E2712',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepNumberText: {
+  newText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Corpus.gold,
+    color: '#0F1115',
   },
-  stepBody: {
-    flex: 1,
-    gap: 2,
+  hero: {
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.xl,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    paddingVertical: Space.lg,
+    paddingHorizontal: Space.md,
+    alignItems: 'center',
+    gap: 4,
   },
-  stepTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
-  stepText: {
+  heroLabel: {
     fontSize: 12,
     color: Corpus.textMuted,
-    lineHeight: 18,
+    letterSpacing: 0.4,
   },
-  sectionRow: {
+  heroAmount: {
+    fontSize: 34,
+    fontWeight: '500',
+    color: Corpus.gold,
+  },
+  heroSub: {
+    fontSize: 12,
+    color: Corpus.textMuted,
+  },
+  streak: {
+    marginTop: Space.sm,
+    borderRadius: 999,
+    backgroundColor: '#2E1F12',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  streakText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#F0A35E',
+  },
+  plan: {
+    alignSelf: 'stretch',
+    marginTop: Space.md,
+    paddingTop: Space.md,
+    borderTopWidth: 0.5,
+    borderTopColor: Corpus.border,
+    gap: 6,
+  },
+  planRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginTop: Space.sm,
   },
-  sectionLabel: {
-    fontSize: 11,
+  planLabel: {
+    fontSize: 12,
     color: Corpus.textMuted,
-    letterSpacing: 0.6,
   },
-  sectionMeta: {
+  planValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Corpus.text,
+  },
+  planTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Corpus.bg,
+    overflow: 'hidden',
+  },
+  planFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Corpus.gold,
+  },
+  planHint: {
     fontSize: 11,
     color: Corpus.textFaint,
+  },
+  tip: {
+    backgroundColor: '#1E1A0F',
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    borderColor: Corpus.gold,
+    padding: Space.md,
+    gap: Space.sm + 2,
+  },
+  tipTop: {
+    flexDirection: 'row',
+    gap: Space.sm + 2,
+  },
+  tipText: {
+    flex: 1,
+    fontSize: 13,
+    color: Corpus.text,
+    lineHeight: 19,
+  },
+  tipMuted: {
+    color: Corpus.textMuted,
+  },
+  tipActions: {
+    flexDirection: 'row',
+    gap: Space.sm,
+    justifyContent: 'flex-end',
+  },
+  tipAdd: {
+    backgroundColor: Corpus.gold,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  tipAddText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0F1115',
+  },
+  tipLater: {
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  tipLaterText: {
+    fontSize: 12,
+    color: Corpus.textMuted,
   },
   list: {
     gap: Space.sm + 4,
   },
-  reminder: {
-    flexDirection: 'row',
-    gap: Space.sm + 2,
-    backgroundColor: '#1A2530',
-    borderRadius: Radius.md,
-    padding: Space.md,
-  },
-  reminderText: {
-    flex: 1,
-    fontSize: 12,
+  suggestLabel: {
+    fontSize: 11,
     color: Corpus.textMuted,
-    lineHeight: 18,
+    letterSpacing: 0.6,
+    marginTop: Space.sm,
   },
-  reminderStrong: {
-    color: Corpus.text,
+  another: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Corpus.border,
+    paddingVertical: 14,
+  },
+  anotherText: {
+    fontSize: 13,
     fontWeight: '500',
+    color: Corpus.gold,
   },
   center: {
     alignItems: 'center',

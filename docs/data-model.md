@@ -7,6 +7,8 @@ All user data lives under one root, protected by security rules
 users/{uid}/
 ├── transactions/{txId}      ← live (Day 9)
 ├── incomeStreams/{streamId} ← live (Day 15)
+├── vaults/{vaultId}         ← live (Day 17)
+├── vaultEntries/{entryId}   ← live (Day 17)
 ├── investments/{invId}      ← Day 39
 └── settings/main            ← live (Day 13)
 ```
@@ -43,10 +45,6 @@ TypeScript source of truth: `src/types/transaction.ts`
 | displayName   | string? | Shown in the Home greeting              |
 | monthlyBudget | number? | Total monthly spending budget, INR      |
 | categoryBudgets | map? | Expense category id → monthly limit, e.g. `{ food: 8000 }` |
-| taxVaultPercent | number? | % of taxable income reserved for tax |
-| savingsVaultPercent | number? | % of all income reserved for savings |
-| taxIncludesSalary | boolean? | Apply the tax vault to salary too (default false — TDS) |
-| vaultMoved | map? | `'YYYY-MM'` → `{ tax, savings }` amounts the user marked as transferred |
 | currency      | string  | `"INR"` (only option for now)           |
 
 Missing fields fall back to `DEFAULT_SETTINGS` (`src/types/settings.ts`).
@@ -62,4 +60,29 @@ Missing fields fall back to `DEFAULT_SETTINGS` (`src/types/settings.ts`).
 
 Deleting a stream does not touch past transactions; their `streamId`
 simply no longer resolves and they show as unlinked income.
+
+## vaults/{vaultId}  (money jars)
+
+| Field     | Type      | Notes                                   |
+|-----------|-----------|-----------------------------------------|
+| name      | string    | "Tax", "Emergency fund", "Goa trip"     |
+| icon      | string    | Ionicons name                           |
+| color     | string    | Accent colour (hex)                     |
+| goal      | number?   | Optional target amount, INR             |
+| targetDate | string?  | `'YYYY-MM'` — month to reach the goal by |
+| kind      | string?   | `tax` · `emergency` · `savings` · `goal` — unlocks smart info |
+| createdAt | timestamp | Server time — jars are listed in this order |
+
+## vaultEntries/{entryId}  (money in / out of a jar)
+
+| Field   | Type    | Notes                              |
+|---------|---------|------------------------------------|
+| vaultId | string  | The jar this belongs to            |
+| type    | string  | `"in"` or `"out"`                  |
+| amount  | number  | Always positive, INR               |
+| note    | string? | Optional                           |
+| date    | string  | ISO 8601                           |
+
+A jar's balance is never stored — it is always Σ in − Σ out of its entries.
+Deleting a jar deletes its entries in the same batch.
 
