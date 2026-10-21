@@ -22,6 +22,31 @@ export const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
   },
+  freqRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  freq: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: Radius.md,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    backgroundColor: Corpus.bg,
+    paddingVertical: 10,
+  },
+  freqActive: {
+    borderColor: Corpus.gold,
+    backgroundColor: '#2E2712',
+  },
+  freqText: {
+    fontSize: 12,
+    color: Corpus.textMuted,
+  },
+  freqTextActive: {
+    color: Corpus.gold,
+    fontWeight: '600',
+  },
   dayRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -45,6 +70,12 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: Corpus.text,
+  },
+  yearJump: {
+    fontSize: 12,
+    color: Corpus.gold,
+    paddingHorizontal: 8,
+    fontWeight: '500',
   },
   hint: {
     fontSize: 11,

@@ -1,6 +1,6 @@
 import { Corpus } from '@/constants/theme';
 import type { Bill } from '@/types/bill';
-import { monthlyBillsTotal, upcomingBills } from '@/utils/bills';
+import { monthlyBillsTotal, needsAmount, upcomingBills } from '@/utils/bills';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
@@ -36,12 +36,15 @@ export default function UpcomingBills({ bills, onPress }: { bills: Bill[]; onPre
             <Text style={styles.none}>Nothing due in the next 7 days 🎉</Text>
           ) : (
             upcoming.map(({ bill, daysAway }) => {
-              const w = whenLabel(daysAway);
+              const w = needsAmount(bill) ? { text: 'Enter amount', color: Corpus.gold } : whenLabel(daysAway);
               return (
                 <View key={bill.id} style={styles.row}>
                   <Text style={[styles.when, { color: w.color }]}>{w.text}</Text>
                   <Text style={styles.name} numberOfLines={1}>{bill.name}</Text>
-                  <Text style={styles.amount}>{formatINR(bill.amount)}</Text>
+                  <Text style={styles.amount}>
+                    {bill.variable ? '~' : ''}
+                    {formatINR(bill.amount)}
+                  </Text>
                 </View>
               );
             })

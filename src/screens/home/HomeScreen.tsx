@@ -4,6 +4,11 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
 import { useBills } from '@/hooks/useBills';
 import UpcomingBills from './components/UpcomingBills';
+import BillAlerts from './components/BillAlerts';
+import PayBillSheet from '@/screens/bills/components/PayBillSheet';
+import { logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
+import { useToast } from '@/context/ToastContext';
+import type { Bill } from '@/types/bill';
 import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
 import { computeSafeToSpend } from '@/utils/safeToSpend';
 import { unpaidThisMonth } from '@/utils/bills';
@@ -29,6 +34,29 @@ export default function HomeScreen() {
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
   const [showSafe, setShowSafe] = useState(false);
   const { bills } = useBills();
+  const { showToast } = useToast();
+  const [paying, setPaying] = useState<Bill | null>(null);
+
+  const payBill = async (bill: Bill, amount: number) => {
+    try {
+      await logBillForThisMonth(bill, amount);
+      setPaying(null);
+      showToast({ message: `${bill.name} ${formatINR(amount)} recorded`, actionLabel: 'Undo', onAction: () => undoBillPayment(bill) });
+    } catch (e) {
+      console.error('Pay bill failed:', e);
+      showToast({ message: 'Could not record the payment. Try again.' });
+    }
+  };
+  const skipBill = async (bill: Bill) => {
+    try {
+      await skipBillThisMonth(bill);
+      setPaying(null);
+      showToast({ message: `${bill.name} skipped this month`, actionLabel: 'Undo', onAction: () => restoreBillState(bill) });
+    } catch (e) {
+      console.error('Skip bill failed:', e);
+      showToast({ message: 'Could not skip. Try again.' });
+    }
+  };
 
   // The heart of Corpus: how much can I safely spend today?
   const safe = computeSafeToSpend({
@@ -67,6 +95,11 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <HomeHeader />
+        <BillAlerts
+          bills={bills}
+          onPay={(b) => setPaying(b)}
+          onOpen={(b) => router.push(`/bill/${b.id}` as Href)}
+        />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
         <View style={styles.statsRow}>
           <StatCard label="Spent today" value={formatINR(spentToday)} />
@@ -99,7 +132,7 @@ export default function HomeScreen() {
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>
 
-        <UpcomingBills bills={bills} onPress={() => router.push('/bills')} />
+        <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitleInline}>Budgets</Text>
@@ -154,6 +187,7 @@ export default function HomeScreen() {
         )}
       </ScrollView>
       <SafeToSpendSheet visible={showSafe} result={safe} onClose={() => setShowSafe(false)} />
+      <PayBillSheet bill={paying} onClose={() => setPaying(null)} onPay={payBill} onSkip={skipBill} />
     </SafeAreaView>
   );
 }

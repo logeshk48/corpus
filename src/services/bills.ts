@@ -4,6 +4,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   onSnapshot,
   orderBy,
@@ -49,19 +50,48 @@ export async function deleteBill(id: string) {
 // Record this month's payment as an expense — exactly once.
 // The expense gets a fixed id (bill_<id>_<YYYY-MM>) and the bill remembers the month,
 // both in ONE atomic batch, so a second run (or a second device) can't duplicate it.
-export async function logBillForThisMonth(bill: Bill, now: Date = new Date()) {
+// `amount` overrides the usual amount (variable bills). Paying early is dated today.
+export async function logBillForThisMonth(bill: Bill, amount: number = bill.amount, now: Date = new Date()) {
   const ym = yearMonth(now);
   const due = dueDateIn(bill, now.getFullYear(), now.getMonth());
+  const date = now < due ? now : due;
   const batch = writeBatch(db);
   batch.set(doc(collection(db, 'users', uid(), 'transactions'), `bill_${bill.id}_${ym}`), {
     type: 'expense',
-    amount: bill.amount,
+    amount,
     category: bill.category,
     note: bill.name,
-    date: due.toISOString(),
+    date: date.toISOString(),
     recurringId: bill.id,
     createdAt: serverTimestamp(),
   });
-  batch.update(doc(billsCol(), bill.id), { lastLoggedMonth: ym });
+  batch.update(doc(billsCol(), bill.id), { lastLoggedMonth: ym, lastSkippedMonth: deleteField() });
   await batch.commit();
 }
+
+// "Not this month" — mark the month as handled without recording an expense
+export async function skipBillThisMonth(bill: Bill, now: Date = new Date()) {
+  const ym = yearMonth(now);
+  await updateDoc(doc(billsCol(), bill.id), { lastLoggedMonth: ym, lastSkippedMonth: ym });
+}
+
+// Undo a skip: restore what the bill looked like before
+export async function restoreBillState(bill: Bill) {
+  await updateDoc(doc(billsCol(), bill.id), {
+    lastLoggedMonth: bill.lastLoggedMonth ?? deleteField(),
+    lastSkippedMonth: bill.lastSkippedMonth ?? deleteField(),
+  });
+}
+
+// Undo a recorded payment: remove that month's expense and restore the bill
+export async function undoBillPayment(bill: Bill, now: Date = new Date()) {
+  const ym = yearMonth(now);
+  const batch = writeBatch(db);
+  batch.delete(doc(collection(db, 'users', uid(), 'transactions'), `bill_${bill.id}_${ym}`));
+  batch.update(doc(billsCol(), bill.id), {
+    lastLoggedMonth: bill.lastLoggedMonth ?? deleteField(),
+    lastSkippedMonth: bill.lastSkippedMonth ?? deleteField(),
+  });
+  await batch.commit();
+}
+
