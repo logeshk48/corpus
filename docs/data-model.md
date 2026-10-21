@@ -9,6 +9,7 @@ users/{uid}/
 ├── incomeStreams/{streamId} ← live (Day 15)
 ├── vaults/{vaultId}         ← live (Day 17)
 ├── vaultEntries/{entryId}   ← live (Day 17)
+├── bills/{billId}           ← live (Day 19)
 ├── investments/{invId}      ← Day 39
 └── settings/main            ← live (Day 13)
 ```
@@ -85,4 +86,19 @@ simply no longer resolves and they show as unlinked income.
 
 A jar's balance is never stored — it is always Σ in − Σ out of its entries.
 Deleting a jar deletes its entries in the same batch.
+
+## bills/{billId}  (recurring bills)
+
+| Field           | Type    | Notes                                              |
+|-----------------|---------|----------------------------------------------------|
+| name            | string  | "Rent", "Netflix", "Bike EMI"                      |
+| amount          | number  | INR per month                                      |
+| category        | string  | Expense category id                                |
+| dayOfMonth      | number  | 1–31; 31 = last day in shorter months              |
+| active          | boolean | Paused bills are not logged or reserved            |
+| startMonth      | string  | `'YYYY-MM'` — first month it applies               |
+| lastLoggedMonth | string? | `'YYYY-MM'` — month it was last recorded           |
+
+Auto-logging writes the expense to `transactions/bill_<billId>_<YYYY-MM>` and sets
+`lastLoggedMonth` in one batch, so a bill can never be logged twice for a month.
 

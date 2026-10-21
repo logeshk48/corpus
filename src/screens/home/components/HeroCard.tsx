@@ -74,6 +74,11 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
             <Text style={styles.chipText}>Capped by your monthly budget</Text>
           </View>
         )}
+        {result.billsDue > 0 && (
+          <View style={styles.chip}>
+            <Text style={styles.chipText}>{formatINR(result.billsDue)} kept for bills</Text>
+          </View>
+        )}
         {result.plansDue > 0 && (
           <View style={styles.chip}>
             <Text style={styles.chipText}>{formatINR(result.plansDue)} kept for jar goals</Text>

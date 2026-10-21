@@ -67,6 +67,9 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
                     <>
                       <Row label="Your monthly budget" value={result.monthlyBudget ?? 0} />
                       <Row label="Spent this month" value={result.spent} sign="−" />
+                      {result.billsDue > 0 && (
+                        <Row label="Bills still due this month" value={result.billsDue} sign="−" />
+                      )}
                     </>
                   ) : (
                     <>
@@ -81,6 +84,9 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
                       )}
                       {result.plansDue > 0 && (
                         <Row label="Kept for jar goals this month" value={result.plansDue} sign="−" />
+                      )}
+                      {result.billsDue > 0 && (
+                        <Row label="Bills still due this month" value={result.billsDue} sign="−" />
                       )}
                     </>
                   )}
@@ -127,7 +133,7 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
                     : result.monthlyBudget
                     ? 'Your income is stricter than your monthly budget, so Corpus uses your income. '
                     : ''}
-                  Money in jars is protected — it's never counted as spendable. Category budgets don't
+                  Money in jars and bills still due are protected — never counted as spendable. Category budgets don't
                   change this number; they warn you on the Budgets screen.
                 </Text>
               </>

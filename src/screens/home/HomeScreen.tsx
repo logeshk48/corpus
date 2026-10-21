@@ -2,8 +2,11 @@ import { Corpus } from '@/constants/theme';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
+import { useBills } from '@/hooks/useBills';
+import UpcomingBills from './components/UpcomingBills';
 import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
 import { computeSafeToSpend } from '@/utils/safeToSpend';
+import { unpaidThisMonth } from '@/utils/bills';
 import { useState } from 'react';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import { getRange, isInRange } from '@/utils/dates';
@@ -25,12 +28,14 @@ export default function HomeScreen() {
   const { settings } = useSettings();
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
   const [showSafe, setShowSafe] = useState(false);
+  const { bills } = useBills();
 
   // The heart of Corpus: how much can I safely spend today?
   const safe = computeSafeToSpend({
     monthTransactions: transactions,
     jars: vaults,
     monthlyBudget: settings.monthlyBudget,
+    billsDue: unpaidThisMonth(bills),
   });
 
   // Real budgets: overall month + the 3 categories closest to their limit
@@ -93,6 +98,8 @@ export default function HomeScreen() {
           </Text>
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>
+
+        <UpcomingBills bills={bills} onPress={() => router.push('/bills')} />
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitleInline}>Budgets</Text>

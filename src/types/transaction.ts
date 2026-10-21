@@ -8,7 +8,7 @@ export type Transaction = {
   note?: string;
   date: string;          // ISO string: when the money moved
   streamId?: string;     // income only: which income stream it came from
-  recurringId?: string;  // set later for auto-logged bills (Day 23)
+  recurringId?: string;  // set when auto-logged from a recurring bill (bills/{id})
 };
 
 // What we send to Firestore when creating one (no id yet, since Firestore generates it)

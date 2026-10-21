@@ -1,10 +1,13 @@
 import { Corpus } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import BillsAutoLogger from '@/components/BillsAutoLogger';
 
 export default function TabsLayout() {
   return (
-    <Tabs
+    <>
+      <BillsAutoLogger />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Corpus.gold,
@@ -60,6 +63,7 @@ export default function TabsLayout() {
           ),
         }}
       />
-    </Tabs>
+      </Tabs>
+    </>
   );
 }

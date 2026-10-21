@@ -9,7 +9,8 @@ Shown on Home in the gold hero card; "How is this calculated?" opens the breakdo
 incomeBased = income this month − spent this month
               − net money moved into jars this month
               − jar plans still due this month (only plans that are "behind")
-budgetBased = monthly budget − spent this month          (only if a budget is set)
+              − recurring bills not yet paid this month
+budgetBased = monthly budget − spent this month − unpaid bills   (only if a budget is set)
 
 available   = the LOWER of incomeBased and budgetBased (whichever exist)
 
@@ -44,3 +45,4 @@ tomorrow         = max(available, 0) ÷ (days left − 1)
 | ₹30,000 monthly budget (stricter) | ₹500/day, capped by budget |
 | No income, no budget | noData |
 | Budget ₹30,000 only, ₹6,000 spent | ₹2,000/day |
+| Netflix ₹649 + EMI ₹5,000 unpaid | ₹2,529/day (₹30,351 ÷ 12) |

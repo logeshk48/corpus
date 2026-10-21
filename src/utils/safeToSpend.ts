@@ -18,6 +18,7 @@ export type SafeToSpendResult =
       spentToday: number;
       movedToJars: number;      // net: added − taken out, this month
       plansDue: number;         // jar plans still needed this month
+      billsDue: number;         // recurring bills not yet paid this month
       limitedByBudget: boolean; // the monthly budget was the stricter limit
       monthlyBudget?: number;
     };
@@ -26,13 +27,20 @@ type Input = {
   monthTransactions: Transaction[]; // this month only
   jars: VaultWithBalance[];
   monthlyBudget?: number;
+  billsDue?: number; // unpaid recurring bills this month
   now?: Date;
 };
 
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-export function computeSafeToSpend({ monthTransactions, jars, monthlyBudget, now = new Date() }: Input): SafeToSpendResult {
+export function computeSafeToSpend({
+  monthTransactions,
+  jars,
+  monthlyBudget,
+  billsDue = 0,
+  now = new Date(),
+}: Input): SafeToSpendResult {
   let income = 0;
   let spent = 0;
   let spentToday = 0;
@@ -50,8 +58,9 @@ export function computeSafeToSpend({ monthTransactions, jars, monthlyBudget, now
     return p && p.status === 'behind' ? s + p.shortThisMonth : s; // overdue plans don't swallow the month
   }, 0);
 
-  const incomeBased = income > 0 ? income - spent - movedToJars - plansDue : null;
-  const budgetBased = monthlyBudget && monthlyBudget > 0 ? monthlyBudget - spent : null;
+  // Unpaid bills are reserved in BOTH limits — that money is already promised
+  const incomeBased = income > 0 ? income - spent - movedToJars - plansDue - billsDue : null;
+  const budgetBased = monthlyBudget && monthlyBudget > 0 ? monthlyBudget - spent - billsDue : null;
   if (incomeBased === null && budgetBased === null) return { status: 'noData' };
 
   const limitedByBudget = budgetBased !== null && (incomeBased === null || budgetBased < incomeBased);
@@ -82,6 +91,7 @@ export function computeSafeToSpend({ monthTransactions, jars, monthlyBudget, now
     spentToday,
     movedToJars,
     plansDue,
+    billsDue,
     limitedByBudget,
     monthlyBudget,
   };
