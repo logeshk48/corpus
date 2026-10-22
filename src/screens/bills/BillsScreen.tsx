@@ -27,6 +27,7 @@ import {
   yearMonth,
 } from '@/utils/bills';
 import { formatINR } from '@/utils/format';
+import { loanStatus } from '@/utils/loan';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
@@ -82,6 +83,14 @@ export default function BillsScreen() {
   const subscriptionsYearly = bills
     .filter((b) => b.active && b.category === 'fun')
     .reduce((s, b) => s + b.amount * ({ monthly: 12, quarterly: 4, yearly: 1 } as const)[b.frequency ?? 'monthly'], 0);
+
+  // ── Loans overview ──
+  const loans = bills
+    .filter((b) => b.loan && !isFinished(b))
+    .map((b) => loanStatus(b.loan!, isPaidThisMonth(b) && !isSkippedThisMonth(b)))
+    .filter((st) => !st.finished);
+  const totalOwed = loans.reduce((s, st) => s + st.outstanding, 0);
+  const interestAhead = loans.reduce((s, st) => s + st.interestRemaining, 0);
 
   // ── Sections ──
   const active = bills.filter((b) => b.active && !isFinished(b));
@@ -266,6 +275,20 @@ export default function BillsScreen() {
                 <Text style={styles.insightText}>
                   Entertainment subscriptions cost <Text style={{ fontWeight: '700' }}>{formatINR(subscriptionsYearly)}</Text> a
                   year. <Text style={styles.insightMuted}>Still using all of them?</Text>
+                </Text>
+              </View>
+            )}
+
+            {loans.length > 0 && (
+              <View style={[styles.insight, { backgroundColor: '#1E1A0F', borderColor: '#4A3F1A' }]}>
+                <Ionicons name="business-outline" size={17} color={Corpus.gold} />
+                <Text style={styles.insightText}>
+                  You owe <Text style={{ fontWeight: '700' }}>{formatINR(Math.round(totalOwed))}</Text> across{' '}
+                  {loans.length} loan{loans.length === 1 ? '' : 's'}.{' '}
+                  <Text style={styles.insightMuted}>
+                    {formatINR(Math.round(interestAhead))} of interest is still ahead — open a loan to see how
+                    prepaying could cut it.
+                  </Text>
                 </Text>
               </View>
             )}

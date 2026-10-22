@@ -32,6 +32,11 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BillSheet, { type BillSheetMode } from './components/BillSheet';
 import PayBillSheet from './components/PayBillSheet';
+import LoanPanel from './components/LoanPanel';
+import LoanSheet from './components/LoanSheet';
+import { addTransaction, deleteTransaction } from '@/services/transactions';
+import { endMonthFor, loanStatus } from '@/utils/loan';
+import type { Loan } from '@/types/bill';
 import { styles } from './BillDetailScreen.styles';
 
 export default function BillDetailScreen() {
@@ -42,6 +47,7 @@ export default function BillDetailScreen() {
   const { transactions } = useTransactions('last12Months');
   const [mode, setMode] = useState<BillSheetMode>(null);
   const [paying, setPaying] = useState<Bill | null>(null);
+  const [editingLoan, setEditingLoan] = useState(false);
 
   const bill = bills.find((b) => b.id === id);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/bills' as Href));
@@ -102,6 +108,60 @@ export default function BillDetailScreen() {
       showToast({ message: 'Could not skip. Try again.' });
     }
   };
+  // ── Loan v2 ──
+  const saveLoan = async (loan: Loan, useEmiAsAmount: boolean, emi: number, endMonth: string) => {
+    try {
+      await updateBill(bill.id, { loan, endMonth, ...(useEmiAsAmount ? { amount: emi } : {}) });
+      setEditingLoan(false);
+      showToast({ message: 'Loan details saved' });
+    } catch (e) {
+      console.error('Save loan failed:', e);
+      showToast({ message: 'Could not save loan details. Try again.' });
+    }
+  };
+  const removeLoan = async () => {
+    try {
+      await updateBill(bill.id, { loan: undefined });
+      setEditingLoan(false);
+      showToast({ message: 'Loan details removed' });
+    } catch (e) {
+      console.error('Remove loan failed:', e);
+      showToast({ message: 'Could not remove. Try again.' });
+    }
+  };
+  const recordPrepayment = async (amount: number, mode: 'tenure' | 'emi') => {
+    if (!bill.loan) return;
+    const before = { loan: bill.loan, endMonth: bill.endMonth, amount: bill.amount };
+    const loan: Loan = {
+      ...bill.loan,
+      prepayments: [...(bill.loan.prepayments ?? []), { date: new Date().toISOString(), amount, mode }],
+    };
+    const newEnd = endMonthFor(loan);
+    const newEmi = Math.round(loanStatus(loan, isPaidThisMonth(bill)).emi);
+    try {
+      // The prepayment is real money out → record it as an expense too
+      const txId = await addTransaction({
+        type: 'expense',
+        amount,
+        category: bill.category,
+        note: `${bill.name} prepayment`,
+        date: new Date().toISOString(),
+      });
+      await updateBill(bill.id, { loan, endMonth: newEnd, ...(mode === 'emi' ? { amount: newEmi } : {}) });
+      showToast({
+        message: mode === 'emi' ? `Prepayment saved · new EMI ${formatINR(newEmi)}` : `Prepayment saved · loan now ends earlier`,
+        actionLabel: 'Undo',
+        onAction: async () => {
+          await deleteTransaction(txId);
+          await updateBill(bill.id, before);
+        },
+      });
+    } catch (e) {
+      console.error('Record prepayment failed:', e);
+      showToast({ message: 'Could not save the prepayment. Try again.' });
+    }
+  };
+
   const save = async (b: NewBill) => {
     try {
       await updateBill(bill.id, b);
@@ -154,7 +214,7 @@ export default function BillDetailScreen() {
           </View>
         </View>
 
-        {bill.endMonth && (() => {
+        {bill.endMonth && !bill.loan && (() => {
           const left = remainingPayments(bill) ?? 0;
           const done = payments.length;
           const total = done + left;
@@ -178,6 +238,10 @@ export default function BillDetailScreen() {
             </View>
           );
         })()}
+
+        {(bill.loan || bill.endMonth || /emi|loan/i.test(bill.name)) && (
+          <LoanPanel bill={bill} onEditLoan={() => setEditingLoan(true)} onRecordPrepayment={recordPrepayment} />
+        )}
 
         {bill.active && dueNow && (
           <View style={styles.actions}>
@@ -249,6 +313,12 @@ export default function BillDetailScreen() {
 
       <BillSheet mode={mode} onClose={() => setMode(null)} onSave={(b) => save(b)} onDelete={remove} />
       <PayBillSheet bill={paying} onClose={() => setPaying(null)} onPay={pay} onSkip={skip} />
+      <LoanSheet
+        bill={editingLoan ? bill : null}
+        onClose={() => setEditingLoan(false)}
+        onSave={saveLoan}
+        onRemove={removeLoan}
+      />
     </SafeAreaView>
   );
 }

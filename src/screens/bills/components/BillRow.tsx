@@ -2,7 +2,8 @@ import { findCategory } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import type { Bill } from '@/types/bill';
 import { formatINR } from '@/utils/format';
-import { endLabel, remainingPayments } from '@/utils/bills';
+import { endLabel, isPaidThisMonth, remainingPayments } from '@/utils/bills';
+import { loanStatus } from '@/utils/loan';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import { styles } from './BillRow.styles';
@@ -37,8 +38,10 @@ export default function BillRow({ bill, status, first, action, onOpen }: Props) 
         {(() => {
           const left = remainingPayments(bill);
           if (left === null || left === 0) return null;
+          const owed = bill.loan ? loanStatus(bill.loan, isPaidThisMonth(bill)).outstanding : null;
           return (
             <Text style={styles.loan}>
+              {owed !== null ? `${formatINR(Math.round(owed))} owed · ` : ''}
               {left} payment{left === 1 ? '' : 's'} left · ends {endLabel(bill)}
             </Text>
           );
