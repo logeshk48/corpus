@@ -24,8 +24,13 @@ const shiftYm = (ym: string, n: number) =>
   yearMonth(new Date(Number(ym.slice(0, 4)), Number(ym.slice(5)) - 1 + n, 1));
 const ymLabel = (ym: string) =>
   new Date(Number(ym.slice(0, 4)), Number(ym.slice(5)) - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-const tenureLabel = (m: number) =>
-  m % 12 === 0 ? `${m / 12} yr${m === 12 ? '' : 's'}` : m > 12 ? `${Math.floor(m / 12)} yr ${m % 12} mo` : `${m} mo`;
+const tenureLabel = (m: number) => {
+  const y = Math.floor(m / 12);
+  const r = m % 12;
+  const years = y > 0 ? `${y} year${y === 1 ? '' : 's'}` : '';
+  const months = r > 0 ? `${r} month${r === 1 ? '' : 's'}` : '';
+  return [years, months].filter(Boolean).join(' ');
+};
 
 type Props = {
   bill: Bill | null; // null = closed
@@ -149,19 +154,24 @@ export default function LoanSheet({ bill, onClose, onSave, onRemove }: Props) {
               keyboardType="decimal-pad"
             />
 
-            <Text style={styles.label}>TENURE (NUMBER OF EMIs)</Text>
+            <Text style={styles.label}>TENURE IN MONTHS (NUMBER OF EMIs)</Text>
             <TextInput
               style={styles.input}
               value={tenure}
               onChangeText={setTenure}
-              placeholder="months, e.g. 60"
+              placeholder="e.g. 60"
               placeholderTextColor={Corpus.textFaint}
               keyboardType="numeric"
             />
+            {N > 0 && (
+              <Text style={[styles.hint, { color: Corpus.gold }]}>
+                {N} months = {tenureLabel(N)}
+              </Text>
+            )}
             <View style={styles.templates}>
               {TENURES.map((m) => (
                 <Pressable key={m} style={[sheet.chip, N === m && sheet.chipSuggested]} onPress={() => setTenure(String(m))}>
-                  <Text style={[sheet.chipText, N === m && sheet.chipTextSuggested]}>{tenureLabel(m)}</Text>
+                  <Text style={[sheet.chipText, N === m && sheet.chipTextSuggested]}>{m} months</Text>
                 </Pressable>
               ))}
             </View>
