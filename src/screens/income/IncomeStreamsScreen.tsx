@@ -1,3 +1,4 @@
+import { Button, ScreenHeader } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -37,18 +38,7 @@ export default function IncomeStreamsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={styles.heading}>Income streams</Text>
-          {streams.length > 0 && (
-            <Pressable style={styles.addButton} onPress={() => openStream('new')}>
-              <Ionicons name="add" size={14} color="#0F1115" />
-              <Text style={styles.addText}>Add</Text>
-            </Pressable>
-          )}
-        </View>
+        <ScreenHeader title="Income streams" right={streams.length > 0 ? <Button size="sm" icon="add" label="Add" onPress={() => openStream('new')} /> : undefined} onBack={goBack} />
 
         {loading ? (
           <View style={styles.empty}>

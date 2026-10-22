@@ -20,7 +20,7 @@ function check(file) {
   const hexOk = ALLOWED.some((a) => file.startsWith(a));
   fs.readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
     if (/fontSize:\s*\d/.test(line)) problems.push(`${file}:${i + 1}  raw fontSize → use Type.*`);
-    if (!hexOk && /'#[0-9A-Fa-f]{6}'/.test(line)) problems.push(`${file}:${i + 1}  raw colour → use Corpus.*`);
+    if (!hexOk && /['"]#[0-9A-Fa-f]{6}['"]/.test(line)) problems.push(`${file}:${i + 1}  raw colour → use Corpus.*`);
   });
 }
 

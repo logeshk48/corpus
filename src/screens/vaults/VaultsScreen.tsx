@@ -1,3 +1,4 @@
+import { Button, ScreenHeader } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
@@ -116,18 +117,7 @@ export default function VaultsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={styles.heading}>Vaults</Text>
-          {vaults.length > 0 && (
-            <Pressable style={styles.newButton} onPress={() => setJarMode({ kind: 'new' })}>
-              <Ionicons name="add" size={14} color="#0F1115" />
-              <Text style={styles.newText}>New jar</Text>
-            </Pressable>
-          )}
-        </View>
+        <ScreenHeader title="Jars" right={vaults.length > 0 ? <Button size="sm" icon="add" label="New jar" onPress={() => setJarMode({ kind: 'new' })} /> : undefined} onBack={goBack} />
 
         {loading ? (
           <View style={styles.center}>

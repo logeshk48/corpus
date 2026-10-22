@@ -21,7 +21,7 @@ export default function UpcomingBills({ bills, onPress }: { bills: Bill[]; onPre
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={styles.top}>
         <View style={styles.icon}>
-          <Ionicons name="repeat" size={16} color="#C88BDB" />
+          <Ionicons name="repeat" size={16} color={Corpus.violet} />
         </View>
         <Text style={styles.title}>Recurring bills</Text>
         <Text style={styles.value}>

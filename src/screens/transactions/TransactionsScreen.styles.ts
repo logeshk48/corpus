@@ -11,24 +11,6 @@ export const styles = StyleSheet.create({
     paddingBottom: 100,
     gap: Space.md,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Space.sm,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Corpus.card,
-  },
-  heading: {
-    fontSize: Type.title,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',

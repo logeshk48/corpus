@@ -37,7 +37,4 @@ export const styles = StyleSheet.create({
     color: Corpus.gold,
     fontWeight: '500',
   },
-  gap: {
-    gap: Space.xs,
-  },
 });

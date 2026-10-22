@@ -1,3 +1,4 @@
+import { ScreenHeader } from '@/components/ui';
 import FilterChips, { ChipOption } from '@/components/FilterChips';
 import { findCategory } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
@@ -66,12 +67,7 @@ export default function TransactionsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={styles.heading}>Transactions</Text>
-        </View>
+        <ScreenHeader title="Transactions" onBack={goBack} />
 
         <View style={styles.searchBox}>
           <Ionicons name="search" size={16} color={Corpus.textFaint} />

@@ -45,7 +45,6 @@ export const styles = StyleSheet.create({
   },
   totalLabel: { fontSize: Type.body, color: Corpus.textMuted },
   totalValue: { fontSize: Type.h2, fontWeight: '600', color: Corpus.gold },
-  sectionLabel: { fontSize: Type.caption, letterSpacing: 1, color: Corpus.textMuted, fontWeight: '500', marginTop: Space.sm },
   muted: { fontSize: Type.body, color: Corpus.textFaint, lineHeight: 18 },
 
   // Welcome

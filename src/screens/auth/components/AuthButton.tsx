@@ -1,5 +1,4 @@
-import { ActivityIndicator, Pressable, Text } from 'react-native';
-import { styles } from './AuthButton.styles';
+import { Button } from '@/components/ui';
 
 type AuthButtonProps = {
   label: string;
@@ -8,17 +7,5 @@ type AuthButtonProps = {
 };
 
 export default function AuthButton({ label, loading = false, onPress }: AuthButtonProps) {
-  return (
-    <Pressable
-      style={[styles.button, loading && styles.buttonLoading]}
-      onPress={onPress}
-      disabled={loading}
-    >
-      {loading ? (
-        <ActivityIndicator color="#0F1115" />
-      ) : (
-        <Text style={styles.label}>{label}</Text>
-      )}
-    </Pressable>
-  );
+  return <Button label={label} onPress={onPress} loading={loading} style={{ marginTop: 8 }} />;
 }

@@ -43,6 +43,5 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkOn: { backgroundColor: Corpus.gold, borderColor: Corpus.gold },
-  radio: { borderRadius: Radius.md },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Corpus.bg },
 });

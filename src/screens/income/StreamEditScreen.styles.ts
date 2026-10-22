@@ -14,24 +14,6 @@ export const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Space.sm,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Corpus.card,
-  },
-  heading: {
-    fontSize: Type.title,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
   statsRow: {
     flexDirection: 'row',
     gap: Space.sm + 2,
@@ -148,39 +130,6 @@ export const styles = StyleSheet.create({
   },
   error: {
     fontSize: Type.caption,
-    color: Corpus.danger,
-  },
-  saveButton: {
-    backgroundColor: Corpus.gold,
-    borderRadius: Radius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: Space.sm,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Corpus.cardAlt,
-  },
-  saveText: {
-    fontSize: Type.label,
-    fontWeight: '600',
-    color: Corpus.onGold,
-  },
-  saveTextDisabled: {
-    color: Corpus.textFaint,
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Space.sm,
-    borderRadius: Radius.md,
-    paddingVertical: 14,
-    borderWidth: 0.5,
-    borderColor: Corpus.danger,
-  },
-  deleteText: {
-    fontSize: Type.bodyLg,
-    fontWeight: '500',
     color: Corpus.danger,
   },
   center: {

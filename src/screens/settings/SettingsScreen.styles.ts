@@ -58,12 +58,6 @@ export const styles = StyleSheet.create({
   },
 
   // Sections
-  sectionLabel: {
-    fontSize: Type.caption,
-    color: Corpus.textMuted,
-    letterSpacing: 0.6,
-    marginTop: Space.sm,
-  },
   group: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.lg,
@@ -128,23 +122,6 @@ export const styles = StyleSheet.create({
   },
 
   // Save
-  saveButton: {
-    backgroundColor: Corpus.gold,
-    borderRadius: Radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: Corpus.cardAlt,
-  },
-  saveText: {
-    fontSize: Type.bodyLg,
-    fontWeight: '600',
-    color: Corpus.onGold,
-  },
-  saveTextDisabled: {
-    color: Corpus.textFaint,
-  },
   savedNote: {
     fontSize: Type.small,
     color: Corpus.income,

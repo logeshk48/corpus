@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui';
 import { EXPENSE_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import CategoryGrid from '@/screens/add/components/CategoryGrid';
@@ -366,24 +367,10 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
               </View>
             )}
 
-            <Pressable
-              style={[sheet.saveButton, !canSave && sheet.saveButtonDisabled]}
-              onPress={save}
-              disabled={!canSave}
-            >
-              {busy ? (
-                <ActivityIndicator color="#0F1115" />
-              ) : (
-                <Text style={[sheet.saveText, !canSave && sheet.saveTextDisabled]}>
-                  {editing ? 'Save changes' : 'Add bill'}
-                </Text>
-              )}
-            </Pressable>
+            <Button label={editing ? 'Save changes' : 'Add bill'} onPress={save} loading={busy} disabled={!canSave} />
 
             {editing && (
-              <Pressable style={sheet.removeButton} onPress={() => confirmDelete(mode.bill, () => onDelete(mode.bill))}>
-                <Text style={sheet.removeText}>Delete bill</Text>
-              </Pressable>
+              <Button variant="danger" icon="trash-outline" label="Delete bill" onPress={() => confirmDelete(mode.bill, () => onDelete(mode.bill))} />
             )}
           </ScrollView>
         </View>

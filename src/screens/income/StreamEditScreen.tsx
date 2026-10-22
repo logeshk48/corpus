@@ -1,3 +1,4 @@
+import { Button, ScreenHeader } from '@/components/ui';
 import FilterChips, { ChipOption } from '@/components/FilterChips';
 import { Corpus } from '@/constants/theme';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
@@ -145,12 +146,7 @@ export default function StreamEditScreen() {
   };
 
   const header = (
-    <View style={styles.headerRow}>
-      <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-        <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-      </Pressable>
-      <Text style={styles.heading}>{isNew ? 'New income stream' : 'Edit stream'}</Text>
-    </View>
+    <ScreenHeader title={isNew ? 'New income stream' : 'Edit stream'} onBack={goBack} />
   );
 
   if (!isNew && (loading || (!existing && !prefilled))) {
@@ -272,25 +268,10 @@ export default function StreamEditScreen() {
           <Text style={styles.hint}>Used to show how much of this month's income is still to come</Text>
         )}
 
-        <Pressable
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={!canSave}
-        >
-          {busy ? (
-            <ActivityIndicator color="#0F1115" />
-          ) : (
-            <Text style={[styles.saveText, !canSave && styles.saveTextDisabled]}>
-              {isNew ? 'Add stream' : 'Save changes'}
-            </Text>
-          )}
-        </Pressable>
+        <Button label={isNew ? 'Add stream' : 'Save changes'} onPress={handleSave} loading={busy} disabled={!canSave} />
 
         {!isNew && (
-          <Pressable style={styles.deleteButton} onPress={handleDelete} disabled={busy}>
-            <Ionicons name="trash-outline" size={18} color={Corpus.danger} />
-            <Text style={styles.deleteText}>Delete stream</Text>
-          </Pressable>
+          <Button variant="danger" icon="trash-outline" label="Delete stream" onPress={handleDelete} disabled={busy} />
         )}
       </ScrollView>
     </SafeAreaView>

@@ -1,3 +1,4 @@
+import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
@@ -169,7 +170,7 @@ export default function BillsScreen() {
   ) =>
     list.length > 0 && (
       <>
-        <Text style={styles.sectionLabel}>{title}</Text>
+        <SectionLabel>{title}</SectionLabel>
         <View style={styles.group}>
           {list.map((b, i) => (
             <BillRow
@@ -188,18 +189,7 @@ export default function BillsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={styles.heading}>Recurring bills</Text>
-          {bills.length > 0 && (
-            <Pressable style={styles.addButton} onPress={() => setMode({ kind: 'new' })}>
-              <Ionicons name="add" size={14} color="#0F1115" />
-              <Text style={styles.addText}>Add</Text>
-            </Pressable>
-          )}
-        </View>
+        <ScreenHeader title="Recurring bills" right={bills.length > 0 ? <Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} /> : undefined} onBack={goBack} />
 
         {loading ? (
           <View style={styles.center}>

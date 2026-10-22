@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
 import type { Bill } from '@/types/bill';
@@ -78,22 +79,8 @@ export default function PayBillSheet({ bill, onClose, onPay, onSkip }: Props) {
             </View>
           )}
 
-          <Pressable
-            style={[sheet.saveButton, !valid && sheet.saveButtonDisabled]}
-            onPress={() => valid && run(() => onPay(bill, value))}
-            disabled={!valid || busy}
-          >
-            {busy ? (
-              <ActivityIndicator color="#0F1115" />
-            ) : (
-              <Text style={[sheet.saveText, !valid && sheet.saveTextDisabled]}>
-                Record payment{valid ? ` · ${formatINR(value)}` : ''}
-              </Text>
-            )}
-          </Pressable>
-          <Pressable style={sheet.removeButton} onPress={() => run(() => onSkip(bill))} disabled={busy}>
-            <Text style={[sheet.removeText, { color: Corpus.textMuted }]}>Skip this month</Text>
-          </Pressable>
+          <Button label={`Record payment${valid ? ` · ${formatINR(value)}` : ''}`} onPress={() => valid && run(() => onPay(bill, value))} loading={busy} disabled={!valid} />
+          <Button variant="quiet" label="Skip this month" onPress={() => run(() => onSkip(bill))} disabled={busy} />
         </View>
       </View>
     </Modal>

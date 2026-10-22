@@ -14,25 +14,6 @@ export const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Space.sm,
-  },
-  roundButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Corpus.card,
-  },
-  heading: {
-    flex: 1,
-    fontSize: Type.title,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
   hero: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.xl,
@@ -118,15 +99,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'baseline',
     marginTop: Space.sm,
-  },
-  sectionLabel: {
-    fontSize: Type.caption,
-    color: Corpus.textMuted,
-    letterSpacing: 0.6,
-  },
-  sectionMeta: {
-    fontSize: Type.caption,
-    color: Corpus.textFaint,
   },
   group: {
     backgroundColor: Corpus.card,

@@ -1,3 +1,4 @@
+import { Button, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
@@ -89,7 +90,7 @@ export default function SettingsScreen() {
         ) : (
           <>
             {/* PROFILE */}
-            <Text style={styles.sectionLabel}>PROFILE</Text>
+            <SectionLabel>PROFILE</SectionLabel>
             <View style={styles.group}>
               <View style={styles.row}>
                 <View style={styles.rowIcon}>
@@ -110,7 +111,7 @@ export default function SettingsScreen() {
             </View>
 
             {/* MONEY */}
-            <Text style={styles.sectionLabel}>MONEY</Text>
+            <SectionLabel>MONEY</SectionLabel>
             <View style={styles.group}>
               <View style={styles.row}>
                 <View style={styles.rowIcon}>
@@ -141,7 +142,7 @@ export default function SettingsScreen() {
             </View>
 
             {/* HOW YOU EARN */}
-            <Text style={styles.sectionLabel}>SETUP</Text>
+            <SectionLabel>SETUP</SectionLabel>
             <View style={styles.group}>
               <Pressable style={styles.row} onPress={() => router.push('/onboarding' as Href)}>
                 <View style={styles.rowIcon}>
@@ -157,7 +158,7 @@ export default function SettingsScreen() {
             </View>
 
             {/* PREFERENCES */}
-            <Text style={styles.sectionLabel}>PREFERENCES</Text>
+            <SectionLabel>PREFERENCES</SectionLabel>
             <View style={styles.group}>
               <View style={styles.row}>
                 <View style={styles.rowIcon}>
@@ -181,26 +182,14 @@ export default function SettingsScreen() {
             </View>
 
             {/* Save */}
-            <Pressable
-              style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-              onPress={handleSave}
-              disabled={!canSave}
-            >
-              {saving ? (
-                <ActivityIndicator color="#0F1115" />
-              ) : (
-                <Text style={[styles.saveText, !canSave && styles.saveTextDisabled]}>
-                  Save changes
-                </Text>
-              )}
-            </Pressable>
+            <Button label="Save changes" onPress={handleSave} loading={saving} disabled={!canSave} />
             {justSaved && <Text style={styles.savedNote}>Saved ✓</Text>}
             {error && <Text style={styles.fieldError}>{error}</Text>}
           </>
         )}
 
         {/* ACCOUNT */}
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
+        <SectionLabel>ACCOUNT</SectionLabel>
         <View style={styles.group}>
           <Pressable style={styles.logoutRow} onPress={() => logOut()}>
             <Ionicons name="log-out-outline" size={18} color={Corpus.danger} />

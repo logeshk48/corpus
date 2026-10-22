@@ -43,7 +43,8 @@ export const Corpus = {
   warningLine: '#5A4520',
   dangerTint: '#2A1D1D',
   dangerLine: '#5A2A2A',
-  violetTint: '#2A1F2E',  // loans / EMIs
+  violet: '#C88BDB',      // loans / EMIs / recurring bills
+  violetTint: '#2A1F2E',
 };
 
 // Type scale: the only font sizes used in the app

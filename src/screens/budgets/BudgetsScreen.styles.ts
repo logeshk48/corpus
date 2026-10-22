@@ -14,38 +14,11 @@ export const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Space.sm,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Corpus.card,
-  },
-  heading: {
-    fontSize: Type.title,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
   sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
     marginTop: Space.sm,
-  },
-  sectionLabel: {
-    fontSize: Type.caption,
-    color: Corpus.textMuted,
-    letterSpacing: 0.6,
-  },
-  sectionMeta: {
-    fontSize: Type.caption,
-    color: Corpus.textFaint,
   },
   list: {
     gap: Space.sm + 2,

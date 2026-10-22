@@ -38,11 +38,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: Space.sm,
   },
-  buttonLabel: {
-    fontSize: Type.label,
-    fontWeight: '600',
-    color: Corpus.onGold,
-  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',

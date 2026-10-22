@@ -1,3 +1,4 @@
+import { IconButton, ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
@@ -56,11 +57,7 @@ export default function BillDetailScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.content}>
-          <View style={styles.headerRow}>
-            <Pressable onPress={goBack} style={styles.roundButton} hitSlop={10}>
-              <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-            </Pressable>
-          </View>
+          <ScreenHeader onBack={goBack} />
           <View style={styles.center}>
             {loading ? <ActivityIndicator color={Corpus.gold} /> : <Text style={styles.muted}>This bill no longer exists</Text>}
           </View>
@@ -187,19 +184,11 @@ export default function BillDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.roundButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={styles.heading}>{bill.name}</Text>
-          <Pressable onPress={() => setMode({ kind: 'edit', bill })} style={styles.roundButton} hitSlop={10}>
-            <Ionicons name="create-outline" size={17} color={Corpus.text} />
-          </Pressable>
-        </View>
+        <ScreenHeader title={bill.name} right={<IconButton icon="create-outline" label="Edit" onPress={() => setMode({ kind: 'edit', bill })} />} onBack={goBack} />
 
         <View style={styles.hero}>
           <View style={styles.heroIcon}>
-            <Ionicons name={bill.variable ? 'flash' : 'repeat'} size={24} color="#C88BDB" />
+            <Ionicons name={bill.variable ? 'flash' : 'repeat'} size={24} color={Corpus.violet} />
           </View>
           <Text style={styles.heroAmount}>
             {bill.variable ? '~' : ''}
@@ -246,7 +235,7 @@ export default function BillDetailScreen() {
         {bill.active && dueNow && (
           <View style={styles.actions}>
             <Pressable style={styles.primary} onPress={() => setPaying(bill)}>
-              <Ionicons name={bill.variable ? 'create' : 'checkmark'} size={16} color="#0F1115" />
+              <Ionicons name={bill.variable ? 'create' : 'checkmark'} size={16} color={Corpus.onGold} />
               <Text style={styles.primaryText}>{bill.variable ? 'Enter amount' : 'Pay now'}</Text>
             </Pressable>
             <Pressable style={styles.secondary} onPress={() => skip(bill)}>
@@ -273,7 +262,7 @@ export default function BillDetailScreen() {
           )}
         </View>
 
-        <Text style={styles.sectionLabel}>PAYMENT HISTORY · LAST 12 MONTHS</Text>
+        <SectionLabel>PAYMENT HISTORY · LAST 12 MONTHS</SectionLabel>
         <View style={styles.group}>
           {payments.length === 0 ? (
             <View style={styles.empty}>

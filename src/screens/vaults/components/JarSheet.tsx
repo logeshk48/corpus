@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
 import { VAULT_COLORS, VAULT_ICONS, type NewVault, type VaultWithBalance } from '@/types/vault';
@@ -255,7 +256,7 @@ export default function JarSheet({ mode, context, onClose, onSave, onDelete }: J
                   style={[styles.colorDot, { backgroundColor: c }, c === color && styles.colorSelected]}
                   onPress={() => setColor(c)}
                 >
-                  {c === color && <Ionicons name="checkmark" size={14} color="#0F1115" />}
+                  {c === color && <Ionicons name="checkmark" size={14} color={Corpus.onGold} />}
                 </Pressable>
               ))}
             </View>
@@ -273,28 +274,16 @@ export default function JarSheet({ mode, context, onClose, onSave, onDelete }: J
               ))}
             </View>
 
-            <Pressable
-              style={[sheet.saveButton, { backgroundColor: color }, !canSave && sheet.saveButtonDisabled]}
+            <Button
+              label={editing ? 'Save changes' : 'Create jar'}
+              tint={color}
               onPress={save}
+              loading={busy}
               disabled={!canSave}
-            >
-              {busy ? (
-                <ActivityIndicator color="#0F1115" />
-              ) : (
-                <Text style={[sheet.saveText, !canSave && sheet.saveTextDisabled]}>
-                  {editing ? 'Save changes' : 'Create jar'}
-                </Text>
-              )}
-            </Pressable>
+            />
 
             {editing && (
-              <Pressable
-                style={sheet.removeButton}
-                onPress={() => confirmDelete(mode.jar, () => onDelete(mode.jar))}
-                disabled={busy}
-              >
-                <Text style={sheet.removeText}>Delete jar</Text>
-              </Pressable>
+              <Button variant="danger" icon="trash-outline" label="Delete jar" onPress={() => confirmDelete(mode.jar, () => onDelete(mode.jar))} disabled={busy} />
             )}
           </ScrollView>
         </View>

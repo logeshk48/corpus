@@ -1,3 +1,4 @@
+import { ScreenHeader, SectionLabel } from '@/components/ui';
 import { EXPENSE_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
@@ -86,12 +87,7 @@ export default function BudgetsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={styles.heading}>Budgets</Text>
-        </View>
+        <ScreenHeader title="Budgets" onBack={goBack} />
 
         {loading ? (
           <View style={styles.center}>
@@ -126,10 +122,7 @@ export default function BudgetsScreen() {
 
             {active.length > 0 && (
               <>
-                <View style={styles.sectionRow}>
-                  <Text style={styles.sectionLabel}>ACTIVE BUDGETS</Text>
-                  <Text style={styles.sectionMeta}>Tap to edit</Text>
-                </View>
+                <SectionLabel right="Tap to edit">ACTIVE BUDGETS</SectionLabel>
                 <View style={styles.list}>
                   {active.map((b) => (
                     <BudgetCard key={b.categoryId} budget={b} onPress={() => setEditingId(b.categoryId)} />
@@ -140,10 +133,7 @@ export default function BudgetsScreen() {
 
             {unbudgeted.length > 0 && (
               <>
-                <View style={styles.sectionRow}>
-                  <Text style={styles.sectionLabel}>NOT BUDGETED</Text>
-                  <Text style={styles.sectionMeta}>Sorted by spending</Text>
-                </View>
+                <SectionLabel right="Sorted by spending">NOT BUDGETED</SectionLabel>
                 <View style={styles.group}>
                   {unbudgeted.map((c, i) => (
                     <UnbudgetedRow

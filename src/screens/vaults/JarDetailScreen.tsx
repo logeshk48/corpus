@@ -1,3 +1,4 @@
+import { IconButton, ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -50,11 +51,7 @@ export default function JarDetailScreen() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.content}>
-          <View style={styles.headerRow}>
-            <Pressable onPress={goBack} style={styles.roundButton} hitSlop={10}>
-              <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-            </Pressable>
-          </View>
+          <ScreenHeader onBack={goBack} />
           <View style={styles.center}>
             {loading ? (
               <ActivityIndicator color={Corpus.gold} />
@@ -133,15 +130,7 @@ export default function JarDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.roundButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={styles.heading}>{jar.name}</Text>
-          <Pressable onPress={() => setJarMode({ kind: 'edit', jar })} style={styles.roundButton} hitSlop={10}>
-            <Ionicons name="create-outline" size={17} color={Corpus.text} />
-          </Pressable>
-        </View>
+        <ScreenHeader title={jar.name} right={<IconButton icon="create-outline" label="Edit" onPress={() => setJarMode({ kind: 'edit', jar })} />} onBack={goBack} />
 
         <View style={styles.hero}>
           <View style={[styles.heroIcon, { backgroundColor: `${jar.color}26` }]}>
@@ -167,7 +156,7 @@ export default function JarDetailScreen() {
 
         <View style={styles.actions}>
           <Pressable style={[styles.addButton, { backgroundColor: jar.color }]} onPress={() => setMoneyType('in')}>
-            <Ionicons name="add" size={17} color="#0F1115" />
+            <Ionicons name="add" size={17} color={Corpus.onGold} />
             <Text style={styles.addText}>Add money</Text>
           </Pressable>
           <Pressable
@@ -187,10 +176,7 @@ export default function JarDetailScreen() {
           onEdit={() => setJarMode({ kind: 'edit', jar })}
         />
 
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionLabel}>HISTORY</Text>
-          {history.length > 0 && <Text style={styles.sectionMeta}>Tap an entry to remove it</Text>}
-        </View>
+        <SectionLabel right={history.length > 0 ? "Tap an entry to remove it" : undefined}>HISTORY</SectionLabel>
         <View style={styles.group}>
           {history.length === 0 ? (
             <View style={styles.empty}>

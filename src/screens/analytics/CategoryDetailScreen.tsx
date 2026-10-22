@@ -1,3 +1,4 @@
+import { ScreenHeader, SectionLabel } from '@/components/ui';
 import { ChartColors } from '@/constants/chartColors';
 import { findCategory } from '@/constants/categories';
 import { Corpus, Radius, Space, Type } from '@/constants/theme';
@@ -44,13 +45,7 @@ export default function CategoryDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.round} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Ionicons name={(cat?.icon ?? 'ellipsis-horizontal') as any} size={18} color={Corpus.gold} />
-          <Text style={styles.heading}>{name}</Text>
-        </View>
+        <ScreenHeader title={name} icon={(cat?.icon ?? 'ellipsis-horizontal') as any} onBack={goBack} />
 
         {loading ? (
           <View style={styles.center}>
@@ -126,7 +121,7 @@ export default function CategoryDetailScreen() {
               <Text style={styles.cardMeta}>Dashed line = average of the 5 months before this one · tap a month</Text>
             </View>
 
-            <Text style={styles.sectionLabel}>{name.toUpperCase()} IN {monthLabel(month, 'short').toUpperCase()}</Text>
+            <SectionLabel>{`${name.toUpperCase()} IN ${monthLabel(month, 'short').toUpperCase()}`}</SectionLabel>
             <View style={styles.group}>
               {items.length === 0 ? (
                 <Text style={styles.empty}>No {name.toLowerCase()} spending this month</Text>
@@ -148,9 +143,6 @@ export default function CategoryDetailScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
-  round: { width: 32, height: 32, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: Corpus.card },
-  heading: { fontSize: Type.title, fontWeight: '500', color: Corpus.text },
   hero: { backgroundColor: Corpus.card, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, alignItems: 'center', gap: 4 },
   heroLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6 },
   heroAmount: { fontSize: Type.amount, fontWeight: '600', color: Corpus.text },
@@ -169,7 +161,6 @@ const styles = StyleSheet.create({
   value: { fontSize: Type.micro, color: Corpus.text, marginBottom: 3 },
   xRow: { flexDirection: 'row' },
   xLabel: { flex: 1, textAlign: 'center', fontSize: Type.caption, color: Corpus.textMuted },
-  sectionLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
   group: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, paddingVertical: 4 },
   item: { paddingHorizontal: Space.md, paddingVertical: 8 },
   empty: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center', paddingVertical: Space.lg },

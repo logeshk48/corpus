@@ -73,7 +73,7 @@ export default function JarCard({ jar, context, onOpen, onAdd, onTakeOut }: JarC
 
       <View style={styles.actions}>
         <Pressable style={[styles.addButton, { backgroundColor: jar.color }]} onPress={onAdd}>
-          <Ionicons name="add" size={16} color="#0F1115" />
+          <Ionicons name="add" size={16} color={Corpus.onGold} />
           <Text style={styles.addText}>Add money</Text>
         </Pressable>
         <Pressable

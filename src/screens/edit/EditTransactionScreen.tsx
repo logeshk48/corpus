@@ -1,3 +1,4 @@
+import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { styles as form } from '@/screens/add/AddScreen.styles';
@@ -170,12 +171,7 @@ export default function EditTransactionScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.headerRow}>
-          <Pressable onPress={goBack} style={styles.backButton} hitSlop={10}>
-            <Ionicons name="chevron-back" size={22} color={Corpus.text} />
-          </Pressable>
-          <Text style={form.heading}>Edit transaction</Text>
-        </View>
+        <ScreenHeader title="Edit transaction" onBack={goBack} />
 
         {loading ? (
           <View style={styles.center}>
@@ -205,20 +201,20 @@ export default function EditTransactionScreen() {
               </View>
             </View>
 
-            <Text style={form.sectionLabel}>DATE</Text>
+            <SectionLabel>DATE</SectionLabel>
             <DateStepper value={day} onChange={setDay} />
 
             {type === 'income' && (
               <>
-                <Text style={form.sectionLabel}>FROM</Text>
+                <SectionLabel>FROM</SectionLabel>
                 <StreamPicker value={streamId} onChange={handleStreamChange} />
               </>
             )}
 
-            <Text style={form.sectionLabel}>CATEGORY</Text>
+            <SectionLabel>CATEGORY</SectionLabel>
             <CategoryGrid categories={categories} selected={category} onSelect={setCategory} />
 
-            <Text style={form.sectionLabel}>NOTE (OPTIONAL)</Text>
+            <SectionLabel>NOTE (OPTIONAL)</SectionLabel>
             <TextInput
               style={form.noteInput}
               value={note}
@@ -230,10 +226,7 @@ export default function EditTransactionScreen() {
 
             <SaveButton enabled={isValid && !busy} onPress={handleSave} />
 
-            <Pressable style={styles.deleteButton} onPress={handleDelete} disabled={busy}>
-              <Ionicons name="trash-outline" size={18} color={Corpus.danger} />
-              <Text style={styles.deleteText}>Delete transaction</Text>
-            </Pressable>
+            <Button variant="danger" icon="trash-outline" label="Delete transaction" onPress={handleDelete} disabled={busy} />
           </>
         )}
       </ScrollView>

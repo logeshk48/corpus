@@ -1,3 +1,4 @@
+import { SectionLabel } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { addTransaction } from '@/services/transactions';
@@ -105,24 +106,24 @@ export default function AddScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>DATE</Text>
+        <SectionLabel>DATE</SectionLabel>
         <DateStepper value={day} onChange={setDay} />
 
         {type === 'income' && (
           <>
-            <Text style={styles.sectionLabel}>FROM</Text>
+            <SectionLabel>FROM</SectionLabel>
             <StreamPicker value={streamId} onChange={handleStreamChange} />
           </>
         )}
 
-        <Text style={styles.sectionLabel}>CATEGORY</Text>
+        <SectionLabel>CATEGORY</SectionLabel>
         <CategoryGrid
           categories={categories}
           selected={category}
           onSelect={setCategory}
         />
 
-        <Text style={styles.sectionLabel}>NOTE (OPTIONAL)</Text>
+        <SectionLabel>NOTE (OPTIONAL)</SectionLabel>
         <TextInput
           style={styles.noteInput}
           value={note}

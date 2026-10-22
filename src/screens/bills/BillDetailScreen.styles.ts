@@ -4,16 +4,6 @@ import { Corpus, Radius, Space, Type } from '@/constants/theme';
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
-  roundButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Corpus.card,
-  },
-  heading: { flex: 1, fontSize: Type.title, fontWeight: '500', color: Corpus.text },
   hero: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.xl,
@@ -93,7 +83,6 @@ export const styles = StyleSheet.create({
   },
   statLabel: { fontSize: Type.caption, color: Corpus.textMuted },
   statValue: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
-  sectionLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
   group: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.lg,

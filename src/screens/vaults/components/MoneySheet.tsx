@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
 import type { VaultEntryType, VaultWithBalance } from '@/types/vault';
@@ -125,23 +126,13 @@ export default function MoneySheet({ jar, type, initialAmount, onClose, onSubmit
             </View>
           ) : null}
 
-          <Pressable
-            style={[
-              sheet.saveButton,
-              { backgroundColor: isIn ? jar.color : Corpus.text },
-              !canSubmit && sheet.saveButtonDisabled,
-            ]}
+          <Button
+            label={`${isIn ? 'Add' : 'Take out'} ${entered && !notNumber ? formatINR(value) : 'money'}`}
+            tint={isIn ? jar.color : Corpus.text}
             onPress={submit}
+            loading={busy}
             disabled={!canSubmit}
-          >
-            {busy ? (
-              <ActivityIndicator color="#0F1115" />
-            ) : (
-              <Text style={[sheet.saveText, !canSubmit && sheet.saveTextDisabled]}>
-                {isIn ? 'Add' : 'Take out'} {entered && !notNumber ? formatINR(value) : 'money'}
-              </Text>
-            )}
-          </Pressable>
+          />
         </View>
       </View>
     </Modal>

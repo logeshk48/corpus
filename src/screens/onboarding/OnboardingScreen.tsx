@@ -1,3 +1,4 @@
+import { Button, IconButton } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
@@ -138,9 +139,7 @@ export default function OnboardingScreen() {
             </Pressable>
           ) : (
             <>
-              <Pressable style={styles.back} onPress={() => goTo(step - 1)} accessibilityLabel="Back">
-                <Ionicons name="chevron-back" size={18} color={Corpus.text} />
-              </Pressable>
+              <IconButton icon="chevron-back" label="Back" onPress={() => goTo(step - 1)} />
               <View style={styles.progress}>
                 {Array.from({ length: QUESTION_COUNT }, (_, i) => (
                   <View key={i} style={[styles.seg, i < step && styles.segOn]} />
@@ -171,25 +170,14 @@ export default function OnboardingScreen() {
 
         <View style={styles.footer}>
           {error && <Text style={styles.error}>{error}</Text>}
-          <Pressable
-            style={[styles.primary, !canContinue && styles.primaryDisabled]}
-            disabled={!canContinue || saving}
+          <Button
+            label={label}
+            icon={name === 'review' ? 'checkmark' : 'arrow-forward'}
+            iconRight
             onPress={() => (name === 'review' ? finish() : goTo(step + 1))}
-            accessibilityRole="button"
-          >
-            {saving ? (
-              <ActivityIndicator color={Corpus.bg} />
-            ) : (
-              <>
-                <Text style={[styles.primaryText, !canContinue && styles.primaryTextDisabled]}>{label}</Text>
-                <Ionicons
-                  name={name === 'review' ? 'checkmark' : 'arrow-forward'}
-                  size={17}
-                  color={canContinue ? Corpus.bg : Corpus.textFaint}
-                />
-              </>
-            )}
-          </Pressable>
+            loading={saving}
+            disabled={!canContinue}
+          />
           {hint && <Text style={styles.footerHint}>{hint}</Text>}
         </View>
       </KeyboardAvoidingView>

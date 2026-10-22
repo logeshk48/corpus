@@ -1,5 +1,4 @@
-import { Pressable, Text } from 'react-native';
-import { styles } from './SaveButton.styles';
+import { Button } from '@/components/ui';
 
 type SaveButtonProps = {
   enabled: boolean;
@@ -7,15 +6,5 @@ type SaveButtonProps = {
 };
 
 export default function SaveButton({ enabled, onPress }: SaveButtonProps) {
-  return (
-    <Pressable
-      style={[styles.button, !enabled && styles.buttonDisabled]}
-      onPress={onPress}
-      disabled={!enabled}
-    >
-      <Text style={[styles.label, !enabled && styles.labelDisabled]}>
-        Save transaction
-      </Text>
-    </Pressable>
-  );
+  return <Button label="Save transaction" icon="checkmark" onPress={onPress} disabled={!enabled} />;
 }

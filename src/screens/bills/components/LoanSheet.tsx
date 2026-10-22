@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
 import type { Bill, Loan, LoanType } from '@/types/bill';
@@ -215,17 +216,9 @@ export default function LoanSheet({ bill, onClose, onSave, onRemove }: Props) {
               </View>
             )}
 
-            <Pressable style={[sheet.saveButton, !valid && sheet.saveButtonDisabled]} onPress={save} disabled={!valid || busy}>
-              {busy ? (
-                <ActivityIndicator color="#0F1115" />
-              ) : (
-                <Text style={[sheet.saveText, !valid && sheet.saveTextDisabled]}>Save loan details</Text>
-              )}
-            </Pressable>
+            <Button label="Save loan details" onPress={save} loading={busy} disabled={!valid} />
             {bill.loan && (
-              <Pressable style={sheet.removeButton} onPress={onRemove} disabled={busy}>
-                <Text style={sheet.removeText}>Remove loan details</Text>
-              </Pressable>
+              <Button variant="danger" icon="trash-outline" label="Remove loan details" onPress={onRemove} disabled={busy} />
             )}
           </ScrollView>
         </View>

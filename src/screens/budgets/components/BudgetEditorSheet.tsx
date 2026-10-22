@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui';
 import type { Category } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { suggestLimit } from '@/utils/budgets';
@@ -114,24 +115,10 @@ export default function BudgetEditorSheet({
             <Text style={styles.hint}>Suggestion = your spending pace so far, projected to the full month</Text>
           ) : null}
 
-          <Pressable
-            style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-            onPress={() => run(() => onSave(value))}
-            disabled={!canSave}
-          >
-            {busy ? (
-              <ActivityIndicator color="#0F1115" />
-            ) : (
-              <Text style={[styles.saveText, !canSave && styles.saveTextDisabled]}>
-                {currentLimit ? 'Update budget' : 'Set budget'}
-              </Text>
-            )}
-          </Pressable>
+          <Button label={currentLimit ? 'Update budget' : 'Set budget'} onPress={() => run(() => onSave(value))} loading={busy} disabled={!canSave} />
 
           {currentLimit ? (
-            <Pressable style={styles.removeButton} onPress={() => run(onRemove)} disabled={busy}>
-              <Text style={styles.removeText}>Remove limit</Text>
-            </Pressable>
+            <Button variant="danger" icon="trash-outline" label="Remove limit" onPress={() => run(onRemove)} disabled={busy} />
           ) : null}
         </View>
       </View>

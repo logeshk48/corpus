@@ -43,11 +43,6 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 0,
   },
-  sectionLabel: {
-    fontSize: Type.small,
-    color: Corpus.textMuted,
-    letterSpacing: 0.4,
-  },
   noteInput: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.md,

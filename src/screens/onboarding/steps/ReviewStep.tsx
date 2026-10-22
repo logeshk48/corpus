@@ -1,3 +1,4 @@
+import { SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { streamTypeMeta } from '@/types/incomeStream';
 import { WORK_MODES, type SetupPlan } from '@/utils/onboarding';
@@ -22,7 +23,7 @@ export default function ReviewStep({ answers, plan }: Props) {
 
       {modes.length > 0 && (
         <>
-          <Text style={styles.sectionLabel}>HOW YOU EARN</Text>
+          <SectionLabel>HOW YOU EARN</SectionLabel>
           <View style={styles.chips}>
             {modes.map((m) => (
               <View key={m.id} style={styles.chip}>
@@ -36,7 +37,7 @@ export default function ReviewStep({ answers, plan }: Props) {
 
       {plan.streams.length > 0 && (
         <>
-          <Text style={styles.sectionLabel}>INCOME STREAMS</Text>
+          <SectionLabel>INCOME STREAMS</SectionLabel>
           <View style={styles.card}>
             {plan.streams.map((s, i) => (
               <Fragment key={s.name}>
@@ -57,7 +58,7 @@ export default function ReviewStep({ answers, plan }: Props) {
         </>
       )}
 
-      <Text style={styles.sectionLabel}>MONTHLY BUDGET</Text>
+      <SectionLabel>MONTHLY BUDGET</SectionLabel>
       <View style={styles.card}>
         <View style={styles.reviewRow}>
           <View style={styles.cardIcon}>
@@ -72,7 +73,7 @@ export default function ReviewStep({ answers, plan }: Props) {
 
       {plan.vaults.length > 0 && (
         <>
-          <Text style={styles.sectionLabel}>JARS</Text>
+          <SectionLabel>JARS</SectionLabel>
           <View style={styles.card}>
             {plan.vaults.map((v, i) => (
               <Fragment key={v.name}>

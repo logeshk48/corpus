@@ -133,31 +133,4 @@ export const styles = StyleSheet.create({
     color: Corpus.danger,
     textAlign: 'center',
   },
-  saveButton: {
-    backgroundColor: Corpus.gold,
-    borderRadius: Radius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: Space.xs,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Corpus.cardAlt,
-  },
-  saveText: {
-    fontSize: Type.label,
-    fontWeight: '600',
-    color: Corpus.onGold,
-  },
-  saveTextDisabled: {
-    color: Corpus.textFaint,
-  },
-  removeButton: {
-    alignItems: 'center',
-    paddingVertical: Space.sm,
-  },
-  removeText: {
-    fontSize: Type.body,
-    fontWeight: '500',
-    color: Corpus.danger,
-  },
 });

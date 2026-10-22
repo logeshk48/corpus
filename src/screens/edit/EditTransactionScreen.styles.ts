@@ -2,19 +2,6 @@ import { StyleSheet } from 'react-native';
 import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Space.sm,
-  },
-  backButton: {
-    width: 32,
-    height: 32,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Corpus.card,
-  },
   center: {
     alignItems: 'center',
     paddingVertical: 80,
@@ -23,20 +10,5 @@ export const styles = StyleSheet.create({
   notFound: {
     fontSize: Type.bodyLg,
     color: Corpus.textMuted,
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Space.sm,
-    borderRadius: Radius.md,
-    paddingVertical: 14,
-    borderWidth: 0.5,
-    borderColor: Corpus.danger,
-  },
-  deleteText: {
-    fontSize: Type.bodyLg,
-    fontWeight: '500',
-    color: Corpus.danger,
   },
 });
