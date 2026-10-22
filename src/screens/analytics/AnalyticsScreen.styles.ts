@@ -1,20 +1,37 @@
 import { StyleSheet } from 'react-native';
+import { Corpus, Radius, Space } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0F1115',
+  safe: { flex: 1, backgroundColor: Corpus.bg },
+  content: { padding: Space.lg, paddingBottom: 120, gap: Space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  heading: { fontSize: 17, fontWeight: '500', color: Corpus.text },
+  stepper: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.md,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    padding: 4,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '500',
-    color: '#F5F2E8',
+  arrow: { width: 40, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: Radius.sm },
+  stepperText: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '600', color: Corpus.text },
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm + 2 },
+  card: {
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    padding: Space.md,
+    gap: Space.md,
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#8B8F98',
-  },
+  cardTitleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: Corpus.text },
+  cardMeta: { fontSize: 11, color: Corpus.textMuted },
+  insight: { flexDirection: 'row', gap: Space.sm + 2, alignItems: 'flex-start' },
+  insightText: { flex: 1, fontSize: 13, color: Corpus.text, lineHeight: 19 },
+  empty: { alignItems: 'center', paddingVertical: Space.xl, gap: Space.sm },
+  emptyTitle: { fontSize: 15, color: Corpus.text },
+  emptyText: { fontSize: 12, color: Corpus.textMuted, textAlign: 'center', maxWidth: 280 },
+  center: { alignItems: 'center', paddingVertical: 80 },
 });

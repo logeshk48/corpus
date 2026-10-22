@@ -18,7 +18,7 @@ const TYPES: { id: LoanType; label: string; icon: string }[] = [
   { id: 'gadget', label: 'Gadget', icon: 'phone-portrait' },
   { id: 'other', label: 'Other', icon: 'ellipsis-horizontal' },
 ];
-const TENURES = [12, 24, 36, 60, 120, 180, 240];
+const TENURES = [12, 18, 24, 36, 60, 120, 180, 240];
 
 const shiftYm = (ym: string, n: number) =>
   yearMonth(new Date(Number(ym.slice(0, 4)), Number(ym.slice(5)) - 1 + n, 1));
