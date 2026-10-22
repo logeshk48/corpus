@@ -1,5 +1,5 @@
 import { ChartColors } from '@/constants/chartColors';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import type { SourceShare } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
 import { StyleSheet, Text, View } from 'react-native';
@@ -29,9 +29,9 @@ const styles = StyleSheet.create({
   list: { gap: 12 },
   row: { gap: 6 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  label: { flex: 1, fontSize: 13, color: Corpus.text },
-  amount: { fontSize: 13, fontWeight: '600', color: Corpus.text },
-  share: { width: 38, textAlign: 'right', fontSize: 12, color: Corpus.textMuted },
+  label: { flex: 1, fontSize: Type.body, color: Corpus.text },
+  amount: { fontSize: Type.body, fontWeight: '600', color: Corpus.text },
+  share: { width: 38, textAlign: 'right', fontSize: Type.small, color: Corpus.textMuted },
   track: { height: 8, borderRadius: 4, backgroundColor: ChartColors.track, overflow: 'hidden' },
   fill: { height: 8, borderRadius: 4, backgroundColor: ChartColors.income },
 });

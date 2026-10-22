@@ -1,4 +1,4 @@
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -10,15 +10,15 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   label: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   amounts: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   amountsOver: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.danger,
     fontWeight: '500',
   },

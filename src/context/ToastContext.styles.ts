@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   root: {
@@ -33,11 +33,11 @@ export const styles = StyleSheet.create({
   },
   message: {
     flex: 1,
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.text,
   },
   action: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '600',
     color: Corpus.gold,
     letterSpacing: 0.3,

@@ -1,12 +1,12 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 // Shared by every onboarding step so they read as one flow
 export const styles = StyleSheet.create({
   wrap: { gap: Space.md },
-  eyebrow: { fontSize: 11, letterSpacing: 1.2, color: Corpus.gold, fontWeight: '600' },
-  title: { fontSize: 26, lineHeight: 32, fontWeight: '600', color: Corpus.text },
-  sub: { fontSize: 14, lineHeight: 21, color: Corpus.textMuted, marginBottom: Space.sm },
+  eyebrow: { fontSize: Type.caption, letterSpacing: 1.2, color: Corpus.gold, fontWeight: '600' },
+  title: { fontSize: Type.h1, lineHeight: 34, fontWeight: '600', color: Corpus.text },
+  sub: { fontSize: Type.bodyLg, lineHeight: 21, color: Corpus.textMuted, marginBottom: Space.sm },
   list: { gap: 12 },
   card: {
     backgroundColor: Corpus.card,
@@ -20,22 +20,22 @@ export const styles = StyleSheet.create({
   cardIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     backgroundColor: Corpus.cardAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: Corpus.text },
+  cardTitle: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
   note: {
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: '#1E1C17',
+    backgroundColor: Corpus.goldTint,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: '#3A3320',
+    borderColor: Corpus.goldLine,
     padding: 14,
   },
-  noteText: { flex: 1, fontSize: 13, lineHeight: 19, color: Corpus.goldSoft },
+  noteText: { flex: 1, fontSize: Type.body, lineHeight: 19, color: Corpus.goldSoft },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -43,10 +43,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingTop: 4,
   },
-  totalLabel: { fontSize: 13, color: Corpus.textMuted },
-  totalValue: { fontSize: 22, fontWeight: '600', color: Corpus.gold },
-  sectionLabel: { fontSize: 11, letterSpacing: 1, color: Corpus.textMuted, fontWeight: '500', marginTop: Space.sm },
-  muted: { fontSize: 12.5, color: Corpus.textFaint, lineHeight: 18 },
+  totalLabel: { fontSize: Type.body, color: Corpus.textMuted },
+  totalValue: { fontSize: Type.h2, fontWeight: '600', color: Corpus.gold },
+  sectionLabel: { fontSize: Type.caption, letterSpacing: 1, color: Corpus.textMuted, fontWeight: '500', marginTop: Space.sm },
+  muted: { fontSize: Type.body, color: Corpus.textFaint, lineHeight: 18 },
 
   // Welcome
   hero: { alignItems: 'center', gap: 10, paddingTop: Space.xl, paddingBottom: Space.lg },
@@ -54,16 +54,16 @@ export const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 22,
-    backgroundColor: '#1E1C17',
+    backgroundColor: Corpus.goldTint,
     borderWidth: 1,
-    borderColor: '#3A3320',
+    borderColor: Corpus.goldLine,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
-  markText: { fontSize: 34, fontWeight: '700', color: Corpus.gold },
-  brand: { fontSize: 30, fontWeight: '600', color: Corpus.gold, letterSpacing: 2 },
-  tagline: { fontSize: 13, color: Corpus.textMuted, letterSpacing: 0.6 },
+  markText: { fontSize: Type.amount, fontWeight: '700', color: Corpus.gold },
+  brand: { fontSize: Type.brand, fontWeight: '600', color: Corpus.gold, letterSpacing: 2 },
+  tagline: { fontSize: Type.body, color: Corpus.textMuted, letterSpacing: 0.6 },
   promise: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   promiseIcon: {
     width: 36,
@@ -74,14 +74,14 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   promiseBody: { flex: 1, gap: 2 },
-  promiseTitle: { fontSize: 14.5, fontWeight: '600', color: Corpus.text },
-  promiseText: { fontSize: 13, color: Corpus.textMuted, lineHeight: 18 },
+  promiseTitle: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
+  promiseText: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 18 },
 
   // Review
   reviewRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  reviewText: { flex: 1, fontSize: 14, color: Corpus.text },
-  reviewSub: { fontSize: 12.5, color: Corpus.textMuted },
-  reviewValue: { fontSize: 14, fontWeight: '600', color: Corpus.text },
+  reviewText: { flex: 1, fontSize: Type.bodyLg, color: Corpus.text },
+  reviewSub: { fontSize: Type.body, color: Corpus.textMuted },
+  reviewValue: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     flexDirection: 'row',
@@ -92,6 +92,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  chipText: { fontSize: 13, color: Corpus.text },
+  chipText: { fontSize: Type.body, color: Corpus.text },
   divider: { height: 1, backgroundColor: Corpus.border },
 });

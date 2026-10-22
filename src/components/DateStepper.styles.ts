@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   container: {
@@ -24,16 +24,16 @@ export const styles = StyleSheet.create({
     gap: 2,
   },
   label: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.text,
   },
   sub: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
   },
   todayLink: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.gold,
     fontWeight: '500',
   },

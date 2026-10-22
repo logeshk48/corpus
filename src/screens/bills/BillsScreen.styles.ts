@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
@@ -15,12 +15,12 @@ export const styles = StyleSheet.create({
   backButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
   },
-  heading: { flex: 1, fontSize: 17, fontWeight: '500', color: Corpus.text },
+  heading: { flex: 1, fontSize: Type.title, fontWeight: '500', color: Corpus.text },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -30,7 +30,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
   },
-  addText: { fontSize: 12, fontWeight: '600', color: '#0F1115' },
+  addText: { fontSize: Type.small, fontWeight: '600', color: Corpus.onGold },
   hero: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.xl,
@@ -40,18 +40,18 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  heroLabel: { fontSize: 12, color: Corpus.textMuted, letterSpacing: 0.4 },
-  heroAmount: { fontSize: 32, fontWeight: '500', color: Corpus.text },
+  heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.4 },
+  heroAmount: { fontSize: Type.amount, fontWeight: '500', color: Corpus.text },
   heroSplit: { flexDirection: 'row', gap: Space.lg, marginTop: Space.sm },
   heroStat: { alignItems: 'center' },
-  heroStatLabel: { fontSize: 11, color: Corpus.textMuted },
-  heroStatValue: { fontSize: 15, fontWeight: '600' },
-  heroPer: { fontSize: 13, color: Corpus.textMuted, marginTop: -2 },
-  heroYear: { fontSize: 12, color: Corpus.textMuted, marginTop: 2 },
+  heroStatLabel: { fontSize: Type.caption, color: Corpus.textMuted },
+  heroStatValue: { fontSize: Type.label, fontWeight: '600' },
+  heroPer: { fontSize: Type.body, color: Corpus.textMuted, marginTop: -2 },
+  heroYear: { fontSize: Type.small, color: Corpus.textMuted, marginTop: 2 },
   progressWrap: { alignSelf: 'stretch', gap: 6, marginTop: Space.md },
   progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressLabel: { fontSize: 12, color: Corpus.textMuted },
-  progressValue: { fontSize: 12, fontWeight: '600', color: Corpus.text },
+  progressLabel: { fontSize: Type.small, color: Corpus.textMuted },
+  progressValue: { fontSize: Type.small, fontWeight: '600', color: Corpus.text },
   track: { height: 7, borderRadius: 4, backgroundColor: Corpus.bg, overflow: 'hidden' },
   fill: { height: 7, borderRadius: 4, backgroundColor: Corpus.income },
   insight: {
@@ -61,9 +61,9 @@ export const styles = StyleSheet.create({
     padding: Space.md,
     borderWidth: 0.5,
   },
-  insightText: { flex: 1, fontSize: 12, color: Corpus.text, lineHeight: 18 },
+  insightText: { flex: 1, fontSize: Type.small, color: Corpus.text, lineHeight: 18 },
   insightMuted: { color: Corpus.textMuted },
-  sectionLabel: { fontSize: 11, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
+  sectionLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
   group: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.lg,
@@ -89,9 +89,9 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowBody: { flex: 1 },
-  rowName: { fontSize: 14, color: Corpus.text },
-  rowMeta: { fontSize: 11, marginTop: 2 },
-  rowAmount: { fontSize: 14, fontWeight: '600', color: Corpus.text },
+  rowName: { fontSize: Type.bodyLg, color: Corpus.text },
+  rowMeta: { fontSize: Type.caption, marginTop: 2 },
+  rowAmount: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
   welcome: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.xl,
@@ -100,8 +100,8 @@ export const styles = StyleSheet.create({
     padding: Space.lg,
     gap: Space.md,
   },
-  welcomeTitle: { fontSize: 16, fontWeight: '500', color: Corpus.text, textAlign: 'center' },
-  welcomeText: { fontSize: 12, color: Corpus.textMuted, textAlign: 'center', lineHeight: 18 },
+  welcomeTitle: { fontSize: Type.input, fontWeight: '500', color: Corpus.text, textAlign: 'center' },
+  welcomeText: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center', lineHeight: 18 },
   templates: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, justifyContent: 'center' },
   template: {
     flexDirection: 'row',
@@ -114,7 +114,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
-  templateText: { fontSize: 12, color: Corpus.text },
-  note: { fontSize: 11, color: Corpus.textFaint, lineHeight: 17 },
+  templateText: { fontSize: Type.small, color: Corpus.text },
+  note: { fontSize: Type.caption, color: Corpus.textFaint, lineHeight: 17 },
   center: { alignItems: 'center', paddingVertical: 80 },
 });

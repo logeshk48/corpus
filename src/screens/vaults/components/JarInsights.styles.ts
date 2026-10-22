@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   card: {
@@ -16,16 +16,16 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   cardTitle: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.text,
   },
   big: {
-    fontSize: 22,
+    fontSize: Type.h2,
     fontWeight: '600',
   },
   line: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     lineHeight: 18,
   },
@@ -43,11 +43,11 @@ export const styles = StyleSheet.create({
   },
   statusText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
   },
   link: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
     color: Corpus.gold,
   },
@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   mLabel: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
   },
   mLine: {
@@ -88,16 +88,16 @@ export const styles = StyleSheet.create({
   },
   scheduleDate: {
     width: 64,
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.text,
   },
   schedulePct: {
     flex: 1,
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   note: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
     lineHeight: 17,
   },

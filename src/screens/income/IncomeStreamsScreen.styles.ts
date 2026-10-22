@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -22,14 +22,14 @@ export const styles = StyleSheet.create({
   backButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
   },
   heading: {
     flex: 1,
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -43,9 +43,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   addText: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   summary: {
     backgroundColor: Corpus.card,
@@ -57,18 +57,18 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
   },
   summaryAmount: {
-    fontSize: 30,
+    fontSize: Type.amount,
     fontWeight: '500',
     color: Corpus.income,
     marginTop: 4,
   },
   summarySub: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     marginTop: 6,
   },
@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Space.xs,
   },
   unlinkedText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   empty: {
@@ -90,11 +90,11 @@ export const styles = StyleSheet.create({
     gap: Space.sm,
   },
   emptyTitle: {
-    fontSize: 15,
+    fontSize: Type.label,
     color: Corpus.text,
   },
   emptyText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     textAlign: 'center',
     maxWidth: 280,
@@ -107,8 +107,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Space.lg,
   },
   emptyButtonText: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
 });

@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   heading: {
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -34,32 +34,32 @@ export const styles = StyleSheet.create({
   avatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: '#2E2712',
+    borderRadius: Radius.xl,
+    backgroundColor: Corpus.goldActive,
     borderWidth: 1,
     borderColor: Corpus.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: 19,
+    fontSize: Type.h3,
     fontWeight: '600',
     color: Corpus.gold,
   },
   profileName: {
-    fontSize: 15,
+    fontSize: Type.label,
     fontWeight: '500',
     color: Corpus.text,
   },
   profileEmail: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     marginTop: 2,
   },
 
   // Sections
   sectionLabel: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     letterSpacing: 0.6,
     marginTop: Space.sm,
@@ -94,22 +94,22 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   rowLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   rowInput: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
     paddingVertical: 4,
     paddingHorizontal: 0,
   },
   rowValue: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
     marginTop: 2,
   },
   rowHint: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
   },
   inlineRow: {
@@ -118,11 +118,11 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   rupee: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.textMuted,
   },
   fieldError: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.danger,
     marginTop: 2,
   },
@@ -138,15 +138,15 @@ export const styles = StyleSheet.create({
     backgroundColor: Corpus.cardAlt,
   },
   saveText: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   saveTextDisabled: {
     color: Corpus.textFaint,
   },
   savedNote: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.income,
     textAlign: 'center',
   },
@@ -160,12 +160,12 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   logoutText: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.danger,
   },
   version: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
     textAlign: 'center',
     marginTop: Space.md,

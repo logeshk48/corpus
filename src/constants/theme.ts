@@ -28,6 +28,41 @@ export const Corpus = {
   income: '#4CAF7D',    // green for money in
   danger: '#E05252',    // red for over-budget
   warning: '#E0A452',   // amber for 80% alerts
+
+  // Text/icons placed ON a gold surface (buttons, active chips)
+  onGold: '#0F1115',
+
+  // Tints: a dark wash + a hairline for each semantic colour.
+  // Use the pair together, e.g. { backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine }
+  goldTint: '#1E1B12',    // highlighted card / note
+  goldLine: '#45391C',
+  goldActive: '#2E2712',  // selected chip / segment
+  incomeTint: '#1D2A22',
+  incomeLine: '#2C4A38',
+  warningTint: '#2E2412',
+  warningLine: '#5A4520',
+  dangerTint: '#2A1D1D',
+  dangerLine: '#5A2A2A',
+  violetTint: '#2A1F2E',  // loans / EMIs
+};
+
+// Type scale: the only font sizes used in the app
+export const Type = {
+  micro: 10,    // chart value labels, tiny badges
+  caption: 11,  // UPPERCASE section labels, field labels
+  small: 12,    // hints, secondary lines
+  body: 13,     // default secondary text
+  bodyLg: 14,   // default primary text in rows
+  label: 15,    // row titles, buttons
+  input: 16,    // text inputs, primary buttons
+  title: 17,    // card titles, sheet headings
+  h3: 20,       // stat values, avatars
+  h2: 22,       // sub-headings
+  h1: 28,       // screen headings
+  brand: 30,    // CORPUS wordmark
+  amount: 34,   // hero amount at the top of a screen
+  hero: 40,     // Home Safe-to-Spend number
+  entry: 44,    // the amount you're typing (Add, budget editor)
 };
 
 export const Space = {

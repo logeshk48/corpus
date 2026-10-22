@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
     gap: Space.lg,
   },
   heading: {
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
     paddingVertical: Space.lg,
   },
   amountLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
   },
@@ -31,12 +31,12 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm,
   },
   rupee: {
-    fontSize: 32,
+    fontSize: Type.h1,
     color: Corpus.textMuted,
     marginRight: 4,
   },
   amountInput: {
-    fontSize: 44,
+    fontSize: Type.entry,
     fontWeight: '500',
     color: Corpus.gold,
     minWidth: 120,
@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
     padding: 0,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
   },
@@ -55,7 +55,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     paddingHorizontal: Space.md,
     paddingVertical: 14,
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
   },
 });

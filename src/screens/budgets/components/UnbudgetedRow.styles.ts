@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   row: {
@@ -19,7 +19,7 @@ export const styles = StyleSheet.create({
   iconCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     backgroundColor: Corpus.cardAlt,
     alignItems: 'center',
     justifyContent: 'center',
@@ -28,11 +28,11 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.text,
   },
   spent: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     marginTop: 1,
   },
@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   setText: {
-    fontSize: 11,
+    fontSize: Type.caption,
     fontWeight: '500',
     color: Corpus.gold,
   },

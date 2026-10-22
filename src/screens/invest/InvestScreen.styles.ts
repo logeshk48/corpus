@@ -1,20 +1,21 @@
+import { Corpus, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F1115',
+    backgroundColor: Corpus.bg,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   title: {
-    fontSize: 22,
+    fontSize: Type.h2,
     fontWeight: '500',
-    color: '#F5F2E8',
+    color: Corpus.text,
   },
   subtitle: {
-    fontSize: 13,
-    color: '#8B8F98',
+    fontSize: Type.body,
+    color: Corpus.textMuted,
   },
 });

@@ -1,9 +1,9 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   label: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     letterSpacing: 0.5,
   },
@@ -14,7 +14,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     paddingHorizontal: Space.md,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
   },
   templates: {
@@ -37,10 +37,10 @@ export const styles = StyleSheet.create({
   },
   freqActive: {
     borderColor: Corpus.gold,
-    backgroundColor: '#2E2712',
+    backgroundColor: Corpus.goldActive,
   },
   freqText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   freqTextActive: {
@@ -67,18 +67,18 @@ export const styles = StyleSheet.create({
   dayText: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.text,
   },
   yearJump: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.gold,
     paddingHorizontal: 8,
     fontWeight: '500',
   },
   hint: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
   },
   switchRow: {
@@ -96,11 +96,11 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   switchTitle: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.text,
   },
   switchHint: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     marginTop: 2,
   },

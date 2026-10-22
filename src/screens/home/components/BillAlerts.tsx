@@ -23,10 +23,10 @@ export default function BillAlerts({ bills, onPay, onOpen }: Props) {
         const variable = needsAmount(bill);
         const overdue = daysAway < 0;
         const tone = overdue
-          ? { color: Corpus.danger, bg: '#2A1D1D', border: '#5A2A2A' }
+          ? { color: Corpus.danger, bg: Corpus.dangerTint, border: Corpus.dangerLine }
           : daysAway === 0 || variable
-          ? { color: Corpus.warning, bg: '#2E2412', border: '#5A4520' }
-          : { color: Corpus.gold, bg: '#1E1A0F', border: '#4A3F1A' };
+          ? { color: Corpus.warning, bg: Corpus.warningTint, border: Corpus.warningLine }
+          : { color: Corpus.gold, bg: Corpus.goldTint, border: Corpus.goldLine };
         const when = variable
           ? "Due — enter this month's amount"
           : overdue

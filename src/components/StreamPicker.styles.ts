@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   empty: {
@@ -15,11 +15,11 @@ export const styles = StyleSheet.create({
   },
   emptyText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   emptyLink: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
     color: Corpus.gold,
   },

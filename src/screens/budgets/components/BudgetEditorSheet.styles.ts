@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   overlay: {
@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2E2712',
+    backgroundColor: Corpus.goldActive,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -52,19 +52,19 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: 16,
+    fontSize: Type.input,
     fontWeight: '500',
     color: Corpus.text,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     marginTop: 2,
   },
   closeButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     backgroundColor: Corpus.cardAlt,
     alignItems: 'center',
     justifyContent: 'center',
@@ -76,12 +76,12 @@ export const styles = StyleSheet.create({
     paddingVertical: Space.md,
   },
   rupee: {
-    fontSize: 30,
+    fontSize: Type.h1,
     color: Corpus.textMuted,
     marginRight: 4,
   },
   amountInput: {
-    fontSize: 42,
+    fontSize: Type.entry,
     fontWeight: '500',
     color: Corpus.gold,
     minWidth: 140,
@@ -90,7 +90,7 @@ export const styles = StyleSheet.create({
   },
   perMonth: {
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     marginTop: -Space.sm,
   },
@@ -113,10 +113,10 @@ export const styles = StyleSheet.create({
   },
   chipSuggested: {
     borderColor: Corpus.gold,
-    backgroundColor: '#2E2712',
+    backgroundColor: Corpus.goldActive,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   chipTextSuggested: {
@@ -124,12 +124,12 @@ export const styles = StyleSheet.create({
     fontWeight: '500',
   },
   hint: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
     textAlign: 'center',
   },
   error: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.danger,
     textAlign: 'center',
   },
@@ -144,9 +144,9 @@ export const styles = StyleSheet.create({
     backgroundColor: Corpus.cardAlt,
   },
   saveText: {
-    fontSize: 15,
+    fontSize: Type.label,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   saveTextDisabled: {
     color: Corpus.textFaint,
@@ -156,7 +156,7 @@ export const styles = StyleSheet.create({
     paddingVertical: Space.sm,
   },
   removeText: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.danger,
   },

@@ -1,4 +1,4 @@
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -22,16 +22,16 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   note: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.text,
   },
   meta: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     marginTop: 1,
   },
   amount: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.text,
   },

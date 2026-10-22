@@ -1,5 +1,5 @@
 import { ChartColors } from '@/constants/chartColors';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import type { CategoryShare } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,14 +75,14 @@ const styles = StyleSheet.create({
   list: { gap: 14 },
   row: { gap: 6 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  label: { flex: 1, fontSize: 13, color: Corpus.text },
-  amount: { fontSize: 13, fontWeight: '600', color: Corpus.text },
-  share: { width: 34, textAlign: 'right', fontSize: 12, color: Corpus.textMuted },
+  label: { flex: 1, fontSize: Type.body, color: Corpus.text },
+  amount: { fontSize: Type.body, fontWeight: '600', color: Corpus.text },
+  share: { width: 34, textAlign: 'right', fontSize: Type.small, color: Corpus.textMuted },
   track: { height: 8, borderRadius: 4, backgroundColor: ChartColors.track },
   fill: { height: 8, borderRadius: 4, backgroundColor: ChartColors.spend },
   marker: { position: 'absolute', top: -3, width: 2, height: 14, marginLeft: -1, borderRadius: 1, backgroundColor: ChartColors.budgetMarker },
-  meta: { fontSize: 11, color: Corpus.textMuted },
+  meta: { fontSize: Type.caption, color: Corpus.textMuted },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendTick: { width: 2, height: 12, borderRadius: 1, backgroundColor: ChartColors.budgetMarker },
-  legendText: { fontSize: 11, color: Corpus.textMuted },
+  legendText: { fontSize: Type.caption, color: Corpus.textMuted },
 });

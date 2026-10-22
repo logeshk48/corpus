@@ -61,7 +61,7 @@ export default function BillRow({ bill, status, first, action, onOpen }: Props) 
               action.filled ? { backgroundColor: Corpus.gold } : { borderWidth: 0.5, borderColor: Corpus.gold },
             ]}
           >
-            <Text style={[styles.actionText, { color: action.filled ? '#0F1115' : Corpus.gold }]}>{action.label}</Text>
+            <Text style={[styles.actionText, { color: action.filled ? Corpus.onGold : Corpus.gold }]}>{action.label}</Text>
           </Pressable>
         )}
       </View>

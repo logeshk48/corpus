@@ -1,6 +1,6 @@
 import { ChartColors } from '@/constants/chartColors';
 import { findCategory } from '@/constants/categories';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import TransactionRow from '@/screens/home/components/TransactionRow';
@@ -149,29 +149,29 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
-  round: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: Corpus.card },
-  heading: { fontSize: 17, fontWeight: '500', color: Corpus.text },
+  round: { width: 32, height: 32, borderRadius: Radius.lg, alignItems: 'center', justifyContent: 'center', backgroundColor: Corpus.card },
+  heading: { fontSize: Type.title, fontWeight: '500', color: Corpus.text },
   hero: { backgroundColor: Corpus.card, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, alignItems: 'center', gap: 4 },
-  heroLabel: { fontSize: 11, color: Corpus.textMuted, letterSpacing: 0.6 },
-  heroAmount: { fontSize: 32, fontWeight: '600', color: Corpus.text },
-  heroSub: { fontSize: 12, color: Corpus.textMuted },
+  heroLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6 },
+  heroAmount: { fontSize: Type.amount, fontWeight: '600', color: Corpus.text },
+  heroSub: { fontSize: Type.small, color: Corpus.textMuted },
   meterWrap: { alignSelf: 'stretch', gap: 6, marginTop: Space.sm, alignItems: 'center' },
   meterTrack: { alignSelf: 'stretch', height: 8, borderRadius: 4, backgroundColor: ChartColors.track, overflow: 'hidden' },
   meterFill: { height: 8, borderRadius: 4 },
   card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  cardTitle: { fontSize: 14, fontWeight: '600', color: Corpus.text },
-  cardMeta: { fontSize: 11, color: Corpus.textMuted },
+  cardTitle: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
+  cardMeta: { fontSize: Type.caption, color: Corpus.textMuted },
   plot: { height: HEIGHT + 18, flexDirection: 'row', alignItems: 'flex-end', borderBottomWidth: 1, borderBottomColor: ChartColors.grid },
   avgLine: { pointerEvents: 'none', position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderStyle: 'dashed', borderColor: Corpus.textMuted },
   slot: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
   col: { width: 22, borderTopLeftRadius: 4, borderTopRightRadius: 4, backgroundColor: ChartColors.spend },
-  value: { fontSize: 10, color: Corpus.text, marginBottom: 3 },
+  value: { fontSize: Type.micro, color: Corpus.text, marginBottom: 3 },
   xRow: { flexDirection: 'row' },
-  xLabel: { flex: 1, textAlign: 'center', fontSize: 11, color: Corpus.textMuted },
-  sectionLabel: { fontSize: 11, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
+  xLabel: { flex: 1, textAlign: 'center', fontSize: Type.caption, color: Corpus.textMuted },
+  sectionLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
   group: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, paddingVertical: 4 },
   item: { paddingHorizontal: Space.md, paddingVertical: 8 },
-  empty: { fontSize: 12, color: Corpus.textMuted, textAlign: 'center', paddingVertical: Space.lg },
+  empty: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center', paddingVertical: Space.lg },
   center: { alignItems: 'center', paddingVertical: 80 },
 });

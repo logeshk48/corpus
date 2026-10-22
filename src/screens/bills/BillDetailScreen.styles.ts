@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
@@ -8,12 +8,12 @@ export const styles = StyleSheet.create({
   roundButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
   },
-  heading: { flex: 1, fontSize: 17, fontWeight: '500', color: Corpus.text },
+  heading: { flex: 1, fontSize: Type.title, fontWeight: '500', color: Corpus.text },
   hero: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.xl,
@@ -27,20 +27,20 @@ export const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#2A1F2E',
+    backgroundColor: Corpus.violetTint,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
-  heroAmount: { fontSize: 32, fontWeight: '600', color: Corpus.text },
-  heroFreq: { fontSize: 12, color: Corpus.textMuted },
+  heroAmount: { fontSize: Type.amount, fontWeight: '600', color: Corpus.text },
+  heroFreq: { fontSize: Type.small, color: Corpus.textMuted },
   statusPill: {
     marginTop: Space.sm,
     borderRadius: 999,
     paddingVertical: 5,
     paddingHorizontal: 12,
   },
-  statusText: { fontSize: 12, fontWeight: '600' },
+  statusText: { fontSize: Type.small, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: Space.sm },
   loanCard: {
     backgroundColor: Corpus.card,
@@ -51,11 +51,11 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   loanTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  loanTitle: { flex: 1, fontSize: 13, fontWeight: '600', color: Corpus.text },
-  loanEnd: { fontSize: 11, color: Corpus.textMuted },
+  loanTitle: { flex: 1, fontSize: Type.body, fontWeight: '600', color: Corpus.text },
+  loanEnd: { fontSize: Type.caption, color: Corpus.textMuted },
   loanTrack: { height: 8, borderRadius: 4, backgroundColor: Corpus.bg, overflow: 'hidden' },
   loanFill: { height: 8, borderRadius: 4, backgroundColor: Corpus.gold },
-  loanText: { fontSize: 12, color: Corpus.textMuted },
+  loanText: { fontSize: Type.small, color: Corpus.textMuted },
   primary: {
     flex: 1,
     flexDirection: 'row',
@@ -66,7 +66,7 @@ export const styles = StyleSheet.create({
     borderRadius: Radius.md,
     paddingVertical: 13,
   },
-  primaryText: { fontSize: 14, fontWeight: '600', color: '#0F1115' },
+  primaryText: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.onGold },
   secondary: {
     flex: 1,
     flexDirection: 'row',
@@ -79,7 +79,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     paddingVertical: 13,
   },
-  secondaryText: { fontSize: 14, fontWeight: '500', color: Corpus.text },
+  secondaryText: { fontSize: Type.bodyLg, fontWeight: '500', color: Corpus.text },
   stats: { flexDirection: 'row', gap: Space.sm },
   stat: {
     flex: 1,
@@ -91,9 +91,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Space.sm + 4,
     gap: 2,
   },
-  statLabel: { fontSize: 11, color: Corpus.textMuted },
-  statValue: { fontSize: 15, fontWeight: '600', color: Corpus.text },
-  sectionLabel: { fontSize: 11, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
+  statLabel: { fontSize: Type.caption, color: Corpus.textMuted },
+  statValue: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
+  sectionLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6, marginTop: Space.sm },
   group: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.lg,
@@ -105,13 +105,13 @@ export const styles = StyleSheet.create({
   divider: { borderTopWidth: 0.5, borderTopColor: Corpus.border },
   pressed: { opacity: 0.7 },
   rowBody: { flex: 1 },
-  rowMonth: { fontSize: 13, color: Corpus.text },
-  rowDate: { fontSize: 11, color: Corpus.textMuted, marginTop: 1 },
+  rowMonth: { fontSize: Type.body, color: Corpus.text },
+  rowDate: { fontSize: Type.caption, color: Corpus.textMuted, marginTop: 1 },
   rowRight: { alignItems: 'flex-end' },
-  rowAmount: { fontSize: 14, fontWeight: '600', color: Corpus.text },
-  change: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+  rowAmount: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
+  change: { fontSize: Type.micro, fontWeight: '600', marginTop: 2 },
   empty: { alignItems: 'center', paddingVertical: Space.xl, gap: Space.sm },
-  emptyText: { fontSize: 12, color: Corpus.textMuted },
+  emptyText: { fontSize: Type.small, color: Corpus.textMuted },
   center: { alignItems: 'center', paddingVertical: 80 },
-  muted: { fontSize: 14, color: Corpus.textMuted },
+  muted: { fontSize: Type.bodyLg, color: Corpus.textMuted },
 });

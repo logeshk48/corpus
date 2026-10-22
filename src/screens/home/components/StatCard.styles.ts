@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -12,11 +12,11 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
   },
   label: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
   },
   value: {
-    fontSize: 16,
+    fontSize: Type.input,
     fontWeight: '500',
     color: Corpus.text,
     marginTop: 2,

@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -23,9 +23,9 @@ export const styles = StyleSheet.create({
   progress: { flex: 1, flexDirection: 'row', gap: 6 },
   seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Corpus.cardAlt },
   segOn: { backgroundColor: Corpus.gold },
-  stepCount: { fontSize: 12, color: Corpus.textMuted, minWidth: 34, textAlign: 'right' },
+  stepCount: { fontSize: Type.small, color: Corpus.textMuted, minWidth: 34, textAlign: 'right' },
   skip: { marginLeft: 'auto', paddingVertical: 8, paddingHorizontal: 4 },
-  skipText: { fontSize: 14, color: Corpus.textMuted },
+  skipText: { fontSize: Type.bodyLg, color: Corpus.textMuted },
   content: { padding: Space.lg, paddingBottom: Space.xl },
   footer: {
     paddingHorizontal: Space.lg,
@@ -46,8 +46,8 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   primaryDisabled: { backgroundColor: Corpus.cardAlt },
-  primaryText: { fontSize: 16, fontWeight: '600', color: Corpus.bg },
+  primaryText: { fontSize: Type.input, fontWeight: '600', color: Corpus.bg },
   primaryTextDisabled: { color: Corpus.textFaint },
-  footerHint: { fontSize: 12, color: Corpus.textFaint, textAlign: 'center' },
-  error: { fontSize: 13, color: Corpus.danger, textAlign: 'center' },
+  footerHint: { fontSize: Type.small, color: Corpus.textFaint, textAlign: 'center' },
+  error: { fontSize: Type.body, color: Corpus.danger, textAlign: 'center' },
 });

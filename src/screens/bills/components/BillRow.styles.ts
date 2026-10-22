@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   row: {
@@ -21,9 +21,9 @@ export const styles = StyleSheet.create({
   },
   body: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  name: { fontSize: 14, color: Corpus.text },
+  name: { fontSize: Type.bodyLg, color: Corpus.text },
   tag: {
-    fontSize: 9,
+    fontSize: Type.micro,
     fontWeight: '600',
     color: Corpus.textMuted,
     borderWidth: 0.5,
@@ -33,14 +33,14 @@ export const styles = StyleSheet.create({
     paddingVertical: 1,
     overflow: 'hidden',
   },
-  meta: { fontSize: 11, marginTop: 2 },
-  loan: { fontSize: 10, color: Corpus.gold, marginTop: 2 },
+  meta: { fontSize: Type.caption, marginTop: 2 },
+  loan: { fontSize: Type.micro, color: Corpus.gold, marginTop: 2 },
   right: { alignItems: 'flex-end', gap: 5 },
-  amount: { fontSize: 14, fontWeight: '600', color: Corpus.text },
+  amount: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
   action: {
     borderRadius: 999,
     paddingVertical: 4,
     paddingHorizontal: 10,
   },
-  actionText: { fontSize: 11, fontWeight: '600' },
+  actionText: { fontSize: Type.caption, fontWeight: '600' },
 });

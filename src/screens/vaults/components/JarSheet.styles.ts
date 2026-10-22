@@ -1,9 +1,9 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   label: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     letterSpacing: 0.5,
   },
@@ -14,7 +14,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     paddingHorizontal: Space.md,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
   },
   moneyRow: {
@@ -28,13 +28,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Space.md,
   },
   rupee: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.textMuted,
   },
   moneyInput: {
     flex: 1,
     paddingVertical: 12,
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
   },
   templates: {
@@ -43,7 +43,7 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   hint: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   dateRow: {
@@ -66,12 +66,12 @@ export const styles = StyleSheet.create({
   dateText: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.text,
   },
   clearDate: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     paddingHorizontal: Space.sm,
     textDecorationLine: 'underline',

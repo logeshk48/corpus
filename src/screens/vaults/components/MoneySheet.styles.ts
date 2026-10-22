@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 // Extras on top of the shared sheet look (BudgetEditorSheet.styles)
 export const styles = StyleSheet.create({
@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     paddingHorizontal: Space.md,
     paddingVertical: 12,
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.text,
   },
   preview: {
@@ -19,11 +19,11 @@ export const styles = StyleSheet.create({
     gap: 6,
   },
   previewLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   previewValue: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '600',
   },
 });

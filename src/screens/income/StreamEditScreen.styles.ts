@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -22,13 +22,13 @@ export const styles = StyleSheet.create({
   backButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
   },
   heading: {
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -46,11 +46,11 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Space.md,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
   },
   statValue: {
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.income,
     marginTop: 2,
@@ -71,7 +71,7 @@ export const styles = StyleSheet.create({
   },
   historyMonth: {
     width: 64,
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   historyTrack: {
@@ -89,7 +89,7 @@ export const styles = StyleSheet.create({
   historyAmount: {
     width: 78,
     textAlign: 'right',
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -104,7 +104,7 @@ export const styles = StyleSheet.create({
     marginTop: Space.lg,
   },
   label: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
     marginTop: Space.sm,
@@ -116,7 +116,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     paddingHorizontal: Space.md,
     paddingVertical: 14,
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
   },
   inputError: {
@@ -133,21 +133,21 @@ export const styles = StyleSheet.create({
     paddingHorizontal: Space.md,
   },
   rupee: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.textMuted,
   },
   moneyInput: {
     flex: 1,
     paddingVertical: 14,
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.text,
   },
   hint: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
   },
   error: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.danger,
   },
   saveButton: {
@@ -161,9 +161,9 @@ export const styles = StyleSheet.create({
     backgroundColor: Corpus.cardAlt,
   },
   saveText: {
-    fontSize: 15,
+    fontSize: Type.label,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   saveTextDisabled: {
     color: Corpus.textFaint,
@@ -179,7 +179,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.danger,
   },
   deleteText: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.danger,
   },
@@ -189,7 +189,7 @@ export const styles = StyleSheet.create({
     gap: Space.sm,
   },
   muted: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.textMuted,
   },
 });

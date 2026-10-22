@@ -1,5 +1,5 @@
 import { ChartColors } from '@/constants/chartColors';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import type { CashFlow } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
 import { StyleSheet, Text, View } from 'react-native';
@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
   rows: { gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   swatch: { width: 10, height: 10, borderRadius: 2 },
-  label: { flex: 1, fontSize: 13, color: Corpus.text },
-  value: { fontSize: 13, fontWeight: '600', color: Corpus.text },
-  pct: { width: 38, textAlign: 'right', fontSize: 12, color: Corpus.textMuted },
-  note: { fontSize: 12, color: Corpus.textMuted },
+  label: { flex: 1, fontSize: Type.body, color: Corpus.text },
+  value: { fontSize: Type.body, fontWeight: '600', color: Corpus.text },
+  pct: { width: 38, textAlign: 'right', fontSize: Type.small, color: Corpus.textMuted },
+  note: { fontSize: Type.small, color: Corpus.textMuted },
 });

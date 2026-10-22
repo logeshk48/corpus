@@ -13,9 +13,9 @@ type BudgetSummaryProps = {
 };
 
 const PACE_UI = {
-  onTrack: { label: 'On track', icon: 'checkmark-circle', color: Corpus.income, bg: '#1D2A22' },
-  fast: { label: 'Spending fast', icon: 'speedometer', color: Corpus.warning, bg: '#2E2412' },
-  over: { label: 'Over budget', icon: 'alert-circle', color: Corpus.danger, bg: '#2A1D1D' },
+  onTrack: { label: 'On track', icon: 'checkmark-circle', color: Corpus.income, bg: Corpus.incomeTint },
+  fast: { label: 'Spending fast', icon: 'speedometer', color: Corpus.warning, bg: Corpus.warningTint },
+  over: { label: 'Over budget', icon: 'alert-circle', color: Corpus.danger, bg: Corpus.dangerTint },
 } as const;
 
 export default function BudgetSummary({ title, spent, limit }: BudgetSummaryProps) {

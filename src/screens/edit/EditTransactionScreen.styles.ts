@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   headerRow: {
@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
   backButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
     gap: Space.sm,
   },
   notFound: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.textMuted,
   },
   deleteButton: {
@@ -35,7 +35,7 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.danger,
   },
   deleteText: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.danger,
   },

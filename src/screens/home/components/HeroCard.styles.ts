@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Space, Radius } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   card: {
@@ -26,17 +26,17 @@ export const styles = StyleSheet.create({
     borderRadius: 3,
   },
   label: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
   },
   amount: {
-    fontSize: 38,
+    fontSize: Type.hero,
     fontWeight: '500',
     marginTop: 4,
   },
   context: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     marginTop: 6,
     textAlign: 'center',
@@ -55,7 +55,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   chipText: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
   },
   how: {
@@ -65,12 +65,12 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm + 2,
   },
   howText: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
     color: Corpus.gold,
   },
   emptyText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     textAlign: 'center',
     marginTop: 6,

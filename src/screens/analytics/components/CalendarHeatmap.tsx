@@ -1,5 +1,5 @@
 import { ChartColors } from '@/constants/chartColors';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import { heatLevel, type DayPoint } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
 import { useState } from 'react';
@@ -46,7 +46,7 @@ export default function CalendarHeatmap({ points, monthKey }: { points: DayPoint
                     active && styles.active,
                   ]}
                 >
-                  <Text style={[styles.dayNum, level >= 3 && { color: '#0F1115', fontWeight: '600' }]}>{p.day}</Text>
+                  <Text style={[styles.dayNum, level >= 3 && { color: Corpus.onGold, fontWeight: '600' }]}>{p.day}</Text>
                 </View>
               </Pressable>
             );
@@ -66,14 +66,14 @@ export default function CalendarHeatmap({ points, monthKey }: { points: DayPoint
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
-  readout: { fontSize: 12, color: Corpus.textMuted, marginBottom: 4 },
+  readout: { fontSize: Type.small, color: Corpus.textMuted, marginBottom: 4 },
   row: { flexDirection: 'row' },
-  weekday: { flex: 1, textAlign: 'center', fontSize: 10, color: Corpus.textFaint },
+  weekday: { flex: 1, textAlign: 'center', fontSize: Type.micro, color: Corpus.textFaint },
   cellWrap: { flex: 1, padding: 2 },
   cell: { aspectRatio: 1, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   active: { borderWidth: 2, borderColor: Corpus.text },
-  dayNum: { fontSize: 11, color: Corpus.text },
+  dayNum: { fontSize: Type.caption, color: Corpus.text },
   scale: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 4 },
-  scaleText: { fontSize: 10, color: Corpus.textMuted },
+  scaleText: { fontSize: Type.micro, color: Corpus.textMuted },
   scaleCell: { width: 12, height: 12, borderRadius: 3 },
 });

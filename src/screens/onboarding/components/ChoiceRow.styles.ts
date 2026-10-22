@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -12,13 +12,13 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
     padding: Space.md,
   },
-  rowOn: { borderColor: Corpus.gold, backgroundColor: '#1E1C17' },
+  rowOn: { borderColor: Corpus.gold, backgroundColor: Corpus.goldTint },
   icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, gap: 3 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  title: { fontSize: 15, fontWeight: '600', color: Corpus.text },
+  title: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
   badge: {
-    fontSize: 10,
+    fontSize: Type.micro,
     fontWeight: '600',
     letterSpacing: 0.6,
     color: Corpus.gold,
@@ -29,20 +29,20 @@ export const styles = StyleSheet.create({
     paddingVertical: 1,
     overflow: 'hidden',
   },
-  sub: { fontSize: 12.5, color: Corpus.textMuted, lineHeight: 18 },
-  extra: { fontSize: 12.5, color: Corpus.goldSoft, lineHeight: 18 },
+  sub: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 18 },
+  extra: { fontSize: Type.body, color: Corpus.goldSoft, lineHeight: 18 },
   right: { alignItems: 'flex-end', gap: 2 },
-  amount: { fontSize: 16, fontWeight: '600', color: Corpus.text },
+  amount: { fontSize: Type.input, fontWeight: '600', color: Corpus.text },
   check: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
     borderColor: Corpus.textFaint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkOn: { backgroundColor: Corpus.gold, borderColor: Corpus.gold },
-  radio: { borderRadius: 12 },
+  radio: { borderRadius: Radius.md },
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Corpus.bg },
 });

@@ -254,8 +254,8 @@ export default function BillsScreen() {
                 style={[
                   styles.insight,
                   ratio <= 50
-                    ? { backgroundColor: '#1D2A22', borderColor: '#2C4A38' }
-                    : { backgroundColor: '#2E2412', borderColor: '#5A4520' },
+                    ? { backgroundColor: Corpus.incomeTint, borderColor: Corpus.incomeLine }
+                    : { backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine },
                 ]}
               >
                 <Ionicons name="pie-chart-outline" size={17} color={ratio <= 50 ? Corpus.income : Corpus.warning} />
@@ -280,7 +280,7 @@ export default function BillsScreen() {
             )}
 
             {loans.length > 0 && (
-              <View style={[styles.insight, { backgroundColor: '#1E1A0F', borderColor: '#4A3F1A' }]}>
+              <View style={[styles.insight, { backgroundColor: Corpus.goldTint, borderColor: Corpus.goldLine }]}>
                 <Ionicons name="business-outline" size={17} color={Corpus.gold} />
                 <Text style={styles.insightText}>
                   You owe <Text style={{ fontWeight: '700' }}>{formatINR(Math.round(totalOwed))}</Text> across{' '}

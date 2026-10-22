@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -22,14 +22,14 @@ export const styles = StyleSheet.create({
   roundButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
   },
   heading: {
     flex: 1,
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -50,12 +50,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
   },
   heroAmount: {
-    fontSize: 36,
+    fontSize: Type.amount,
     fontWeight: '600',
   },
   goalWrap: {
@@ -74,7 +74,7 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   goalText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     textAlign: 'center',
   },
@@ -92,9 +92,9 @@ export const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   addText: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   outButton: {
     flex: 1,
@@ -109,7 +109,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Corpus.card,
   },
   outText: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -120,12 +120,12 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     letterSpacing: 0.6,
   },
   sectionMeta: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
   },
   group: {
@@ -153,16 +153,16 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   rowTitle: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.text,
   },
   rowDate: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     marginTop: 1,
   },
   rowAmount: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '600',
   },
   empty: {
@@ -171,7 +171,7 @@ export const styles = StyleSheet.create({
     gap: Space.sm,
   },
   emptyText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   center: {
@@ -180,7 +180,7 @@ export const styles = StyleSheet.create({
     gap: Space.sm,
   },
   muted: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     color: Corpus.textMuted,
   },
 });

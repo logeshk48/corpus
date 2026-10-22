@@ -1,5 +1,5 @@
 import { ChartColors } from '@/constants/chartColors';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import type { DayPoint } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
 import { useState } from 'react';
@@ -68,7 +68,7 @@ export default function DailyChart({ points, average, monthKey }: Props) {
 
 const styles = StyleSheet.create({
   wrap: { gap: 8 },
-  readout: { fontSize: 12, color: Corpus.textMuted },
+  readout: { fontSize: Type.small, color: Corpus.textMuted },
   plot: {
     height: HEIGHT,
     flexDirection: 'row',
@@ -88,5 +88,5 @@ const styles = StyleSheet.create({
     borderColor: Corpus.textMuted,
   },
   axis: { height: 14 },
-  tick: { position: 'absolute', fontSize: 10, color: Corpus.textFaint, transform: [{ translateX: -4 }] },
+  tick: { position: 'absolute', fontSize: Type.micro, color: Corpus.textFaint, transform: [{ translateX: -4 }] },
 });

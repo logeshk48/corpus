@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -22,14 +22,14 @@ export const styles = StyleSheet.create({
   backButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
   },
   heading: {
     flex: 1,
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -43,9 +43,9 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   newText: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   hero: {
     backgroundColor: Corpus.card,
@@ -58,30 +58,30 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   heroLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     letterSpacing: 0.4,
   },
   heroAmount: {
-    fontSize: 34,
+    fontSize: Type.amount,
     fontWeight: '500',
     color: Corpus.gold,
   },
   heroSub: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   streak: {
     marginTop: Space.sm,
     borderRadius: 999,
-    backgroundColor: '#2E1F12',
+    backgroundColor: Corpus.warningTint,
     paddingVertical: 5,
     paddingHorizontal: 12,
   },
   streakText: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
-    color: '#F0A35E',
+    color: Corpus.warning,
   },
   plan: {
     alignSelf: 'stretch',
@@ -96,11 +96,11 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   planLabel: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   planValue: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '600',
     color: Corpus.text,
   },
@@ -116,11 +116,11 @@ export const styles = StyleSheet.create({
     backgroundColor: Corpus.gold,
   },
   planHint: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
   },
   tip: {
-    backgroundColor: '#1E1A0F',
+    backgroundColor: Corpus.goldTint,
     borderRadius: Radius.lg,
     borderWidth: 0.5,
     borderColor: Corpus.gold,
@@ -133,7 +133,7 @@ export const styles = StyleSheet.create({
   },
   tipText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.text,
     lineHeight: 19,
   },
@@ -152,23 +152,23 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   tipAddText: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   tipLater: {
     paddingVertical: 7,
     paddingHorizontal: 10,
   },
   tipLaterText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   list: {
     gap: Space.sm + 4,
   },
   suggestLabel: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     letterSpacing: 0.6,
     marginTop: Space.sm,
@@ -185,7 +185,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   anotherText: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.gold,
   },

@@ -1,4 +1,4 @@
-import { Corpus } from '@/constants/theme';
+import { Corpus, Radius, Type } from '@/constants/theme';
 import { StyleSheet, Text, View } from 'react-native';
 
 type Props = {
@@ -22,14 +22,14 @@ const styles = StyleSheet.create({
     flexBasis: '47%',
     flexGrow: 1,
     backgroundColor: Corpus.card,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     borderWidth: 0.5,
     borderColor: Corpus.border,
     paddingVertical: 12,
     paddingHorizontal: 14,
     gap: 2,
   },
-  label: { fontSize: 11, color: Corpus.textMuted },
-  value: { fontSize: 18, fontWeight: '600', color: Corpus.text },
-  delta: { fontSize: 11, color: Corpus.textMuted },
+  label: { fontSize: Type.caption, color: Corpus.textMuted },
+  value: { fontSize: Type.h3, fontWeight: '600', color: Corpus.text },
+  delta: { fontSize: Type.caption, color: Corpus.textMuted },
 });

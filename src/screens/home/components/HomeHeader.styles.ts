@@ -1,4 +1,4 @@
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -8,11 +8,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   greeting: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   name: {
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
     marginTop: 2,

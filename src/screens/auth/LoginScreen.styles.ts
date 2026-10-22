@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -20,13 +20,13 @@ export const styles = StyleSheet.create({
     marginBottom: Space.xl,
   },
   brand: {
-    fontSize: 34,
+    fontSize: Type.brand,
     fontWeight: '600',
     color: Corpus.gold,
     letterSpacing: 1,
   },
   tagline: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     marginTop: 6,
     letterSpacing: 0.6,
@@ -39,9 +39,9 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm,
   },
   buttonLabel: {
-    fontSize: 15,
+    fontSize: Type.label,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   switchRow: {
     flexDirection: 'row',
@@ -50,16 +50,16 @@ export const styles = StyleSheet.create({
     marginTop: Space.md,
   },
   switchText: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.textMuted,
   },
   switchLink: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.gold,
     fontWeight: '500',
   },
   formError: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.danger,
     textAlign: 'center',
   },

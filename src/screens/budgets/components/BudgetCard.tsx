@@ -6,9 +6,9 @@ import { Pressable, Text, View } from 'react-native';
 import { styles } from './BudgetCard.styles';
 
 const STATE_UI = {
-  ok: { color: Corpus.income, bg: '#1D2A22' },
-  warning: { color: Corpus.warning, bg: '#2E2412' },
-  over: { color: Corpus.danger, bg: '#2A1D1D' },
+  ok: { color: Corpus.income, bg: Corpus.incomeTint },
+  warning: { color: Corpus.warning, bg: Corpus.warningTint },
+  over: { color: Corpus.danger, bg: Corpus.dangerTint },
 } as const;
 
 type BudgetCardProps = {

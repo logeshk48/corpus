@@ -1,5 +1,5 @@
 import { ChartColors } from '@/constants/chartColors';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import { monthLabel, type MonthPoint } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
 import { useState } from 'react';
@@ -97,9 +97,9 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   swatch: { width: 10, height: 10, borderRadius: 2 },
-  legendText: { fontSize: 12, color: Corpus.textMuted },
-  toggle: { fontSize: 12, fontWeight: '500', color: Corpus.gold },
-  readout: { fontSize: 12, color: Corpus.text },
+  legendText: { fontSize: Type.small, color: Corpus.textMuted },
+  toggle: { fontSize: Type.small, fontWeight: '500', color: Corpus.gold },
+  readout: { fontSize: Type.small, color: Corpus.text },
   plot: {
     height: HEIGHT + 18,
     flexDirection: 'row',
@@ -111,11 +111,11 @@ const styles = StyleSheet.create({
   pair: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
   colWrap: { alignItems: 'center', justifyContent: 'flex-end' },
   col: { width: 14, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
-  valueLabel: { fontSize: 9, color: Corpus.textMuted, marginBottom: 2 },
+  valueLabel: { fontSize: Type.micro, color: Corpus.textMuted, marginBottom: 2 },
   xRow: { flexDirection: 'row' },
-  xLabel: { flex: 1, textAlign: 'center', fontSize: 11, color: Corpus.textMuted },
+  xLabel: { flex: 1, textAlign: 'center', fontSize: Type.caption, color: Corpus.textMuted },
   tRow: { flexDirection: 'row', paddingVertical: 6 },
   tLine: { borderTopWidth: 0.5, borderTopColor: Corpus.border },
-  tCell: { flex: 1, fontSize: 12, color: Corpus.text, textAlign: 'right' },
-  tHead: { fontSize: 11, color: Corpus.textMuted },
+  tCell: { flex: 1, fontSize: Type.small, color: Corpus.text, textAlign: 'right' },
+  tHead: { fontSize: Type.caption, color: Corpus.textMuted },
 });

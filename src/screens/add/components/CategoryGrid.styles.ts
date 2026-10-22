@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -29,10 +29,10 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconCircleSelected: {
-    backgroundColor: '#2E2712',
+    backgroundColor: Corpus.goldActive,
   },
   label: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
   },
   labelSelected: {

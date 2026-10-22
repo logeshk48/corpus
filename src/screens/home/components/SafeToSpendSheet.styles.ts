@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   table: {
@@ -19,11 +19,11 @@ export const styles = StyleSheet.create({
   },
   rowLabel: {
     flex: 1,
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.textMuted,
   },
   rowValue: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -34,16 +34,16 @@ export const styles = StyleSheet.create({
   },
   totalLabel: {
     flex: 1,
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '600',
     color: Corpus.text,
   },
   totalValue: {
-    fontSize: 15,
+    fontSize: Type.label,
     fontWeight: '600',
   },
   note: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
     lineHeight: 17,
   },
@@ -51,13 +51,13 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Space.sm,
     alignItems: 'center',
-    backgroundColor: '#1E1A0F',
+    backgroundColor: Corpus.goldTint,
     borderRadius: Radius.md,
     padding: Space.md,
   },
   tomorrowText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.text,
     lineHeight: 18,
   },
@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     gap: Space.sm,
   },
   step: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     lineHeight: 18,
   },

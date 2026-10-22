@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -22,13 +22,13 @@ export const styles = StyleSheet.create({
   backButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Corpus.card,
   },
   heading: {
-    fontSize: 17,
+    fontSize: Type.title,
     fontWeight: '500',
     color: Corpus.text,
   },
@@ -39,12 +39,12 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     letterSpacing: 0.6,
   },
   sectionMeta: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textFaint,
   },
   list: {
@@ -65,11 +65,11 @@ export const styles = StyleSheet.create({
   },
   monthlyText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   monthlyAction: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
     color: Corpus.gold,
   },
@@ -86,18 +86,18 @@ export const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#2E2712',
+    backgroundColor: Corpus.goldActive,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Space.xs,
   },
   welcomeTitle: {
-    fontSize: 16,
+    fontSize: Type.input,
     fontWeight: '500',
     color: Corpus.text,
   },
   welcomeText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     textAlign: 'center',
     lineHeight: 18,

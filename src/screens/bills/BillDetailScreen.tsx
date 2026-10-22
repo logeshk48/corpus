@@ -80,13 +80,13 @@ export default function BillDetailScreen() {
   const due = nextDue(bill);
   const dueNow = dueThisMonth(bill) && !isPaidThisMonth(bill);
   let status = { text: `Next due ${due.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`, color: Corpus.textMuted, bg: Corpus.bg };
-  if (isFinished(bill)) status = { text: '🎉 Completed — all payments done', color: Corpus.income, bg: '#1D2A22' };
+  if (isFinished(bill)) status = { text: '🎉 Completed — all payments done', color: Corpus.income, bg: Corpus.incomeTint };
   else if (!bill.active) status = { text: 'Paused', color: Corpus.textFaint, bg: Corpus.bg };
-  else if (needsAmount(bill)) status = { text: "Due — enter this month's amount", color: Corpus.warning, bg: '#2E2412' };
-  else if (dueNow && due.daysAway < 0) status = { text: `${-due.daysAway} days overdue`, color: Corpus.danger, bg: '#2A1D1D' };
-  else if (dueNow) status = { text: due.daysAway === 0 ? 'Due today' : `Due in ${due.daysAway} days`, color: Corpus.gold, bg: '#2E2712' };
+  else if (needsAmount(bill)) status = { text: "Due — enter this month's amount", color: Corpus.warning, bg: Corpus.warningTint };
+  else if (dueNow && due.daysAway < 0) status = { text: `${-due.daysAway} days overdue`, color: Corpus.danger, bg: Corpus.dangerTint };
+  else if (dueNow) status = { text: due.daysAway === 0 ? 'Due today' : `Due in ${due.daysAway} days`, color: Corpus.gold, bg: Corpus.goldActive };
   else if (isSkippedThisMonth(bill)) status = { text: 'Skipped this month', color: Corpus.textMuted, bg: Corpus.bg };
-  else if (isPaidThisMonth(bill)) status = { text: '✓ Paid this month', color: Corpus.income, bg: '#1D2A22' };
+  else if (isPaidThisMonth(bill)) status = { text: '✓ Paid this month', color: Corpus.income, bg: Corpus.incomeTint };
 
   const pay = async (b: Bill, amount: number) => {
     try {

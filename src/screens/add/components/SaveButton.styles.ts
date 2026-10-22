@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -12,9 +12,9 @@ export const styles = StyleSheet.create({
     backgroundColor: Corpus.cardAlt,
   },
   label: {
-    fontSize: 15,
+    fontSize: Type.label,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   labelDisabled: {
     color: Corpus.textFaint,

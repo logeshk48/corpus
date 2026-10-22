@@ -1,4 +1,4 @@
-import { Corpus, Radius } from '@/constants/theme';
+import { Corpus, Radius, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -17,13 +17,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optionActiveExpense: {
-    backgroundColor: '#2A1D1D',
+    backgroundColor: Corpus.dangerTint,
   },
   optionActiveIncome: {
-    backgroundColor: '#1D2A22',
+    backgroundColor: Corpus.incomeTint,
   },
   label: {
-    fontSize: 13,
+    fontSize: Type.body,
     color: Corpus.textMuted,
   },
   labelActiveExpense: {

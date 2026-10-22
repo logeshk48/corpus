@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   card: {
@@ -43,7 +43,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   milestoneText: {
-    fontSize: 10,
+    fontSize: Type.micro,
     fontWeight: '600',
   },
   insight: {
@@ -57,20 +57,20 @@ export const styles = StyleSheet.create({
   },
   insightText: {
     flex: 1,
-    fontSize: 11,
+    fontSize: Type.caption,
   },
   name: {
-    fontSize: 14,
+    fontSize: Type.bodyLg,
     fontWeight: '500',
     color: Corpus.text,
   },
   month: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
     marginTop: 2,
   },
   balance: {
-    fontSize: 20,
+    fontSize: Type.h3,
     fontWeight: '600',
   },
   goalWrap: {
@@ -87,7 +87,7 @@ export const styles = StyleSheet.create({
     borderRadius: 4,
   },
   goalText: {
-    fontSize: 11,
+    fontSize: Type.caption,
     color: Corpus.textMuted,
   },
   actions: {
@@ -104,9 +104,9 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   addText: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '600',
-    color: '#0F1115',
+    color: Corpus.onGold,
   },
   outButton: {
     flex: 1,
@@ -121,7 +121,7 @@ export const styles = StyleSheet.create({
     backgroundColor: Corpus.bg,
   },
   outText: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.text,
   },

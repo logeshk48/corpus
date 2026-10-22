@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   row: {
@@ -16,11 +16,11 @@ export const styles = StyleSheet.create({
     borderColor: Corpus.border,
   },
   chipActive: {
-    backgroundColor: '#2E2712',
+    backgroundColor: Corpus.goldActive,
     borderColor: Corpus.gold,
   },
   label: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
   },
   labelActive: {

@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space } from '@/constants/theme';
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -33,26 +33,26 @@ export const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#1D2A22',
+    backgroundColor: Corpus.incomeTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   linkIconGold: {
-    backgroundColor: '#2E2712',
+    backgroundColor: Corpus.goldActive,
   },
   linkValue: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
     color: Corpus.gold,
   },
   linkText: {
     flex: 1,
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.text,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.text,
     marginTop: Space.sm,
@@ -64,12 +64,12 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm,
   },
   sectionTitleInline: {
-    fontSize: 13,
+    fontSize: Type.body,
     fontWeight: '500',
     color: Corpus.text,
   },
   viewAll: {
-    fontSize: 12,
+    fontSize: Type.small,
     fontWeight: '500',
     color: Corpus.gold,
   },
@@ -83,12 +83,12 @@ export const styles = StyleSheet.create({
     paddingVertical: Space.lg,
   },
   emptyText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.textMuted,
     paddingVertical: Space.md,
   },
   errorText: {
-    fontSize: 12,
+    fontSize: Type.small,
     color: Corpus.danger,
     paddingVertical: Space.md,
   },

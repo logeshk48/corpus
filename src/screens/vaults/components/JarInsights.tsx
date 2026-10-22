@@ -60,7 +60,7 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
                   <View
                     style={[
                       styles.status,
-                      { backgroundColor: plan.status === 'onTrack' ? '#1D2A22' : '#2E2412' },
+                      { backgroundColor: plan.status === 'onTrack' ? Corpus.incomeTint : Corpus.warningTint },
                     ]}
                   >
                     <Ionicons

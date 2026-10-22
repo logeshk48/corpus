@@ -1,4 +1,4 @@
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
 import { useRouter, useSegments } from 'expo-router';
@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 20,
   },
-  brand: { fontSize: 28, fontWeight: '600', color: Corpus.gold, letterSpacing: 2 },
+  brand: { fontSize: Type.brand, fontWeight: '600', color: Corpus.gold, letterSpacing: 2 },
 });
