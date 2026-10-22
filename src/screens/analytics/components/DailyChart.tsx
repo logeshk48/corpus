@@ -29,7 +29,7 @@ export default function DailyChart({ points, average, monthKey }: Props) {
       <View style={styles.plot}>
         {/* average line */}
         {average > 0 && (
-          <View style={[styles.avg, { bottom: (average / max) * HEIGHT }]} pointerEvents="none" />
+          <View style={[styles.avg, { bottom: (average / max) * HEIGHT }]} />
         )}
         {points.map((p) => {
           const h = p.amount > 0 ? Math.max((p.amount / max) * HEIGHT, 3) : 0;
@@ -79,6 +79,7 @@ const styles = StyleSheet.create({
   slot: { flex: 1, height: '100%', justifyContent: 'flex-end', paddingHorizontal: 1 },
   bar: { width: '100%', borderTopLeftRadius: 2, borderTopRightRadius: 2 },
   avg: {
+    pointerEvents: 'none',
     position: 'absolute',
     left: 0,
     right: 0,

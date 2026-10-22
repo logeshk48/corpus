@@ -1,15 +1,24 @@
 import { Corpus } from '@/constants/theme';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useIncomeStreams } from '@/hooks/useIncomeStreams';
+import { useSettings } from '@/hooks/useSettings';
+import { useVaults } from '@/hooks/useVaults';
+import TransactionRow from '@/screens/home/components/TransactionRow';
+import { useRouter, type Href } from 'expo-router';
 import {
   byCategory,
+  cashFlow,
+  categoryTotals,
   change,
   dailyAverage,
   dailySpending,
+  incomeBySource,
   insights,
   monthLabel,
   monthlyTrend,
   monthTotals,
   shiftMonth,
+  topExpenses,
   ym,
 } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
@@ -17,7 +26,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CalendarHeatmap from './components/CalendarHeatmap';
+import CashFlowBar from './components/CashFlowBar';
 import CategoryBars from './components/CategoryBars';
+import IncomeSources from './components/IncomeSources';
 import DailyChart from './components/DailyChart';
 import StatTile from './components/StatTile';
 import TrendChart from './components/TrendChart';
@@ -26,7 +38,12 @@ import { styles } from './AnalyticsScreen.styles';
 const MONTHS_BACK = 5; // the stepper and trend cover the last 6 months
 
 export default function AnalyticsScreen() {
+  const router = useRouter();
   const { transactions, loading } = useTransactions('last12Months');
+  const { entries: jarEntries } = useVaults();
+  const { streams } = useIncomeStreams();
+  const { settings } = useSettings();
+  const [dailyView, setDailyView] = useState<'bars' | 'calendar'>('bars');
   const current = ym(new Date());
   const [month, setMonth] = useState(current);
   const oldest = shiftMonth(current, -MONTHS_BACK);
@@ -43,6 +60,11 @@ export default function AnalyticsScreen() {
   const avg = dailyAverage(days);
   const trend = monthlyTrend(transactions, current, MONTHS_BACK + 1);
   const notes = insights(transactions, month);
+  const prevCategories = categoryTotals(transactions, prevKey, isCurrent ? today : undefined);
+  const prevLabel = isCurrent ? `${prevShort} 1–${today}` : prevShort;
+  const flow = cashFlow(transactions, jarEntries, month);
+  const biggest = topExpenses(transactions, month, 5);
+  const sources = incomeBySource(transactions, month, streams);
 
   const delta = (now: number, before: number) => {
     const c = change(now, before);
@@ -123,13 +145,29 @@ export default function AnalyticsScreen() {
                   </View>
                 )}
 
+                {flow.income > 0 && (
+                  <View style={styles.card}>
+                    <View style={styles.cardTitleRow}>
+                      <Text style={styles.cardTitle}>Where your income went</Text>
+                      <Text style={styles.cardMeta}>{formatINR(flow.income)} in</Text>
+                    </View>
+                    <CashFlowBar flow={flow} />
+                  </View>
+                )}
+
                 {categories.length > 0 && (
                   <View style={styles.card}>
                     <View style={styles.cardTitleRow}>
                       <Text style={styles.cardTitle}>Where your money went</Text>
-                      <Text style={styles.cardMeta}>{formatINR(totals.spent)} total</Text>
+                      <Text style={styles.cardMeta}>Tap a category</Text>
                     </View>
-                    <CategoryBars data={categories} />
+                    <CategoryBars
+                      data={categories}
+                      previous={prevCategories}
+                      previousLabel={prevLabel}
+                      budgets={settings.categoryBudgets}
+                      onPress={(id) => router.push(`/category/${id}?month=${month}` as Href)}
+                    />
                   </View>
                 )}
 
@@ -137,9 +175,57 @@ export default function AnalyticsScreen() {
                   <View style={styles.card}>
                     <View style={styles.cardTitleRow}>
                       <Text style={styles.cardTitle}>Daily spending</Text>
-                      <Text style={styles.cardMeta}>{monthLabel(month, 'short')}</Text>
+                      <View style={styles.segment}>
+                        {(['bars', 'calendar'] as const).map((v) => (
+                          <Pressable
+                            key={v}
+                            onPress={() => setDailyView(v)}
+                            style={[styles.segmentItem, dailyView === v && styles.segmentActive]}
+                          >
+                            <Ionicons
+                              name={v === 'bars' ? 'bar-chart-outline' : 'calendar-outline'}
+                              size={14}
+                              color={dailyView === v ? Corpus.gold : Corpus.textMuted}
+                            />
+                          </Pressable>
+                        ))}
+                      </View>
                     </View>
-                    <DailyChart points={days} average={avg} monthKey={month} />
+                    {dailyView === 'bars' ? (
+                      <DailyChart points={days} average={avg} monthKey={month} />
+                    ) : (
+                      <CalendarHeatmap points={days} monthKey={month} />
+                    )}
+                  </View>
+                )}
+
+                {biggest.length > 0 && (
+                  <View style={styles.card}>
+                    <View style={styles.cardTitleRow}>
+                      <Text style={styles.cardTitle}>Biggest expenses</Text>
+                      <Text style={styles.cardMeta}>
+                        {totals.spent > 0
+                          ? `${Math.round((biggest.reduce((s, t) => s + t.amount, 0) / totals.spent) * 100)}% of spending`
+                          : ''}
+                      </Text>
+                    </View>
+                    {biggest.map((t) => (
+                      <TransactionRow
+                        key={t.id}
+                        tx={t}
+                        onPress={() => router.push({ pathname: '/edit/[id]', params: { id: t.id } })}
+                      />
+                    ))}
+                  </View>
+                )}
+
+                {sources.length > 0 && (
+                  <View style={styles.card}>
+                    <View style={styles.cardTitleRow}>
+                      <Text style={styles.cardTitle}>Where your income came from</Text>
+                      <Text style={styles.cardMeta}>{formatINR(totals.income)}</Text>
+                    </View>
+                    <IncomeSources data={sources} />
                   </View>
                 )}
               </>

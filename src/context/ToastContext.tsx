@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <View style={styles.root}>
         {children}
         {toast && (
-          <View style={styles.wrap} pointerEvents="box-none">
+          <View style={[styles.wrap, { pointerEvents: 'box-none' }]}>
             <View style={styles.toast}>
               <Text style={styles.message}>{toast.message}</Text>
               {toast.actionLabel && (

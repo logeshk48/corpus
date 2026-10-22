@@ -171,3 +171,90 @@ export function insights(tx: Transaction[], key: string, now: Date = new Date())
   }
   return out;
 }
+
+// ══ Analytics v2 ═════════════════════════════════════════════
+
+// Spending per category for one month, optionally only days 1..upToDay
+export function categoryTotals(tx: Transaction[], key: string, upToDay?: number): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const t of tx) {
+    if (t.type !== 'expense' || !inMonth(t, key)) continue;
+    if (upToDay !== undefined && new Date(t.date).getDate() > upToDay) continue;
+    map.set(t.category, (map.get(t.category) ?? 0) + t.amount);
+  }
+  return map;
+}
+
+// One category across the last `count` months (ending at endKey)
+export function categoryTrend(tx: Transaction[], categoryId: string, endKey: string, count = 6) {
+  return Array.from({ length: count }, (_, i) => {
+    const key = shiftMonth(endKey, i - (count - 1));
+    const amount = tx
+      .filter((t) => t.type === 'expense' && t.category === categoryId && inMonth(t, key))
+      .reduce((s, t) => s + t.amount, 0);
+    return { key, amount };
+  });
+}
+
+// ── Cash flow: where did this month's income go? ────────────
+export type CashFlow = {
+  income: number;
+  bills: number;   // expenses auto-logged from recurring bills
+  other: number;   // every other expense
+  jars: number;    // net money moved into jars (in − out)
+  left: number;    // income − bills − other − jars (negative = overspent)
+};
+
+type JarMove = { type: 'in' | 'out'; amount: number; date: string };
+
+export function cashFlow(tx: Transaction[], jarEntries: JarMove[], key: string): CashFlow {
+  let income = 0, bills = 0, other = 0;
+  for (const t of tx) {
+    if (!inMonth(t, key)) continue;
+    if (t.type === 'income') income += t.amount;
+    else if (t.recurringId) bills += t.amount;
+    else other += t.amount;
+  }
+  const jars = jarEntries
+    .filter((e) => ym(new Date(e.date)) === key)
+    .reduce((s, e) => s + (e.type === 'in' ? e.amount : -e.amount), 0);
+  return { income, bills, other, jars, left: income - bills - other - jars };
+}
+
+// ── Biggest single expenses ─────────────────────────────────
+export function topExpenses(tx: Transaction[], key: string, count = 5): Transaction[] {
+  return tx
+    .filter((t) => t.type === 'expense' && inMonth(t, key))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, count);
+}
+
+// ── Income by source (income stream) ───────────────────────
+export type SourceShare = { id: string; name: string; amount: number; share: number };
+
+export function incomeBySource(tx: Transaction[], key: string, streams: { id: string; name: string }[]): SourceShare[] {
+  const names = new Map(streams.map((s) => [s.id, s.name]));
+  const map = new Map<string, number>();
+  let total = 0;
+  for (const t of tx) {
+    if (t.type !== 'income' || !inMonth(t, key)) continue;
+    const id = t.streamId && names.has(t.streamId) ? t.streamId : '_other';
+    map.set(id, (map.get(id) ?? 0) + t.amount);
+    total += t.amount;
+  }
+  return [...map.entries()]
+    .map(([id, amount]) => ({
+      id,
+      name: id === '_other' ? 'Not linked to a stream' : names.get(id)!,
+      amount,
+      share: total > 0 ? Math.round((amount / total) * 100) : 0,
+    }))
+    .sort((a, b) => (a.id === '_other' ? 1 : b.id === '_other' ? -1 : b.amount - a.amount));
+}
+
+// ── Calendar heatmap: 0..4 intensity per day (sequential) ──
+export function heatLevel(amount: number, max: number): 0 | 1 | 2 | 3 | 4 {
+  if (amount <= 0 || max <= 0) return 0;
+  const r = amount / max;
+  return r > 0.75 ? 4 : r > 0.5 ? 3 : r > 0.25 ? 2 : 1;
+}
