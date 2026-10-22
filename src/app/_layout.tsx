@@ -11,6 +11,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="(auth)" />
+            <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
             <Stack.Screen name="transactions" />
             <Stack.Screen name="edit/[id]" />
             <Stack.Screen name="income/index" />

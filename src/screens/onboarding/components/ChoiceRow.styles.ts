@@ -1,0 +1,48 @@
+import { Corpus, Radius, Space } from '@/constants/theme';
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Corpus.border,
+    padding: Space.md,
+  },
+  rowOn: { borderColor: Corpus.gold, backgroundColor: '#1E1C17' },
+  icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  body: { flex: 1, gap: 3 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  title: { fontSize: 15, fontWeight: '600', color: Corpus.text },
+  badge: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    color: Corpus.gold,
+    borderWidth: 1,
+    borderColor: Corpus.gold,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    overflow: 'hidden',
+  },
+  sub: { fontSize: 12.5, color: Corpus.textMuted, lineHeight: 18 },
+  extra: { fontSize: 12.5, color: Corpus.goldSoft, lineHeight: 18 },
+  right: { alignItems: 'flex-end', gap: 2 },
+  amount: { fontSize: 16, fontWeight: '600', color: Corpus.text },
+  check: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Corpus.textFaint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkOn: { backgroundColor: Corpus.gold, borderColor: Corpus.gold },
+  radio: { borderRadius: 12 },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Corpus.bg },
+});

@@ -1,0 +1,53 @@
+import { Corpus, Radius, Space } from '@/constants/theme';
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Corpus.bg },
+  column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: Space.lg,
+    paddingTop: Space.sm,
+    height: 52,
+  },
+  back: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Corpus.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progress: { flex: 1, flexDirection: 'row', gap: 6 },
+  seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Corpus.cardAlt },
+  segOn: { backgroundColor: Corpus.gold },
+  stepCount: { fontSize: 12, color: Corpus.textMuted, minWidth: 34, textAlign: 'right' },
+  skip: { marginLeft: 'auto', paddingVertical: 8, paddingHorizontal: 4 },
+  skipText: { fontSize: 14, color: Corpus.textMuted },
+  content: { padding: Space.lg, paddingBottom: Space.xl },
+  footer: {
+    paddingHorizontal: Space.lg,
+    paddingTop: 12,
+    paddingBottom: Space.md,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: Corpus.border,
+    backgroundColor: Corpus.bg,
+  },
+  primary: {
+    backgroundColor: Corpus.gold,
+    borderRadius: Radius.md,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  primaryDisabled: { backgroundColor: Corpus.cardAlt },
+  primaryText: { fontSize: 16, fontWeight: '600', color: Corpus.bg },
+  primaryTextDisabled: { color: Corpus.textFaint },
+  footerHint: { fontSize: 12, color: Corpus.textFaint, textAlign: 'center' },
+  error: { fontSize: 13, color: Corpus.danger, textAlign: 'center' },
+});

@@ -4,7 +4,9 @@ import { useSettings } from '@/hooks/useSettings';
 import { logOut } from '@/services/auth';
 import { saveSettings } from '@/services/settings';
 import { formatINR } from '@/utils/format';
+import { WORK_MODES } from '@/utils/onboarding';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,6 +15,11 @@ import { styles } from './SettingsScreen.styles';
 export default function SettingsScreen() {
   const { user } = useAuth();
   const { settings, loading } = useSettings();
+  const router = useRouter();
+  const earnLabel =
+    WORK_MODES.filter((m) => settings.workModes?.includes(m.id))
+      .map((m) => m.title)
+      .join(' + ') || 'Not set';
 
   // Drafts: what's typed but not yet saved
   const [name, setName] = useState('');
@@ -131,6 +138,22 @@ export default function SettingsScreen() {
                   )}
                 </View>
               </View>
+            </View>
+
+            {/* HOW YOU EARN */}
+            <Text style={styles.sectionLabel}>SETUP</Text>
+            <View style={styles.group}>
+              <Pressable style={styles.row} onPress={() => router.push('/onboarding' as Href)}>
+                <View style={styles.rowIcon}>
+                  <Ionicons name="compass-outline" size={15} color={Corpus.gold} />
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowLabel}>How you earn</Text>
+                  <Text style={styles.rowValue}>{earnLabel}</Text>
+                </View>
+                <Text style={styles.rowHint}>Run setup again</Text>
+                <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
+              </Pressable>
             </View>
 
             {/* PREFERENCES */}
