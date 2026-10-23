@@ -182,7 +182,9 @@ export default function SettingsScreen() {
             </View>
 
             {/* Save */}
-            <Button label="Save changes" onPress={handleSave} loading={saving} disabled={!canSave} />
+            {(isDirty || saving) && (
+              <Button label="Save changes" onPress={handleSave} loading={saving} disabled={!canSave} />
+            )}
             {justSaved && <Text style={styles.savedNote}>Saved ✓</Text>}
             {error && <Text style={styles.fieldError}>{error}</Text>}
           </>
