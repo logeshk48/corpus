@@ -99,6 +99,7 @@ export type SetupPlan = {
 type Existing = {
   streamNames: string[];
   vaultKinds: (VaultKind | undefined)[];
+  vaultNames?: string[]; // older jars may have no kind, so match by name too
 };
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
@@ -133,7 +134,7 @@ export function buildSetupPlan(
   for (const kind of a.jars) {
     const starter = STARTER_VAULTS.find((s) => s.kind === kind);
     if (!starter) continue;
-    if (existing.vaultKinds.includes(kind)) {
+    if (existing.vaultKinds.includes(kind) || existing.vaultNames?.some((n) => same(n, starter.name))) {
       skipped.push(`${starter.name} jar already exists`);
       continue;
     }

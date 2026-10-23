@@ -65,6 +65,7 @@ export default function OnboardingScreen() {
       buildSetupPlan(answers, {
         streamNames: streams.map((s) => s.name),
         vaultKinds: vaults.map((v) => v.kind),
+        vaultNames: vaults.map((v) => v.name),
       }),
     [answers, streams, vaults]
   );

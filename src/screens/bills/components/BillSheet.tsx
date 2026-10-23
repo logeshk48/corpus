@@ -79,7 +79,7 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
   const [day, setDay] = useState(1);
   const [category, setCategory] = useState<string | null>('bills');
   const [active, setActive] = useState(true);
-  const [paidThisMonth, setPaidThisMonth] = useState(true);
+  const [paidThisMonth, setPaidThisMonth] = useState(false);
   const [frequency, setFrequency] = useState<BillFrequency>('monthly');
   const [dueMonth, setDueMonth] = useState(new Date().getMonth() + 1);
   const [variable, setVariable] = useState(false);
@@ -108,7 +108,7 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
       setDueMonth(new Date().getMonth() + 1);
       setVariable(!!mode.template?.variable);
       setEndMonth(mode.template?.hasEnd ? shiftYm(yearMonth(new Date()), 11) : undefined);
-      setPaidThisMonth(true);
+      setPaidThisMonth(false);
     }
   }, [mode]);
 
@@ -293,11 +293,11 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
             {!editing && dueAlreadyPassed && (
               <View style={styles.switchRow}>
                 <View style={styles.switchBody}>
-                  <Text style={styles.switchTitle}>Already paid this month?</Text>
+                  <Text style={styles.switchTitle}>Already logged this month’s payment?</Text>
                   <Text style={styles.switchHint}>
                     {paidThisMonth
-                      ? `Corpus will start logging it from next month`
-                      : `Corpus will log ${amount && !amountInvalid ? formatINR(value) : 'it'} for this month now`}
+                      ? `It won’t be logged again. Corpus starts from next month`
+                      : `Corpus will log ${amount && !amountInvalid ? formatINR(value) : 'it'} as this month’s payment, so your spending stays accurate`}
                   </Text>
                 </View>
                 <Switch

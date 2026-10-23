@@ -41,7 +41,10 @@ export function jarInsightLine(jar: VaultWithBalance, ctx: InsightContext): Insi
     return {
       icon: 'umbrella-outline',
       color: months >= ctx.recommendedMonths ? Corpus.income : Corpus.textMuted,
-      text: `Covers ${months.toFixed(1)} months of expenses · aim for ${ctx.recommendedMonths}`,
+      text:
+        months < 0.1
+          ? `Not covering any expenses yet · aim for ${ctx.recommendedMonths} months`
+          : `Covers ${months < 1 ? months.toFixed(1) : Math.floor(months * 10) / 10} months of expenses · aim for ${ctx.recommendedMonths}`,
     };
   }
   if (kind === 'tax') {
