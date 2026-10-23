@@ -125,7 +125,7 @@ export default function HomeScreen() {
           <View style={[styles.linkIcon, styles.linkIconGold]}>
             <Ionicons name="file-tray-stacked-outline" size={16} color={Corpus.gold} />
           </View>
-          <Text style={styles.linkText}>Vaults</Text>
+          <Text style={styles.linkText}>Jars</Text>
           <Text style={styles.linkValue}>
             {vaults.length > 0 ? `${formatINR(jarsTotal)} in jars` : 'Start a jar'}
           </Text>

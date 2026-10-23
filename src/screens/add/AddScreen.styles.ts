@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
   content: {
     padding: Space.lg,
     paddingBottom: 120,
-    gap: Space.lg,
+    gap: Space.md,
   },
   heading: {
     fontSize: Type.title,
@@ -18,7 +18,7 @@ export const styles = StyleSheet.create({
   },
   amountSection: {
     alignItems: 'center',
-    paddingVertical: Space.lg,
+    paddingVertical: Space.md,
   },
   amountLabel: {
     fontSize: Type.small,

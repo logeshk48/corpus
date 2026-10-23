@@ -1,4 +1,4 @@
-import { ScreenHeader } from '@/components/ui';
+import { ScreenHeader, SectionLabel } from '@/components/ui';
 import FilterChips, { ChipOption } from '@/components/FilterChips';
 import { findCategory } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
@@ -47,6 +47,12 @@ export default function TransactionsScreen() {
     .filter((t) => matchesSearch(t, q));
   const total = visible.reduce((sum, t) => sum + t.amount, 0);
   const sections = groupByDay(visible);
+  // "₹620 spent · +₹16,500" — the day's money in and out, shown beside the date
+  const dayTotal = (txs: typeof visible) => {
+    const out = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const inc = txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    return [out ? `${formatINR(out)} spent` : '', inc ? `+${formatINR(inc)}` : ''].filter(Boolean).join(' · ');
+  };
 
   const summary =
     filter === 'all'
@@ -110,7 +116,7 @@ export default function TransactionsScreen() {
             <Text style={styles.summary}>{summary}</Text>
             {sections.map((section) => (
               <View key={section.title}>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
+                <SectionLabel right={dayTotal(section.data)}>{section.title}</SectionLabel>
                 <View style={styles.list}>
                   {section.data.map((tx) => (
                     <TransactionRow

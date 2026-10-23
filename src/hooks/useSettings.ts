@@ -6,27 +6,32 @@ import { useEffect, useState } from 'react';
 export function useSettings() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  // Whose settings are currently loaded. Deriving `loading` from this (instead of
+  // a flag set inside the effect) closes a gap: on the first render after sign-in
+  // the effect hasn't run yet, and a plain flag would say "loaded" with empty
+  // defaults — which made AuthGate wrongly send set-up users to onboarding.
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setSettings(DEFAULT_SETTINGS);
-      setLoading(false);
+      setLoadedFor(null);
       return;
     }
-    setLoading(true);
+    const uid = user.uid;
     const unsubscribe = subscribeSettings(
       (s) => {
         setSettings(s);
-        setLoading(false);
+        setLoadedFor(uid);
       },
       (e) => {
         console.error('Settings listener error:', e);
-        setLoading(false);
+        setLoadedFor(uid);
       }
     );
     return unsubscribe;
   }, [user]);
 
-  return { settings, loading };
+  const loading = !!user && loadedFor !== user.uid;
+  return { settings: loading ? DEFAULT_SETTINGS : settings, loading };
 }

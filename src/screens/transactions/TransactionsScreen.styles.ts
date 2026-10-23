@@ -31,16 +31,15 @@ export const styles = StyleSheet.create({
     fontSize: Type.small,
     color: Corpus.textMuted,
   },
-  sectionTitle: {
-    fontSize: Type.small,
-    fontWeight: '500',
-    color: Corpus.textMuted,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginTop: Space.sm,
-  },
   list: {
+    backgroundColor: Corpus.card,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    borderColor: Corpus.border,
+    paddingHorizontal: Space.md,
+    paddingVertical: Space.sm + 4,
     gap: Space.md,
+    marginTop: Space.sm,
   },
   empty: {
     alignItems: 'center',
