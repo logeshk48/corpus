@@ -250,28 +250,6 @@ export default function IousScreen() {
         })}
 
         {isOpen && (
-          phoneDraft?.key === p.key ? (
-            <View style={styles.phoneRow}>
-              <TextInput
-                style={styles.phoneInput}
-                value={phoneDraft.value}
-                onChangeText={(t) => setPhoneDraft({ key: p.key, value: t.replace(/[^0-9+ ]/g, '') })}
-                placeholder="Mobile number"
-                placeholderTextColor={Corpus.textFaint}
-                keyboardType="phone-pad"
-                autoFocus
-              />
-              <Button size="sm" label="Save" onPress={() => savePhone(p.key, phoneDraft.value)} />
-            </View>
-          ) : (
-            <Pressable onPress={() => setPhoneDraft({ key: p.key, value: phones[p.key] ?? '' })}>
-              <Text style={styles.entrySub}>
-                {phones[p.key] ? `📱 ${phones[p.key]} · change` : '📱 Add mobile number to send reminders straight to their WhatsApp'}
-              </Text>
-            </Pressable>
-          )
-        )}
-        {isOpen && (
           <View style={styles.actions}>
             {p.theyOwe > 0 && (
               <Button size="sm" icon="cash-outline" label="They paid me" onPress={() => setMode({ kind: 'payPerson', person: p.person, direction: 'lent', open: p.open.filter((x) => x.direction === 'lent') })} />
@@ -279,7 +257,6 @@ export default function IousScreen() {
             {p.youOwe > 0 && (
               <Button size="sm" icon="cash-outline" label={`I paid ${p.person.split(' ')[0]}`} onPress={() => setMode({ kind: 'payPerson', person: p.person, direction: 'borrowed', open: p.open.filter((x) => x.direction === 'borrowed') })} />
             )}
-            {p.net > 0 && <Button size="sm" variant="secondary" icon="logo-whatsapp" label={phones[p.key] ? 'Remind on WhatsApp' : 'Send reminder'} onPress={() => remind(p)} />}
             {p.open.length > 0 && <Button size="sm" variant="secondary" icon="checkmark-done" label="Settle all" onPress={() => settleAll(p)} />}
             <Button size="sm" variant="secondary" icon="add" label="Add" onPress={() => setMode({ kind: 'new', person: p.person })} />
           </View>
@@ -391,21 +368,6 @@ export default function IousScreen() {
 
             {open.length > 0 && <SectionLabel right="Tap a name for details">OPEN</SectionLabel>}
             {open.map(renderPerson)}
-
-            {toGet > 0 && (
-              upiDraft !== null ? (
-                <View style={styles.phoneRow}>
-                  <TextInput style={styles.phoneInput} value={upiDraft} onChangeText={setUpiDraft} placeholder="yourname@okaxis" placeholderTextColor={Corpus.textFaint} autoCapitalize="none" autoFocus />
-                  <Button size="sm" label="Save" onPress={() => saveUpi(upiDraft)} />
-                </View>
-              ) : (
-                <Pressable onPress={() => setUpiDraft(settings.upiId ?? '')}>
-                  <Text style={styles.entrySub}>
-                    {settings.upiId ? `Reminders include your UPI: ${settings.upiId} · change` : '💡 Add your UPI ID so reminders include it and people can pay in one step'}
-                  </Text>
-                </Pressable>
-              )
-            )}
 
             {giving.items.length > 0 && (
               <>
