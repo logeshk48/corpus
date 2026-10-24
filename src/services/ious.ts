@@ -47,3 +47,9 @@ export async function repay(iou: Iou, amount: number, when = new Date()) {
 export async function reopen(iou: Iou) {
   await updateDoc(doc(col(), iou.id), { repayments: deleteField(), settledAt: deleteField() });
 }
+
+// Interest-only payment: recorded separately, never reduces the amount owed
+export async function payInterest(iou: Iou, amount: number, when = new Date()) {
+  const interestPayments = [...(iou.interestPayments ?? []), { amount, date: when.toISOString() }];
+  await updateDoc(doc(col(), iou.id), { interestPayments });
+}

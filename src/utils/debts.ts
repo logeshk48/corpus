@@ -3,10 +3,11 @@ import type { Iou } from '@/types/iou';
 import { isFinished, isPaidThisMonth, isSkippedThisMonth, remainingPayments } from './bills';
 import { isOpen, isOverdue, remaining } from './iou';
 import { loanStatus } from './loan';
+import { interestStatus } from './interest';
 
 // ─── Everything you owe, in one place: people + EMIs ───
 
-export type PersonDebt = { id: string; person: string; amount: number; note?: string; dueDate?: string; overdue: boolean };
+export type PersonDebt = { id: string; person: string; amount: number; note?: string; dueDate?: string; overdue: boolean; monthlyInterest: number; interestPending: number; interestPaid: number; nextInterestDue?: Date };
 export type EmiDebt = {
   billId: string;
   name: string;
@@ -20,7 +21,14 @@ export type EmiDebt = {
 export function debtSummary(ious: Iou[], bills: Bill[], now = new Date()) {
   const people: PersonDebt[] = ious
     .filter((i) => i.direction === 'borrowed' && isOpen(i))
-    .map((i) => ({ id: i.id, person: i.person.trim(), amount: remaining(i), note: i.note, dueDate: i.dueDate, overdue: isOverdue(i, now) }))
+    .map((i) => {
+      const st = interestStatus(i, now);
+      return {
+        id: i.id, person: i.person.trim(), amount: remaining(i), note: i.note, dueDate: i.dueDate,
+        overdue: isOverdue(i, now) || (st?.pending ?? 0) > 0,
+        monthlyInterest: st?.monthly ?? 0, interestPending: st?.pending ?? 0, interestPaid: st?.paid ?? 0, nextInterestDue: st?.nextDue,
+      };
+    })
     .sort((a, b) => Number(b.overdue) - Number(a.overdue) || b.amount - a.amount);
 
   const emis: EmiDebt[] = bills
@@ -45,6 +53,9 @@ export function debtSummary(ious: Iou[], bills: Bill[], now = new Date()) {
     owedOnLoans,
     total: owedToPeople + owedOnLoans,
     monthlyEmi: emis.reduce((s, e) => s + e.emi, 0),
+    monthlyInterest: people.reduce((s, p) => s + p.monthlyInterest, 0),
+    interestPending: people.reduce((s, p) => s + p.interestPending, 0),
+    interestPaid: people.reduce((s, p) => s + p.interestPaid, 0),
   };
 }
 

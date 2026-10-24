@@ -6,13 +6,16 @@ import { useBills } from '@/hooks/useBills';
 import { addChain } from '@/services/iousChain';
 import { chainNudges, debtSummary } from '@/utils/debts';
 import type { Href } from 'expo-router';
-import { addIou, deleteIou, repay, reopen } from '@/services/ious';
+import { addIou, deleteIou, payInterest, repay, reopen, updateIou } from '@/services/ious';
+import { useSettings } from '@/hooks/useSettings';
+import { saveSettings } from '@/services/settings';
+import { interestStatus, yearlyRate } from '@/utils/interest';
 import type { Iou, NewIou } from '@/types/iou';
 import { formatINR } from '@/utils/format';
-import { allocatePayment, ageLabel, byPerson, isOverdue, knownPeople, reminderText, remaining, totals, type PersonSummary } from '@/utils/iou';
+import { allocatePayment, ageLabel, byPerson, givingSummary, personKey, progress, whatsappUrl, isOverdue, knownPeople, reminderText, remaining, totals, type PersonSummary } from '@/utils/iou';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import IouSheet, { type IouSheetMode } from './components/IouSheet';
 import { styles } from './IousScreen.styles';
@@ -33,6 +36,11 @@ export default function IousScreen() {
   const { showToast } = useToast();
   const { ious, loading } = useIous();
   const { bills } = useBills();
+  const { settings } = useSettings();
+  const phones = settings.phones ?? {};
+  const [phoneDraft, setPhoneDraft] = useState<{ key: string; value: string } | null>(null);
+  const [upiDraft, setUpiDraft] = useState<string | null>(null);
+  const [remindFor, setRemindFor] = useState<string | null>(null);
   const [mode, setMode] = useState<IouSheetMode | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showSettled, setShowSettled] = useState(false);
@@ -43,6 +51,7 @@ export default function IousScreen() {
   const { toGet, toPay } = totals(people);
   const debts = useMemo(() => debtSummary(ious, bills), [ious, bills]);
   const nudges = useMemo(() => chainNudges(ious), [ious]);
+  const giving = useMemo(() => givingSummary(ious), [ious]);
   const byId = useMemo(() => new Map(ious.map((i) => [i.id, i])), [ious]);
   const [showDebts, setShowDebts] = useState(true);
 
@@ -63,6 +72,16 @@ export default function IousScreen() {
     const { parts } = allocatePayment(openList, amount);
     return run(() => Promise.all(parts.map((p) => repay(p.iou, p.amount))), `${formatINR(amount)} recorded`);
   };
+  const doPayInterest = (iou: Iou, amount: number) => run(() => payInterest(iou, amount), `Interest ${formatINR(amount)} recorded`);
+  const setReminder = (i: Iou, days: number) => {
+    setRemindFor(null);
+    const at = days ? new Date(Date.now() + days * 86_400_000).toISOString() : undefined;
+    return run(() => updateIou(i.id, { remindAt: at }), days ? `I'll remind you on ${shortDate(at!)}` : 'Reminder off');
+  };
+  const update = (id: string, changes: Partial<NewIou>) => run(() => updateIou(id, changes), 'Updated');
+  const savePhone = (key: string, value: string) =>
+    run(() => saveSettings({ phones: { ...phones, [key]: value.trim() } }), value.trim() ? 'Number saved' : 'Number removed').then(() => setPhoneDraft(null));
+  const saveUpi = (value: string) => run(() => saveSettings({ upiId: value.trim() || undefined }), 'UPI ID saved').then(() => setUpiDraft(null));
   const saveChain = (borrowed: NewIou, lent: NewIou) =>
     run(() => addChain(borrowed, lent), `Linked: ${borrowed.person} → you → ${lent.person}`);
   const doRepay = (iou: Iou, amount: number) =>
@@ -74,7 +93,12 @@ export default function IousScreen() {
     );
 
   const remind = async (p: PersonSummary) => {
-    const message = reminderText(p);
+    const message = reminderText(p, settings.upiId);
+    const phone = phones[p.key];
+    if (phone) {
+      Linking.openURL(whatsappUrl(phone, message));
+      return;
+    }
     try {
       if (Platform.OS === 'web' && navigator.clipboard && !navigator.share) {
         await navigator.clipboard.writeText(message);
@@ -117,7 +141,8 @@ export default function IousScreen() {
           const left = remaining(i);
           const done = left === 0 || !!i.settledAt;
           return (
-            <View key={i.id} style={styles.entry}>
+            <View key={i.id}>
+            <View style={styles.entry}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.entryText, done && { color: Corpus.textFaint, textDecorationLine: 'line-through' }]}>
                   {i.direction === 'lent' ? 'You lent' : 'You borrowed'}
@@ -133,6 +158,36 @@ export default function IousScreen() {
                   {left !== i.amount && !done ? ` · ${formatINR(i.amount - left)} paid back` : ''}
                   {i.dueDate && !done ? ` · due ${shortDate(i.dueDate)}` : ''}
                 </Text>
+                {(() => {
+                  const st = !done ? interestStatus(i) : null;
+                  if (!st) return null;
+                  return (
+                    <Text style={[styles.entrySub, { color: st.pending > 0 ? Corpus.danger : Corpus.goldSoft }]}>
+                      ₹{i.ratePerHundred}/₹100 ({yearlyRate(i.ratePerHundred!)}% a year) · {formatINR(st.monthly)}/month ·{' '}
+                      {st.pending > 0 ? `${formatINR(st.pending)} interest due` : `next due ${shortDate(st.nextDue.toISOString())}`}
+                    </Text>
+                  );
+                })()}
+                {(i.interestPayments ?? []).map((r, k) => (
+                  <Text key={`i${k}`} style={styles.history}>
+                    ↳ Interest {i.direction === 'lent' ? 'received' : 'paid'} {formatINR(r.amount)} · {shortDate(r.date)}
+                  </Text>
+                ))}
+                {(() => {
+                  const pr = progress(i);
+                  if (done || pr.paid === 0) return null;
+                  return (
+                    <View style={{ marginTop: 4, gap: 3 }}>
+                      <View style={styles.bar}>
+                        <View style={[styles.barFill, { width: `${pr.pct}%` }]} />
+                      </View>
+                      <Text style={styles.entrySub}>
+                        {formatINR(pr.paid)} of {formatINR(i.amount)} paid · {pr.pct}%
+                        {pr.doneBy ? ` · done by ${pr.doneBy.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} at this pace` : ''}
+                      </Text>
+                    </View>
+                  );
+                })()}
                 {(i.repayments ?? []).map((r, k) => (
                   <Text key={k} style={styles.history}>
                     ↳ {i.direction === 'lent' ? 'Got' : 'Paid'} {formatINR(r.amount)} · {shortDate(r.date)}
@@ -147,17 +202,75 @@ export default function IousScreen() {
                   <Text style={styles.link}>Undo</Text>
                 </Pressable>
               ) : (
-                <Pressable onPress={() => setMode({ kind: 'repay', iou: i })} hitSlop={6}>
-                  <Text style={styles.link}>Paid back</Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  {i.ratePerHundred ? (
+                    <Pressable onPress={() => setMode({ kind: 'payInterest', iou: i })} hitSlop={6}>
+                      <Text style={styles.link}>{i.direction === 'lent' ? 'Got interest' : 'Pay interest'}</Text>
+                    </Pressable>
+                  ) : null}
+                  <Pressable onPress={() => setMode({ kind: 'repay', iou: i })} hitSlop={6}>
+                    <Text style={styles.link}>{i.ratePerHundred ? 'Pay principal' : 'Paid back'}</Text>
+                  </Pressable>
+                </View>
+              )}
+              {!done && (
+                <Pressable onPress={() => setRemindFor(remindFor === i.id ? null : i.id)} hitSlop={6}>
+                  <Text style={[styles.link, { color: i.remindAt ? Corpus.gold : Corpus.textMuted }]}>⏰</Text>
                 </Pressable>
               )}
+              <Pressable onPress={() => setMode({ kind: 'edit', iou: i })} hitSlop={6}>
+                <Text style={[styles.link, { color: Corpus.textMuted }]}>✎</Text>
+              </Pressable>
               <Pressable onPress={() => remove(i)} hitSlop={6}>
                 <Text style={[styles.link, { color: Corpus.textFaint }]}>✕</Text>
               </Pressable>
             </View>
+            {remindFor === i.id && (
+              <View style={styles.remindRow}>
+                <Text style={styles.entrySub}>
+                  {i.remindAt ? `Reminding you ${shortDate(i.remindAt)}. Change:` : `Remind me to ${i.direction === 'lent' ? 'ask' : 'pay'}:`}
+                </Text>
+                {[['Tomorrow', 1], ['3 days', 3], ['1 week', 7], ['2 weeks', 14]].map(([label, d]) => (
+                  <Pressable key={label} style={styles.remindChip} onPress={() => setReminder(i, d as number)}>
+                    <Text style={styles.remindChipText}>{label}</Text>
+                  </Pressable>
+                ))}
+                {i.remindAt && (
+                  <Pressable style={styles.remindChip} onPress={() => setReminder(i, 0)}>
+                    <Text style={[styles.remindChipText, { color: Corpus.textMuted }]}>Off</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
+            {i.remindAt && remindFor !== i.id && !done && (
+              <Text style={[styles.history, { color: Corpus.gold }]}>⏰ Reminder {shortDate(i.remindAt)}</Text>
+            )}
+            </View>
           );
         })}
 
+        {isOpen && (
+          phoneDraft?.key === p.key ? (
+            <View style={styles.phoneRow}>
+              <TextInput
+                style={styles.phoneInput}
+                value={phoneDraft.value}
+                onChangeText={(t) => setPhoneDraft({ key: p.key, value: t.replace(/[^0-9+ ]/g, '') })}
+                placeholder="Mobile number"
+                placeholderTextColor={Corpus.textFaint}
+                keyboardType="phone-pad"
+                autoFocus
+              />
+              <Button size="sm" label="Save" onPress={() => savePhone(p.key, phoneDraft.value)} />
+            </View>
+          ) : (
+            <Pressable onPress={() => setPhoneDraft({ key: p.key, value: phones[p.key] ?? '' })}>
+              <Text style={styles.entrySub}>
+                {phones[p.key] ? `📱 ${phones[p.key]} · change` : '📱 Add mobile number to send reminders straight to their WhatsApp'}
+              </Text>
+            </Pressable>
+          )
+        )}
         {isOpen && (
           <View style={styles.actions}>
             {p.theyOwe > 0 && (
@@ -166,7 +279,7 @@ export default function IousScreen() {
             {p.youOwe > 0 && (
               <Button size="sm" icon="cash-outline" label={`I paid ${p.person.split(' ')[0]}`} onPress={() => setMode({ kind: 'payPerson', person: p.person, direction: 'borrowed', open: p.open.filter((x) => x.direction === 'borrowed') })} />
             )}
-            {p.net > 0 && <Button size="sm" variant="secondary" icon="logo-whatsapp" label="Send reminder" onPress={() => remind(p)} />}
+            {p.net > 0 && <Button size="sm" variant="secondary" icon="logo-whatsapp" label={phones[p.key] ? 'Remind on WhatsApp' : 'Send reminder'} onPress={() => remind(p)} />}
             {p.open.length > 0 && <Button size="sm" variant="secondary" icon="checkmark-done" label="Settle all" onPress={() => settleAll(p)} />}
             <Button size="sm" variant="secondary" icon="add" label="Add" onPress={() => setMode({ kind: 'new', person: p.person })} />
           </View>
@@ -231,6 +344,9 @@ export default function IousScreen() {
                     debts.owedToPeople ? `${formatINR(debts.owedToPeople)} to people` : '',
                     debts.owedOnLoans ? `${formatINR(debts.owedOnLoans)} on loans & EMIs` : '',
                     debts.monthlyEmi ? `${formatINR(debts.monthlyEmi)}/month in EMIs` : '',
+                    debts.monthlyInterest ? `${formatINR(debts.monthlyInterest)}/month interest` : '',
+                    debts.interestPending ? `${formatINR(debts.interestPending)} interest due now` : '',
+                    debts.interestPaid ? `${formatINR(debts.interestPaid)} interest paid so far` : '',
                   ].filter(Boolean).join(' · ')}
                 </Text>
                 {showDebts && (
@@ -247,7 +363,9 @@ export default function IousScreen() {
                         <View style={{ flex: 1 }}>
                           <Text style={styles.entryText}>{d.person}{d.note ? ` · ${d.note}` : ''}</Text>
                           <Text style={[styles.entrySub, d.overdue && { color: Corpus.danger }]}>
-                            {d.dueDate ? `${d.overdue ? 'Overdue · was due' : 'Due'} ${shortDate(d.dueDate)}` : 'No due date'}
+                            {d.monthlyInterest
+                              ? `${formatINR(d.monthlyInterest)}/month interest${d.interestPending ? ` · ${formatINR(d.interestPending)} due now` : d.nextInterestDue ? ` · next ${shortDate(d.nextInterestDue.toISOString())}` : ''}`
+                              : d.dueDate ? `${d.overdue ? 'Overdue · was due' : 'Due'} ${shortDate(d.dueDate)}` : 'No due date'}
                           </Text>
                         </View>
                         <Text style={[styles.entryAmount, { color: Corpus.warning }]}>{formatINR(d.amount)}</Text>
@@ -274,6 +392,53 @@ export default function IousScreen() {
             {open.length > 0 && <SectionLabel right="Tap a name for details">OPEN</SectionLabel>}
             {open.map(renderPerson)}
 
+            {toGet > 0 && (
+              upiDraft !== null ? (
+                <View style={styles.phoneRow}>
+                  <TextInput style={styles.phoneInput} value={upiDraft} onChangeText={setUpiDraft} placeholder="yourname@okaxis" placeholderTextColor={Corpus.textFaint} autoCapitalize="none" autoFocus />
+                  <Button size="sm" label="Save" onPress={() => saveUpi(upiDraft)} />
+                </View>
+              ) : (
+                <Pressable onPress={() => setUpiDraft(settings.upiId ?? '')}>
+                  <Text style={styles.entrySub}>
+                    {settings.upiId ? `Reminders include your UPI: ${settings.upiId} · change` : '💡 Add your UPI ID so reminders include it and people can pay in one step'}
+                  </Text>
+                </Pressable>
+              )
+            )}
+
+            {giving.items.length > 0 && (
+              <>
+                <SectionLabel right={`${formatINR(giving.givenThisYear)} given this year`}>SUPPORT & GIFTS</SectionLabel>
+                <View style={styles.card}>
+                  {giving.topPeople.length > 0 && (
+                    <Text style={styles.meta}>
+                      This year: {giving.topPeople.slice(0, 3).map((t) => `${t.person} ${formatINR(t.given)}`).join(' · ')}
+                      {giving.receivedThisYear ? ` · received ${formatINR(giving.receivedThisYear)}` : ''}
+                    </Text>
+                  )}
+                  {giving.items.slice(0, 12).map((g) => (
+                    <View key={g.id} style={styles.entry}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.entryText}>
+                          {g.kind === 'gift' ? '🎁' : '🤲'} {g.direction === 'lent' ? 'To' : 'From'} {g.person}
+                          {g.note ? ` · ${g.note}` : ''}
+                        </Text>
+                        <Text style={styles.entrySub}>{shortDate(g.date)} · {g.kind === 'gift' ? 'Gift' : 'Support'}</Text>
+                      </View>
+                      <Text style={[styles.entryAmount, { color: Corpus.text }]}>{formatINR(g.amount)}</Text>
+                      <Pressable onPress={() => setMode({ kind: 'edit', iou: g })} hitSlop={6}>
+                        <Text style={[styles.link, { color: Corpus.textMuted }]}>✎</Text>
+                      </Pressable>
+                      <Pressable onPress={() => remove(g)} hitSlop={6}>
+                        <Text style={[styles.link, { color: Corpus.textFaint }]}>✕</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
             {settled.length > 0 && (
               <Pressable onPress={() => setShowSettled(!showSettled)}>
                 <SectionLabel right={showSettled ? 'Hide' : 'Show'}>{`SETTLED (${settled.length})`}</SectionLabel>
@@ -284,7 +449,7 @@ export default function IousScreen() {
         )}
       </ScrollView>
 
-      {mode && <IouSheet mode={mode} people={knownPeople(ious)} onClose={() => setMode(null)} onSave={save} onSaveChain={saveChain} onRepay={doRepay} onPayPerson={payPerson} />}
+      {mode && <IouSheet mode={mode} people={knownPeople(ious)} onClose={() => setMode(null)} onSave={save} onSaveChain={saveChain} onRepay={doRepay} onPayPerson={payPerson} onPayInterest={doPayInterest} onUpdate={update} />}
     </SafeAreaView>
   );
 }

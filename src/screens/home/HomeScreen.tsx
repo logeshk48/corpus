@@ -6,6 +6,8 @@ import { useBills } from '@/hooks/useBills';
 import { useIous } from '@/hooks/useIous';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
+import { actionable, moneyReminders } from '@/utils/debtReminders';
+import MoneyReminders from './components/MoneyReminders';
 import UpcomingBills from './components/UpcomingBills';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
@@ -38,6 +40,7 @@ export default function HomeScreen() {
   const { ious } = useIous();
   const iouTotals = totals(byPerson(ious));
   const repayNudge = chainNudges(ious)[0];
+  const reminders = actionable(moneyReminders(ious));
   const [showSafe, setShowSafe] = useState(false);
   const { bills } = useBills();
   const { showToast } = useToast();
@@ -157,6 +160,8 @@ export default function HomeScreen() {
           </Text>
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>
+
+        <MoneyReminders items={reminders} onPress={() => router.push('/ious' as Href)} />
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 

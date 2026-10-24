@@ -2,11 +2,13 @@ import { Corpus } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import BillsAutoLogger from '@/components/BillsAutoLogger';
+import MoneyNotifier from '@/components/MoneyNotifier';
 
 export default function TabsLayout() {
   return (
     <>
       <BillsAutoLogger />
+      <MoneyNotifier />
       <Tabs
       screenOptions={{
         headerShown: false,

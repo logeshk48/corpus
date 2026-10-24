@@ -6,7 +6,8 @@ export const personKey = (name: string) => name.trim().toLowerCase().replace(/\s
 
 export const repaid = (i: Iou) => (i.repayments ?? []).reduce((s, r) => s + r.amount, 0);
 export const remaining = (i: Iou) => Math.max(0, Math.round((i.amount - repaid(i)) * 100) / 100);
-export const isOpen = (i: Iou) => !i.settledAt && remaining(i) > 0;
+export const isLoan = (i: Iou) => (i.kind ?? 'loan') === 'loan';
+export const isOpen = (i: Iou) => isLoan(i) && !i.settledAt && remaining(i) > 0;
 export const isOverdue = (i: Iou, now = new Date()) =>
   isOpen(i) && !!i.dueDate && new Date(i.dueDate).getTime() < startOfDay(now).getTime();
 
@@ -30,6 +31,7 @@ export function byPerson(ious: Iou[], now = new Date()): PersonSummary[] {
   const map = new Map<string, PersonSummary>();
   const sorted = [...ious].sort((a, b) => b.date.localeCompare(a.date));
   for (const i of sorted) {
+    if (!isLoan(i)) continue; // support & gifts are listed separately
     const key = personKey(i.person);
     const p = map.get(key) ?? { key, person: i.person.trim(), theyOwe: 0, youOwe: 0, net: 0, open: [], settled: [], overdue: false };
     if (isOpen(i)) {
@@ -103,4 +105,45 @@ export function allocatePayment(open: Iou[], amount: number) {
     left = Math.round((left - take) * 100) / 100;
   }
   return { parts, leftover: left };
+}
+
+// ── Progress on one loan: "₹18,000 of ₹30,000 paid · 60%", and when it'll be done at this pace ──
+export function progress(i: Iou, now = new Date()) {
+  const paid = repaid(i);
+  const pct = i.amount > 0 ? Math.min(100, Math.round((paid / i.amount) * 100)) : 0;
+  let doneBy: Date | undefined;
+  const pays = (i.repayments ?? []).map((r) => new Date(r.date).getTime()).filter((t) => !isNaN(t));
+  if (pays.length >= 2 && remaining(i) > 0) {
+    const months = Math.max(1, (now.getTime() - new Date(i.date).getTime()) / (30.44 * DAY));
+    const perMonth = paid / months;
+    if (perMonth > 0) doneBy = new Date(now.getTime() + (remaining(i) / perMonth) * 30.44 * DAY);
+  }
+  return { paid, pct, doneBy };
+}
+
+// ── Support & gifts: money given (or received) that isn't expected back ──
+export function givingSummary(ious: Iou[], now = new Date()) {
+  const year = now.getFullYear();
+  const items = ious.filter((i) => !isLoan(i)).sort((a, b) => b.date.localeCompare(a.date));
+  const thisYear = items.filter((i) => new Date(i.date).getFullYear() === year);
+  const sum = (list: Iou[], d: Iou['direction']) => list.filter((i) => i.direction === d).reduce((s, i) => s + i.amount, 0);
+  const perPerson = new Map<string, { person: string; given: number }>();
+  for (const i of thisYear.filter((x) => x.direction === 'lent')) {
+    const k = personKey(i.person);
+    perPerson.set(k, { person: i.person.trim(), given: (perPerson.get(k)?.given ?? 0) + i.amount });
+  }
+  return {
+    items,
+    givenThisYear: sum(thisYear, 'lent'),
+    receivedThisYear: sum(thisYear, 'borrowed'),
+    topPeople: [...perPerson.values()].sort((a, b) => b.given - a.given),
+  };
+}
+
+// wa.me needs digits with country code; assume India for 10-digit numbers
+export function whatsappUrl(phone: string, text: string) {
+  let d = phone.replace(/\D/g, '');
+  if (d.length === 10) d = '91' + d;
+  if (d.length === 11 && d.startsWith('0')) d = '91' + d.slice(1);
+  return `https://wa.me/${d}?text=${encodeURIComponent(text)}`;
 }

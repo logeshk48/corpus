@@ -30,5 +30,12 @@ export const styles = StyleSheet.create({
   nudgeTitle: { fontSize: Type.label, fontWeight: '600', color: Corpus.gold },
   nudgeText: { fontSize: Type.body, color: Corpus.text, lineHeight: 19 },
   history: { fontSize: Type.small, color: Corpus.textFaint, marginTop: 2 },
+  bar: { height: 5, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },
+  barFill: { height: 5, borderRadius: 3, backgroundColor: Corpus.income },
+  phoneRow: { flexDirection: 'row', gap: Space.sm, alignItems: 'center' },
+  phoneInput: { flex: 1, backgroundColor: Corpus.bg, borderRadius: Radius.md, borderWidth: 1, borderColor: Corpus.border, paddingHorizontal: 12, paddingVertical: 8, fontSize: Type.bodyLg, color: Corpus.text },
+  remindRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingBottom: 6 },
+  remindChip: { borderRadius: 999, borderWidth: 1, borderColor: Corpus.goldLine, backgroundColor: Corpus.goldTint, paddingHorizontal: 10, paddingVertical: 4 },
+  remindChipText: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600' },
   center: { paddingVertical: 80, alignItems: 'center' },
 });
