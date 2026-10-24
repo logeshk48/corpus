@@ -3,6 +3,8 @@ import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
 import { useBills } from '@/hooks/useBills';
+import { useIous } from '@/hooks/useIous';
+import { byPerson, totals } from '@/utils/iou';
 import UpcomingBills from './components/UpcomingBills';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
@@ -32,6 +34,8 @@ export default function HomeScreen() {
   const { transactions, loading, error } = useTransactions('month');
   const { settings } = useSettings();
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
+  const { ious } = useIous();
+  const iouTotals = totals(byPerson(ious));
   const [showSafe, setShowSafe] = useState(false);
   const { bills } = useBills();
   const { showToast } = useToast();
@@ -128,6 +132,24 @@ export default function HomeScreen() {
           <Text style={styles.linkText}>Jars</Text>
           <Text style={styles.linkValue}>
             {vaults.length > 0 ? `${formatINR(jarsTotal)} in jars` : 'Start a jar'}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/ious' as Href)}
+        >
+          <View style={[styles.linkIcon, styles.linkIconGold]}>
+            <Ionicons name="swap-horizontal" size={16} color={Corpus.gold} />
+          </View>
+          <Text style={styles.linkText}>Lent & borrowed</Text>
+          <Text style={styles.linkValue}>
+            {iouTotals.toGet > 0
+              ? `${formatINR(iouTotals.toGet)} to get`
+              : iouTotals.toPay > 0
+                ? `${formatINR(iouTotals.toPay)} to pay`
+                : 'All square'}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>

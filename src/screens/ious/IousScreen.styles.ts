@@ -1,0 +1,29 @@
+import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Corpus.bg },
+  content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
+  summary: { flexDirection: 'row', gap: Space.sm },
+  tile: { flex: 1, backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 4 },
+  tileLabel: { fontSize: Type.small, color: Corpus.textMuted },
+  tileValue: { fontSize: Type.h2, fontWeight: '600' },
+  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: Space.sm },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: Space.sm + 4 },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Corpus.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
+  name: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
+  meta: { fontSize: Type.small, color: Corpus.textMuted },
+  overdue: { fontSize: Type.small, color: Corpus.danger, fontWeight: '600' },
+  net: { fontSize: Type.label, fontWeight: '600' },
+  entry: { flexDirection: 'row', alignItems: 'center', gap: Space.sm, paddingVertical: 6, borderTopWidth: 0.5, borderTopColor: Corpus.border },
+  entryText: { flex: 1, fontSize: Type.body, color: Corpus.text },
+  entrySub: { fontSize: Type.small, color: Corpus.textMuted },
+  entryAmount: { fontSize: Type.body, fontWeight: '600' },
+  link: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600', paddingVertical: 4, paddingHorizontal: 6 },
+  actions: { flexDirection: 'row', gap: Space.sm, marginTop: 4 },
+  emptyBox: { alignItems: 'center', gap: Space.sm, paddingVertical: 60, paddingHorizontal: Space.lg },
+  emptyTitle: { fontSize: Type.title, fontWeight: '600', color: Corpus.text },
+  emptyText: { fontSize: Type.body, color: Corpus.textMuted, textAlign: 'center', lineHeight: 19 },
+  center: { paddingVertical: 80, alignItems: 'center' },
+});
