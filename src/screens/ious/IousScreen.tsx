@@ -2,6 +2,10 @@ import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useIous } from '@/hooks/useIous';
+import { useBills } from '@/hooks/useBills';
+import { addChain } from '@/services/iousChain';
+import { chainNudges, debtSummary } from '@/utils/debts';
+import type { Href } from 'expo-router';
 import { addIou, deleteIou, repay, reopen } from '@/services/ious';
 import type { Iou, NewIou } from '@/types/iou';
 import { formatINR } from '@/utils/format';
@@ -28,6 +32,7 @@ export default function IousScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const { ious, loading } = useIous();
+  const { bills } = useBills();
   const [mode, setMode] = useState<IouSheetMode | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showSettled, setShowSettled] = useState(false);
@@ -36,6 +41,10 @@ export default function IousScreen() {
   const open = people.filter((p) => p.open.length > 0);
   const settled = people.filter((p) => p.open.length === 0);
   const { toGet, toPay } = totals(people);
+  const debts = useMemo(() => debtSummary(ious, bills), [ious, bills]);
+  const nudges = useMemo(() => chainNudges(ious), [ious]);
+  const byId = useMemo(() => new Map(ious.map((i) => [i.id, i])), [ious]);
+  const [showDebts, setShowDebts] = useState(true);
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     try {
@@ -50,6 +59,8 @@ export default function IousScreen() {
 
   const save = (iou: NewIou) =>
     run(() => addIou(iou), iou.direction === 'lent' ? `${iou.person} owes you ${formatINR(iou.amount)}` : `You owe ${iou.person} ${formatINR(iou.amount)}`);
+  const saveChain = (borrowed: NewIou, lent: NewIou) =>
+    run(() => addChain(borrowed, lent), `Linked: ${borrowed.person} → you → ${lent.person}`);
   const doRepay = (iou: Iou, amount: number) =>
     run(() => repay(iou, amount), amount >= remaining(iou) ? 'Settled ✓' : `${formatINR(amount)} recorded`);
 
@@ -107,6 +118,11 @@ export default function IousScreen() {
                 <Text style={[styles.entryText, done && { color: Corpus.textFaint, textDecorationLine: 'line-through' }]}>
                   {i.direction === 'lent' ? 'You lent' : 'You borrowed'}
                   {i.note ? ` · ${i.note}` : ''}
+                  {i.linkedId && byId.get(i.linkedId)
+                    ? i.direction === 'borrowed'
+                      ? ` · gave to ${byId.get(i.linkedId)!.person}`
+                      : ` · from ${byId.get(i.linkedId)!.person}’s money`
+                    : ''}
                 </Text>
                 <Text style={[styles.entrySub, isOverdue(i) && { color: Corpus.danger }]}>
                   {shortDate(i.date)}
@@ -148,16 +164,16 @@ export default function IousScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <ScreenHeader
-          title="Lent & borrowed"
+          title="Lent, borrowed & debts"
           onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-          right={ious.length > 0 ? <Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} /> : undefined}
+          right={<Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} />}
         />
 
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={Corpus.gold} />
           </View>
-        ) : ious.length === 0 ? (
+        ) : ious.length === 0 && debts.total === 0 ? (
           <View style={styles.emptyBox}>
             <Text style={{ fontSize: 40 }}>🤝</Text>
             <Text style={styles.emptyTitle}>Nobody owes anybody</Text>
@@ -168,6 +184,18 @@ export default function IousScreen() {
           </View>
         ) : (
           <>
+            {nudges.map((n) => (
+              <View key={n.borrowed.id} style={styles.nudge}>
+                <Text style={styles.nudgeTitle}>🔁 Repay {n.borrowed.person} {formatINR(n.repayNow)}</Text>
+                <Text style={styles.nudgeText}>
+                  {n.lent.person} has paid you back {formatINR(n.receivedBack)} of the {formatINR(n.lent.amount)} that came from {n.borrowed.person}.
+                </Text>
+                <View style={styles.actions}>
+                  <Button size="sm" icon="checkmark" label={`I repaid ${formatINR(n.repayNow)}`} onPress={() => doRepay(n.borrowed, n.repayNow)} />
+                </View>
+              </View>
+            ))}
+
             <View style={styles.summary}>
               <View style={styles.tile}>
                 <Text style={styles.tileLabel}>You’ll get back</Text>
@@ -178,6 +206,47 @@ export default function IousScreen() {
                 <Text style={[styles.tileValue, { color: toPay > 0 ? Corpus.warning : Corpus.textMuted }]}>{formatINR(toPay)}</Text>
               </View>
             </View>
+
+            {debts.total > 0 && (
+              <Pressable style={styles.card} onPress={() => setShowDebts(!showDebts)}>
+                <Text style={styles.tileLabel}>Total debt</Text>
+                <Text style={[styles.debtTotal]}>{formatINR(debts.total)}</Text>
+                <Text style={styles.meta}>
+                  {[
+                    debts.owedToPeople ? `${formatINR(debts.owedToPeople)} to people` : '',
+                    debts.owedOnLoans ? `${formatINR(debts.owedOnLoans)} on loans & EMIs` : '',
+                    debts.monthlyEmi ? `${formatINR(debts.monthlyEmi)}/month in EMIs` : '',
+                  ].filter(Boolean).join(' · ')}
+                </Text>
+                {showDebts && (
+                  <>
+                    {debts.people.map((d) => (
+                      <View key={d.id} style={styles.entry}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.entryText}>{d.person}{d.note ? ` · ${d.note}` : ''}</Text>
+                          <Text style={[styles.entrySub, d.overdue && { color: Corpus.danger }]}>
+                            {d.dueDate ? `${d.overdue ? 'Overdue · was due' : 'Due'} ${shortDate(d.dueDate)}` : 'No due date'}
+                          </Text>
+                        </View>
+                        <Text style={[styles.entryAmount, { color: Corpus.warning }]}>{formatINR(d.amount)}</Text>
+                      </View>
+                    ))}
+                    {debts.emis.map((e) => (
+                      <Pressable key={e.billId} style={styles.entry} onPress={() => router.push(`/bill/${e.billId}` as Href)}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.entryText}>{e.name}</Text>
+                          <Text style={styles.entrySub}>
+                            {formatINR(e.emi)}/month{e.paymentsLeft != null ? ` · ${e.paymentsLeft} EMIs left` : ''}
+                            {e.exact ? ' · loan balance' : ' · EMIs left × amount'}
+                          </Text>
+                        </View>
+                        <Text style={[styles.entryAmount, { color: Corpus.warning }]}>{formatINR(e.outstanding)}</Text>
+                      </Pressable>
+                    ))}
+                  </>
+                )}
+              </Pressable>
+            )}
 
             {open.length > 0 && <SectionLabel right="Tap a name for details">OPEN</SectionLabel>}
             {open.map(renderPerson)}
@@ -192,7 +261,7 @@ export default function IousScreen() {
         )}
       </ScrollView>
 
-      {mode && <IouSheet mode={mode} people={knownPeople(ious)} onClose={() => setMode(null)} onSave={save} onRepay={doRepay} />}
+      {mode && <IouSheet mode={mode} people={knownPeople(ious)} onClose={() => setMode(null)} onSave={save} onSaveChain={saveChain} onRepay={doRepay} />}
     </SafeAreaView>
   );
 }

@@ -25,5 +25,9 @@ export const styles = StyleSheet.create({
   emptyBox: { alignItems: 'center', gap: Space.sm, paddingVertical: 60, paddingHorizontal: Space.lg },
   emptyTitle: { fontSize: Type.title, fontWeight: '600', color: Corpus.text },
   emptyText: { fontSize: Type.body, color: Corpus.textMuted, textAlign: 'center', lineHeight: 19 },
+  debtTotal: { fontSize: Type.amount - 6, fontWeight: '600', color: Corpus.warning },
+  nudge: { backgroundColor: Corpus.goldTint, borderColor: Corpus.goldLine, borderWidth: 1, borderRadius: Radius.lg, padding: Space.md, gap: 6 },
+  nudgeTitle: { fontSize: Type.label, fontWeight: '600', color: Corpus.gold },
+  nudgeText: { fontSize: Type.body, color: Corpus.text, lineHeight: 19 },
   center: { paddingVertical: 80, alignItems: 'center' },
 });

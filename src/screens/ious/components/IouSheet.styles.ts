@@ -20,4 +20,7 @@ export const styles = StyleSheet.create({
   label: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.8, fontWeight: '600' },
   field: { gap: 6 },
   body: { gap: Space.md },
+  chainToggle: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: Corpus.bg, borderRadius: Radius.md, padding: 12 },
+  chainTitle: { fontSize: Type.bodyLg, color: Corpus.text, fontWeight: '500' },
+  chainHint: { fontSize: Type.small, color: Corpus.textMuted, marginTop: 2 },
 });

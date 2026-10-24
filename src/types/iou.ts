@@ -13,6 +13,7 @@ export type Iou = {
   dueDate?: string;        // ISO, optional "pay back by"
   repayments?: Repayment[];// partial paybacks
   settledAt?: string;      // ISO, set when fully paid back
+  linkedId?: string;       // chain: the borrowed entry and the lent entry it funded point at each other
 };
 
 export type NewIou = Omit<Iou, 'id'>;

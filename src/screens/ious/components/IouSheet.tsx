@@ -18,6 +18,7 @@ type Props = {
   people: string[]; // names used before
   onClose: () => void;
   onSave: (iou: NewIou) => Promise<void>;
+  onSaveChain: (borrowed: NewIou, lent: NewIou) => Promise<void>;
   onRepay: (iou: Iou, amount: number) => Promise<void>;
 };
 
@@ -28,7 +29,7 @@ const DUE = [
   { label: '1 month', days: 30 },
 ];
 
-export default function IouSheet({ mode, people, onClose, onSave, onRepay }: Props) {
+export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, onRepay }: Props) {
   const repaying = mode.kind === 'repay';
   const left = repaying ? remaining(mode.iou) : 0;
   const [direction, setDirection] = useState<IouDirection>(mode.kind === 'new' ? mode.direction ?? 'lent' : mode.iou.direction);
@@ -37,9 +38,15 @@ export default function IouSheet({ mode, people, onClose, onSave, onRepay }: Pro
   const [note, setNote] = useState('');
   const [dueDays, setDueDays] = useState(0);
   const [busy, setBusy] = useState(false);
+  // Chain: the same money came from one person and went to another
+  const [chained, setChained] = useState(false);
+  const [other, setOther] = useState('');
+  const [otherAmount, setOtherAmount] = useState('');
 
   const value = Number(amount);
-  const valid = value > 0 && (repaying ? value <= left : person.trim().length > 0);
+  const otherValue = otherAmount === '' ? value : Number(otherAmount);
+  const chainValid = !chained || (other.trim().length > 0 && otherValue > 0 && otherValue <= value);
+  const valid = value > 0 && (repaying ? value <= left : person.trim().length > 0 && chainValid);
   const matches = person.trim() ? people.filter((p) => p.toLowerCase().startsWith(person.trim().toLowerCase()) && p !== person) : people;
 
   const submit = async () => {
@@ -49,14 +56,27 @@ export default function IouSheet({ mode, people, onClose, onSave, onRepay }: Pro
       if (mode.kind === 'repay') await onRepay(mode.iou, value);
       else {
         const now = new Date();
-        await onSave({
+        const base: NewIou = {
           person: person.trim(),
           direction,
           amount: value,
           note: note.trim() || undefined,
           date: now.toISOString(),
           dueDate: dueDays ? new Date(now.getTime() + dueDays * 86_400_000).toISOString() : undefined,
-        });
+        };
+        if (!chained) await onSave(base);
+        else {
+          const partner: NewIou = {
+            person: other.trim(),
+            direction: direction === 'lent' ? 'borrowed' : 'lent',
+            amount: otherValue,
+            note: base.note,
+            date: base.date,
+          };
+          // always pass (borrowed, lent)
+          if (direction === 'borrowed') await onSaveChain(base, partner);
+          else await onSaveChain(partner, base);
+        }
       }
     } finally {
       setBusy(false);
@@ -138,6 +158,41 @@ export default function IouSheet({ mode, people, onClose, onSave, onRepay }: Pro
                   <Text style={styles.label}>WHAT FOR? (OPTIONAL)</Text>
                   <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder="e.g. Dinner, movie tickets" placeholderTextColor={Corpus.textFaint} maxLength={40} />
                 </View>
+                <Pressable style={styles.chainToggle} onPress={() => setChained(!chained)}>
+                  <Ionicons name={chained ? 'checkbox' : 'square-outline'} size={20} color={chained ? Corpus.gold : Corpus.textMuted} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.chainTitle}>
+                      {direction === 'borrowed' ? 'I gave this money to someone else' : 'I borrowed this money from someone'}
+                    </Text>
+                    <Text style={styles.chainHint}>
+                      {direction === 'borrowed'
+                        ? 'When they pay you back, Corpus reminds you to repay ' + (person.trim() || 'the lender')
+                        : 'When ' + (person.trim() || 'they') + ' pay you back, Corpus reminds you to repay that person'}
+                    </Text>
+                  </View>
+                </Pressable>
+                {chained && (
+                  <>
+                    <View style={styles.field}>
+                      <Text style={styles.label}>{direction === 'borrowed' ? 'GAVE IT TO' : 'BORROWED IT FROM'}</Text>
+                      <TextInput style={styles.input} value={other} onChangeText={setOther} placeholder="Name" placeholderTextColor={Corpus.textFaint} maxLength={30} />
+                      {people.filter((p) => p !== person && (!other || p.toLowerCase().startsWith(other.toLowerCase())) && p !== other).length > 0 && (
+                        <View style={sheet.chips}>
+                          {people.filter((p) => p !== person && (!other || p.toLowerCase().startsWith(other.toLowerCase())) && p !== other).slice(0, 5).map((p) => (
+                            <Pressable key={p} style={sheet.chip} onPress={() => setOther(p)}>
+                              <Text style={sheet.chipText}>{p}</Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.field}>
+                      <Text style={styles.label}>HOW MUCH OF IT? (DEFAULT: ALL)</Text>
+                      <TextInput style={styles.input} value={otherAmount} onChangeText={(t) => setOtherAmount(t.replace(/[^0-9.]/g, ''))} placeholder={value > 0 ? String(value) : 'Same amount'} placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
+                      {otherValue > value && <Text style={sheet.error}>Can’t be more than {formatINR(value)}</Text>}
+                    </View>
+                  </>
+                )}
                 <View style={styles.field}>
                   <Text style={styles.label}>PAY BACK BY</Text>
                   <View style={sheet.chips}>

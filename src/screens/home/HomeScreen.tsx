@@ -5,6 +5,7 @@ import { useVaults } from '@/hooks/useVaults';
 import { useBills } from '@/hooks/useBills';
 import { useIous } from '@/hooks/useIous';
 import { byPerson, totals } from '@/utils/iou';
+import { chainNudges } from '@/utils/debts';
 import UpcomingBills from './components/UpcomingBills';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
@@ -36,6 +37,7 @@ export default function HomeScreen() {
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
   const { ious } = useIous();
   const iouTotals = totals(byPerson(ious));
+  const repayNudge = chainNudges(ious)[0];
   const [showSafe, setShowSafe] = useState(false);
   const { bills } = useBills();
   const { showToast } = useToast();
@@ -143,9 +145,11 @@ export default function HomeScreen() {
           <View style={[styles.linkIcon, styles.linkIconGold]}>
             <Ionicons name="swap-horizontal" size={16} color={Corpus.gold} />
           </View>
-          <Text style={styles.linkText}>Lent & borrowed</Text>
+          <Text style={styles.linkText}>Lent, borrowed & debts</Text>
           <Text style={styles.linkValue}>
-            {iouTotals.toGet > 0
+            {repayNudge
+              ? `🔁 Repay ${repayNudge.borrowed.person} ${formatINR(repayNudge.repayNow)}`
+              : iouTotals.toGet > 0
               ? `${formatINR(iouTotals.toGet)} to get`
               : iouTotals.toPay > 0
                 ? `${formatINR(iouTotals.toPay)} to pay`
