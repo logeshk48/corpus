@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npx expo export -p web",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/bill/:id", "destination": "/bill/[id]" },
+    { "source": "/vault/:id", "destination": "/vault/[id]" },
+    { "source": "/edit/:id", "destination": "/edit/[id]" },
+    { "source": "/income/:id", "destination": "/income/[id]" },
+    { "source": "/category/:id", "destination": "/category/[id]" }
+  ]
+}
