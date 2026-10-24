@@ -20,6 +20,9 @@ export type Iou = {
   // does NOT reduce the amount; only repayments (principal) do.
   ratePerHundred?: number;        // ₹ per ₹100 per month, e.g. 2 → 24% a year
   interestPayments?: Repayment[];
+  instalment?: number;     // paid back ₹X per month (e.g. maid advance, friend's EMI)
+  onCard?: boolean;        // it's an EMI running on YOUR credit card for them
+  proofRef?: string;       // UPI ref / cheque no. / any proof note
   remindAt?: string;       // ISO: "remind me" date the user picked
   linkedId?: string;       // chain: the borrowed entry and the lent entry it funded point at each other
 };

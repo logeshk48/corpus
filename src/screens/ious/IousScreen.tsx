@@ -10,6 +10,7 @@ import { addIou, deleteIou, payInterest, repay, reopen, updateIou } from '@/serv
 import { useSettings } from '@/hooks/useSettings';
 import { saveSettings } from '@/services/settings';
 import { interestStatus, yearlyRate } from '@/utils/interest';
+import { agingWarning, instalmentStatus } from '@/utils/instalments';
 import type { Iou, NewIou } from '@/types/iou';
 import { formatINR } from '@/utils/format';
 import { allocatePayment, ageLabel, byPerson, givingSummary, personKey, progress, whatsappUrl, isOverdue, knownPeople, reminderText, remaining, totals, type PersonSummary } from '@/utils/iou';
@@ -168,6 +169,25 @@ export default function IousScreen() {
                     </Text>
                   );
                 })()}
+                {(() => {
+                  const ins = !done ? instalmentStatus(i) : null;
+                  if (!ins) return null;
+                  return (
+                    <View style={{ gap: 4, marginTop: 2 }}>
+                      <Text style={[styles.entrySub, { color: ins.behind ? Corpus.danger : Corpus.goldSoft }]}>
+                        {i.onCard ? '💳 EMI on your card · ' : ''}{formatINR(ins.per)}/month · {ins.paidCount} of {ins.total} paid
+                        {ins.behind ? ` · ${ins.behind} behind` : ins.nextDue ? ` · next ${shortDate(ins.nextDue.toISOString())}` : ''}
+                      </Text>
+                      <Pressable style={styles.remindChip} onPress={() => doRepay(i, ins.thisPayment)}>
+                        <Text style={styles.remindChipText}>
+                          {i.direction === 'lent' ? `Got ${formatINR(ins.thisPayment)} this month` : `Paid ${formatINR(ins.thisPayment)} this month`}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  );
+                })()}
+                {!done && agingWarning(i) && <Text style={[styles.history, { color: Corpus.warning }]}>⚠️ {agingWarning(i)}</Text>}
+                {i.proofRef ? <Text style={styles.history}>🧾 {i.proofRef}</Text> : null}
                 {(i.interestPayments ?? []).map((r, k) => (
                   <Text key={`i${k}`} style={styles.history}>
                     ↳ Interest {i.direction === 'lent' ? 'received' : 'paid'} {formatINR(r.amount)} · {shortDate(r.date)}
@@ -411,7 +431,7 @@ export default function IousScreen() {
         )}
       </ScrollView>
 
-      {mode && <IouSheet mode={mode} people={knownPeople(ious)} onClose={() => setMode(null)} onSave={save} onSaveChain={saveChain} onRepay={doRepay} onPayPerson={payPerson} onPayInterest={doPayInterest} onUpdate={update} />}
+      {mode && <IouSheet mode={mode} people={knownPeople(ious)} ious={ious} onClose={() => setMode(null)} onSave={save} onSaveChain={saveChain} onRepay={doRepay} onPayPerson={payPerson} onPayInterest={doPayInterest} onUpdate={update} />}
     </SafeAreaView>
   );
 }

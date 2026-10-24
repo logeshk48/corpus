@@ -3,6 +3,7 @@ import { formatINR } from './format';
 import { interestStatus } from './interest';
 import { isOpen, remaining } from './iou';
 import { chainNudges } from './debts';
+import { instalmentStatus } from './instalments';
 
 // ─── Reminders for YOU: what to ask for or pay, and when ───
 
@@ -54,6 +55,18 @@ export function moneyReminders(ious: Iou[], now = new Date()): MoneyReminder[] {
       }
       const next = at9(st.nextDue);
       out.push({ id: `${i.id}:int-${next.toISOString().slice(0, 10)}`, iouId: i.id, when: next, title: `${interestTitle}: ${formatINR(st.monthly)}`, body: relative(next, now), urgency: urgencyOf(next, now) });
+    }
+
+    const ins = instalmentStatus(i, now);
+    if (ins?.nextDue) {
+      const next = at9(ins.nextDue);
+      const what = i.direction === 'lent' ? `Collect ${formatINR(ins.thisPayment)} from ${i.person}` : `Pay ${i.person} ${formatINR(ins.thisPayment)}`;
+      out.push({
+        id: `${i.id}:inst-${next.toISOString().slice(0, 10)}`, iouId: i.id, when: next,
+        title: `${what}${i.onCard ? ' (EMI on your card)' : ''}`,
+        body: ins.behind > 0 ? `${ins.behind} instalment${ins.behind > 1 ? 's' : ''} behind · ${ins.paidCount} of ${ins.total} paid` : `${relative(next, now)} · ${ins.paidCount} of ${ins.total} paid`,
+        urgency: ins.behind > 0 ? 'overdue' : urgencyOf(next, now),
+      });
     }
 
     if (i.remindAt) {

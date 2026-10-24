@@ -5,7 +5,10 @@ import { addTransaction } from '@/services/transactions';
 import { useTransactions } from '@/hooks/useTransactions';
 import { findCategory } from '@/constants/categories';
 import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useSettings } from '@/hooks/useSettings';
 import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateStepper from '@/components/DateStepper';
@@ -36,6 +39,15 @@ export default function AddScreen() {
   const [saving, setSaving] = useState(false);
   // true once the person picks a category themselves — then we stop guessing
   const [categoryTouched, setCategoryTouched] = useState(false);
+  const { accounts } = useAccounts();
+  const { settings } = useSettings();
+  const [accountId, setAccountId] = useState(NO_ACCOUNT);
+  // default: your chosen default account, or the only one you have
+  useEffect(() => {
+    if (accountId !== NO_ACCOUNT) return;
+    const def = accounts.find((a) => a.id === settings.defaultAccountId) ?? (accounts.length === 1 ? accounts[0] : undefined);
+    if (def) setAccountId(def.id);
+  }, [accounts, settings.defaultAccountId]);
 
   // ── Quick add: learned from the last 12 months of entries ──
   const { transactions: history } = useTransactions('last12Months');
@@ -89,6 +101,7 @@ export default function AddScreen() {
         category,
         note: note.trim() || undefined,
         streamId: type === 'income' && streamId !== NO_STREAM ? streamId : undefined,
+        accountId: accountId || undefined,
         date: withTimeOf(day, new Date()).toISOString(), // chosen day, current time
       });
       console.log('Saved to Firestore:', id);
@@ -142,6 +155,13 @@ export default function AddScreen() {
           <>
             <SectionLabel right="Tap to fill">YOUR USUALS</SectionLabel>
             <QuickChips items={picks} type={type} onPick={applyChip} />
+          </>
+        )}
+
+        {accounts.length > 0 && (
+          <>
+            <SectionLabel>{type === 'expense' ? 'PAID FROM' : 'RECEIVED IN'}</SectionLabel>
+            <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
           </>
         )}
 

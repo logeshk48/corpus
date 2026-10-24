@@ -29,6 +29,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateStepper from '@/components/DateStepper';
 import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
+import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
+import { useAccounts } from '@/hooks/useAccounts';
 import type { IncomeStream } from '@/types/incomeStream';
 import { styles } from './EditTransactionScreen.styles';
 
@@ -61,6 +63,8 @@ export default function EditTransactionScreen() {
   const [note, setNote] = useState('');
   const [day, setDay] = useState(() => new Date());
   const [streamId, setStreamId] = useState(NO_STREAM);
+  const [accountId, setAccountId] = useState(NO_ACCOUNT);
+  const { accounts } = useAccounts();
   const [busy, setBusy] = useState(false);
   const [original, setOriginal] = useState<Transaction | null>(null); // for Undo
   const { showToast } = useToast();
@@ -82,6 +86,7 @@ export default function EditTransactionScreen() {
         setCategory(tx.category);
         setNote(tx.note ?? '');
         setStreamId(tx.streamId ?? NO_STREAM);
+        setAccountId(tx.accountId ?? NO_ACCOUNT);
         setDay(new Date(tx.date));
       })
       .catch((e) => {
@@ -128,6 +133,7 @@ export default function EditTransactionScreen() {
         note: note.trim() || undefined, // empty note → field removed
         // switching to expense or None removes the link
         streamId: type === 'income' && streamId !== NO_STREAM ? streamId : undefined,
+        accountId: accountId || undefined,
         date: day.toISOString(), // stepper keeps the original time of day
       });
       goBack();
@@ -200,6 +206,13 @@ export default function EditTransactionScreen() {
                 />
               </View>
             </View>
+
+            {accounts.length > 0 && (
+              <>
+                <SectionLabel>{type === 'expense' ? 'PAID FROM' : 'RECEIVED IN'}</SectionLabel>
+                <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
+              </>
+            )}
 
             <SectionLabel>DATE</SectionLabel>
             <DateStepper value={day} onChange={setDay} />

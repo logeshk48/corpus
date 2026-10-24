@@ -48,7 +48,7 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={{ gap: 14 }}>
+          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14 }}>
             {result.status === 'noData' ? (
               <View style={styles.steps}>
                 <Text style={styles.step}>1. Corpus takes this month's income (or your monthly budget).</Text>

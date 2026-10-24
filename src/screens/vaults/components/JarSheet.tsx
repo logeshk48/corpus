@@ -135,7 +135,7 @@ export default function JarSheet({ mode, context, onClose, onSave, onDelete }: J
         <Pressable style={sheet.backdrop} onPress={onClose} />
         <View style={[sheet.sheet, { maxHeight: '92%' }]}>
           <View style={sheet.handle} />
-          <ScrollView contentContainerStyle={{ gap: 14 }} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14 }} keyboardShouldPersistTaps="handled">
             <View style={sheet.header}>
               <View style={[sheet.iconCircle, { backgroundColor: `${color}26` }]}>
                 <Ionicons name={icon as any} size={18} color={color} />

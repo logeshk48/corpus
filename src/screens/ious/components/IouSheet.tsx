@@ -5,6 +5,7 @@ import type { Iou, IouDirection, IouKind, NewIou } from '@/types/iou';
 import { formatINR } from '@/utils/format';
 import { remaining, repaid as repaidOf } from '@/utils/iou';
 import { interestStatus, yearlyRate } from '@/utils/interest';
+import { lendingWarnings } from '@/utils/instalments';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -20,6 +21,7 @@ export type IouSheetMode =
 type Props = {
   mode: IouSheetMode;
   people: string[]; // names used before
+  ious: Iou[];      // for warnings
   onClose: () => void;
   onSave: (iou: NewIou) => Promise<void>;
   onSaveChain: (borrowed: NewIou, lent: NewIou) => Promise<void>;
@@ -36,7 +38,7 @@ const DUE = [
   { label: '1 month', days: 30 },
 ];
 
-export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, onRepay, onPayPerson, onPayInterest, onUpdate }: Props) {
+export default function IouSheet({ mode, people, ious, onClose, onSave, onSaveChain, onRepay, onPayPerson, onPayInterest, onUpdate }: Props) {
   const editing = mode.kind === 'edit';
   const ed = mode.kind === 'edit' ? mode.iou : undefined;
   const repaying = mode.kind !== 'new' && mode.kind !== 'edit';
@@ -58,6 +60,9 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
   const [note, setNote] = useState(ed?.note ?? '');
   const [dueDays, setDueDays] = useState(0);
   const [clearDue, setClearDue] = useState(false);
+  const [instalment, setInstalment] = useState(ed?.instalment ? String(ed.instalment) : '');
+  const [onCard, setOnCard] = useState(!!ed?.onCard);
+  const [proofRef, setProofRef] = useState(ed?.proofRef ?? '');
   const [busy, setBusy] = useState(false);
   // Chain: the same money came from one person and went to another
   const [chained, setChained] = useState(false);
@@ -86,6 +91,9 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
           amount: value,
           note: note.trim() || undefined,
           ratePerHundred: isLoanKind && Number(rate) > 0 ? Number(rate) : undefined,
+          instalment: isLoanKind && Number(instalment) > 0 ? Number(instalment) : undefined,
+          onCard: isLoanKind && Number(instalment) > 0 && onCard ? true : undefined,
+          proofRef: proofRef.trim() || undefined,
           dueDate: !isLoanKind || clearDue ? undefined : dueDays ? new Date(Date.now() + dueDays * 86_400_000).toISOString() : mode.iou.dueDate,
         });
       }
@@ -100,6 +108,9 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
           date: now.toISOString(),
           dueDate: dueDays ? new Date(now.getTime() + dueDays * 86_400_000).toISOString() : undefined,
           ratePerHundred: kind === 'loan' && Number(rate) > 0 ? Number(rate) : undefined,
+          instalment: kind === 'loan' && Number(instalment) > 0 ? Number(instalment) : undefined,
+          onCard: kind === 'loan' && Number(instalment) > 0 && onCard ? true : undefined,
+          proofRef: proofRef.trim() || undefined,
         };
         if (kind !== 'loan') base.dueDate = undefined;
         if (!chained || kind !== 'loan') await onSave(base);
@@ -158,7 +169,7 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             {!repaying && (
               <View style={styles.toggle}>
                 {(['lent', 'borrowed'] as const).map((d) => (
@@ -289,6 +300,22 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
                   )}
                 </View>
                 <View style={styles.field}>
+                  <Text style={styles.label}>PAID BACK MONTHLY? (OPTIONAL)</Text>
+                  <TextInput style={styles.input} value={instalment} onChangeText={(t) => setInstalment(t.replace(/[^0-9]/g, ''))} placeholder="₹ per month, e.g. 2000" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
+                  {Number(instalment) > 0 && value > 0 && (
+                    <Text style={sheet.hint}>{Math.ceil(value / Number(instalment))} instalments, monthly from next month. Corpus reminds you each time</Text>
+                  )}
+                  {Number(instalment) > 0 && direction === 'lent' && (
+                    <Pressable style={styles.chainToggle} onPress={() => setOnCard(!onCard)}>
+                      <Ionicons name={onCard ? 'checkbox' : 'square-outline'} size={20} color={onCard ? Corpus.gold : Corpus.textMuted} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.chainTitle}>It’s an EMI on my credit card</Text>
+                        <Text style={styles.chainHint}>You pay the bank, they pay you. Make sure their ₹{instalment} reaches you before your card bill</Text>
+                      </View>
+                    </Pressable>
+                  )}
+                </View>
+                <View style={styles.field}>
                   <Text style={styles.label}>PAY BACK BY</Text>
                   <View style={sheet.chips}>
                     {DUE.map((d) => (
@@ -305,6 +332,18 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
               </>
             )}
 
+            {!repaying && (
+              <View style={styles.field}>
+                <Text style={styles.label}>PROOF (OPTIONAL)</Text>
+                <TextInput style={styles.input} value={proofRef} onChangeText={setProofRef} placeholder="UPI ref no., cheque no., or a note" placeholderTextColor={Corpus.textFaint} maxLength={60} />
+              </View>
+            )}
+            {!repaying && !editing && kind === 'loan' && lendingWarnings(ious, person, value, direction).map((w) => (
+              <View key={w} style={styles.warn}>
+                <Ionicons name="alert-circle" size={16} color={Corpus.warning} />
+                <Text style={styles.warnText}>{w}</Text>
+              </View>
+            ))}
             <Button
               label={editing ? 'Save changes' : kind !== 'loan' && !repaying ? 'Save' : isInterest ? `Record interest ${value > 0 ? formatINR(value) : ''}` : repaying ? `Record ${value > 0 ? formatINR(value) : 'payback'}` : direction === 'lent' ? 'Save · they owe you' : 'Save · you owe them'}
               onPress={submit}

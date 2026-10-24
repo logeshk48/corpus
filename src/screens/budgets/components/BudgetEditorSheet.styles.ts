@@ -18,6 +18,7 @@ export const styles = StyleSheet.create({
   sheet: {
     width: '100%',
     maxWidth: 520,
+    maxHeight: '92%', // taller content scrolls inside the sheet instead of overflowing the screen
     backgroundColor: Corpus.card,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,

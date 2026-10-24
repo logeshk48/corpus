@@ -6,6 +6,7 @@ export type Settings = {
   displayName?: string;   // shown in the Home greeting
   workModes?: WorkMode[]; // chosen during onboarding
   onboardedAt?: string;
+  defaultAccountId?: string; // pre-selected in Add
   upiId?: string;          // added to lent-money reminders, e.g. name@okaxis
   phones?: Record<string, string>; // person key (lowercase name) → mobile number, for WhatsApp reminders   // ISO — set when first-run setup is finished or skipped
   monthlyBudget?: number; // total spending budget per month, in INR

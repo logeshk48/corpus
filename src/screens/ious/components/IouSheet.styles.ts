@@ -20,6 +20,8 @@ export const styles = StyleSheet.create({
   label: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.8, fontWeight: '600' },
   field: { gap: 6 },
   body: { gap: Space.md },
+  warn: { flexDirection: 'row', gap: 8, backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine, borderWidth: 1, borderRadius: Radius.md, padding: 10 },
+  warnText: { flex: 1, fontSize: Type.small, color: Corpus.text, lineHeight: 17 },
   chainToggle: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: Corpus.bg, borderRadius: Radius.md, padding: 12 },
   chainTitle: { fontSize: Type.bodyLg, color: Corpus.text, fontWeight: '500' },
   chainHint: { fontSize: Type.small, color: Corpus.textMuted, marginTop: 2 },
