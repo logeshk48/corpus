@@ -90,3 +90,17 @@ export function knownPeople(ious: Iou[]) {
   }
   return [...count.values()].sort((a, b) => b.n - a.n).map((x) => x.name);
 }
+
+// Spread one payment across a person's open entries, oldest first.
+// Returns [entry, amount] pairs to record; leftover > 0 means it was more than owed.
+export function allocatePayment(open: Iou[], amount: number) {
+  const parts: { iou: Iou; amount: number }[] = [];
+  let left = amount;
+  for (const i of [...open].sort((a, b) => a.date.localeCompare(b.date))) {
+    if (left <= 0) break;
+    const take = Math.min(left, remaining(i));
+    if (take > 0) parts.push({ iou: i, amount: take });
+    left = Math.round((left - take) * 100) / 100;
+  }
+  return { parts, leftover: left };
+}

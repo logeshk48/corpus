@@ -29,5 +29,6 @@ export const styles = StyleSheet.create({
   nudge: { backgroundColor: Corpus.goldTint, borderColor: Corpus.goldLine, borderWidth: 1, borderRadius: Radius.lg, padding: Space.md, gap: 6 },
   nudgeTitle: { fontSize: Type.label, fontWeight: '600', color: Corpus.gold },
   nudgeText: { fontSize: Type.body, color: Corpus.text, lineHeight: 19 },
+  history: { fontSize: Type.small, color: Corpus.textFaint, marginTop: 2 },
   center: { paddingVertical: 80, alignItems: 'center' },
 });

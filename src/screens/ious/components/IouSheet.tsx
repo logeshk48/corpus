@@ -11,7 +11,8 @@ import { styles } from './IouSheet.styles';
 
 export type IouSheetMode =
   | { kind: 'new'; person?: string; direction?: IouDirection }
-  | { kind: 'repay'; iou: Iou };
+  | { kind: 'repay'; iou: Iou }
+  | { kind: 'payPerson'; person: string; direction: IouDirection; open: Iou[] };
 
 type Props = {
   mode: IouSheetMode;
@@ -20,6 +21,7 @@ type Props = {
   onSave: (iou: NewIou) => Promise<void>;
   onSaveChain: (borrowed: NewIou, lent: NewIou) => Promise<void>;
   onRepay: (iou: Iou, amount: number) => Promise<void>;
+  onPayPerson: (open: Iou[], amount: number) => Promise<void>;
 };
 
 const DUE = [
@@ -29,12 +31,14 @@ const DUE = [
   { label: '1 month', days: 30 },
 ];
 
-export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, onRepay }: Props) {
-  const repaying = mode.kind === 'repay';
-  const left = repaying ? remaining(mode.iou) : 0;
-  const [direction, setDirection] = useState<IouDirection>(mode.kind === 'new' ? mode.direction ?? 'lent' : mode.iou.direction);
-  const [person, setPerson] = useState(mode.kind === 'new' ? mode.person ?? '' : mode.iou.person);
-  const [amount, setAmount] = useState(repaying ? String(left) : '');
+export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, onRepay, onPayPerson }: Props) {
+  const repaying = mode.kind !== 'new';
+  const left = mode.kind === 'repay' ? remaining(mode.iou) : mode.kind === 'payPerson' ? mode.open.reduce((s, i) => s + remaining(i), 0) : 0;
+  const payDir: IouDirection = mode.kind === 'repay' ? mode.iou.direction : mode.kind === 'payPerson' ? mode.direction : 'lent';
+  const payWho = mode.kind === 'repay' ? mode.iou.person : mode.kind === 'payPerson' ? mode.person : '';
+  const [direction, setDirection] = useState<IouDirection>(mode.kind === 'new' ? mode.direction ?? 'lent' : payDir);
+  const [person, setPerson] = useState(mode.kind === 'new' ? mode.person ?? '' : payWho);
+  const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [dueDays, setDueDays] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -54,6 +58,7 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
     setBusy(true);
     try {
       if (mode.kind === 'repay') await onRepay(mode.iou, value);
+      else if (mode.kind === 'payPerson') await onPayPerson(mode.open, value);
       else {
         const now = new Date();
         const base: NewIou = {
@@ -83,12 +88,13 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
     }
   };
 
-  const title = repaying
-    ? mode.iou.direction === 'lent'
-      ? `${mode.iou.person} paid you back`
-      : `You paid ${mode.iou.person} back`
-    : 'Lent or borrowed';
-  const subtitle = repaying ? `${formatINR(left)} still open${mode.iou.note ? ` · ${mode.iou.note}` : ''}` : 'Keep track of money between you and others';
+  const title = repaying ? (payDir === 'lent' ? `${payWho} paid you` : `You paid ${payWho}`) : 'Lent or borrowed';
+  const subtitle = repaying
+    ? `${formatINR(left)} still open${mode.kind === 'repay' && mode.iou.note ? ` · ${mode.iou.note}` : ''}. Enter any amount, it’s taken off`
+    : 'Keep track of money between you and others';
+  const quick = [500, 1000, 2000].filter((q) => q < left).map((q) => ({ label: formatINR(q), v: q }));
+  if (left >= 2) quick.push({ label: 'Half', v: Math.round(left / 2) });
+  quick.push({ label: `All ${formatINR(left)}`, v: left });
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -147,9 +153,21 @@ export default function IouSheet({ mode, people, onClose, onSave, onSaveChain, o
                 placeholder="0"
                 placeholderTextColor={Corpus.textFaint}
                 keyboardType="numeric"
-                autoFocus={!repaying}
+                autoFocus
               />
             </View>
+            {repaying && (
+              <View style={sheet.chips}>
+                {quick.map((q) => (
+                  <Pressable key={q.label} style={[sheet.chip, value === q.v && sheet.chipSuggested]} onPress={() => setAmount(String(q.v))}>
+                    <Text style={[sheet.chipText, value === q.v && sheet.chipTextSuggested]}>{q.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {repaying && value > 0 && value <= left && (
+              <Text style={sheet.hint}>{value === left ? 'This settles it fully ✓' : `${formatINR(left - value)} will still be open after this`}</Text>
+            )}
             {repaying && value > left && <Text style={sheet.error}>That's more than the {formatINR(left)} still open</Text>}
 
             {!repaying && (
