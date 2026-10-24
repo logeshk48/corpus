@@ -43,6 +43,7 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 0,
   },
+  guessHint: { fontSize: Type.small, color: Corpus.goldSoft, marginTop: -8 },
   noteInput: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.md,

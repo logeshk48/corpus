@@ -2,7 +2,10 @@ import { SectionLabel } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { addTransaction } from '@/services/transactions';
-import { useState } from 'react';
+import { useTransactions } from '@/hooks/useTransactions';
+import { findCategory } from '@/constants/categories';
+import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
+import { useMemo, useState } from 'react';
 import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateStepper from '@/components/DateStepper';
@@ -11,6 +14,7 @@ import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
 import type { IncomeStream } from '@/types/incomeStream';
 import { styles } from './AddScreen.styles';
 import CategoryGrid from './components/CategoryGrid';
+import QuickChips, { type Chip } from './components/QuickChips';
 import SaveButton from './components/SaveButton';
 import TypeToggle, { TxType } from './components/TypeToggle';
 
@@ -30,6 +34,32 @@ export default function AddScreen() {
   const [day, setDay] = useState(() => new Date());
   const [streamId, setStreamId] = useState(NO_STREAM);
   const [saving, setSaving] = useState(false);
+  // true once the person picks a category themselves — then we stop guessing
+  const [categoryTouched, setCategoryTouched] = useState(false);
+
+  // ── Quick add: learned from the last 12 months of entries ──
+  const { transactions: history } = useTransactions('last12Months');
+  const picks = useMemo(() => frequentPicks(history, type), [history, type]);
+  const suggestions = useMemo(() => noteSuggestions(history, note, type), [history, note, type]);
+  const guess = useMemo(() => guessCategory(note, history, type), [history, note, type]);
+
+  const pickCategory = (id: string) => {
+    setCategory(id);
+    setCategoryTouched(true);
+  };
+  const changeNote = (text: string) => {
+    setNote(text);
+    if (categoryTouched) return;
+    const g = guessCategory(text, history, type);
+    if (g) setCategory(g.category);
+  };
+  // Tapping a chip fills whatever is still empty (and the note)
+  const applyChip = (c: Chip) => {
+    setNote(c.note);
+    if (!categoryTouched) setCategory(c.category);
+    if (c.amount && (amount === '' || Number(amount) === 0)) setAmount(String(c.amount));
+  };
+  const autoGuessed = !categoryTouched && !!guess && category === guess.category;
 
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
   const isValid = Number(amount) > 0 && category !== null;
@@ -37,6 +67,7 @@ export default function AddScreen() {
   const handleTypeChange = (newType: TxType) => {
     setType(newType);
     setCategory(null);
+    setCategoryTouched(false);
     setStreamId(NO_STREAM);
   };
 
@@ -68,6 +99,7 @@ export default function AddScreen() {
       );
       setAmount('');
       setCategory(null);
+      setCategoryTouched(false);
       setNote('');
       setDay(new Date()); // next entry defaults to today again
       setStreamId(NO_STREAM);
@@ -106,6 +138,13 @@ export default function AddScreen() {
           </View>
         </View>
 
+        {amount === '' && picks.length > 0 && (
+          <>
+            <SectionLabel right="Tap to fill">YOUR USUALS</SectionLabel>
+            <QuickChips items={picks} type={type} onPick={applyChip} />
+          </>
+        )}
+
         <SectionLabel>DATE</SectionLabel>
         <DateStepper value={day} onChange={setDay} />
 
@@ -120,18 +159,24 @@ export default function AddScreen() {
         <CategoryGrid
           categories={categories}
           selected={category}
-          onSelect={setCategory}
+          onSelect={pickCategory}
         />
 
         <SectionLabel>NOTE (OPTIONAL)</SectionLabel>
         <TextInput
           style={styles.noteInput}
           value={note}
-          onChangeText={setNote}
+          onChangeText={changeNote}
           placeholder={type === 'expense' ? 'e.g. Filter coffee' : 'e.g. Client payment'}
           placeholderTextColor={Corpus.textFaint}
           maxLength={60}
         />
+        <QuickChips items={suggestions} type={type} onPick={applyChip} />
+        {autoGuessed && note.trim() !== '' && (
+          <Text style={styles.guessHint}>
+            ✨ {findCategory(type, guess!.category)?.label} picked {guess!.source === 'history' ? 'from your past entries' : 'from the note'}. Tap another category to change it
+          </Text>
+        )}
 
         <SaveButton enabled={isValid && !saving} onPress={handleSave} />
       </ScrollView>
