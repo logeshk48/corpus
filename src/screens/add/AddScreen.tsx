@@ -7,6 +7,9 @@ import { findCategory } from '@/constants/categories';
 import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
 import { useEffect, useMemo, useState } from 'react';
 import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
+
+// Accounts are hidden for now (code kept). Set true to bring the "Paid from" picker back.
+const SHOW_ACCOUNTS = false;
 import { useAccounts } from '@/hooks/useAccounts';
 import { useSettings } from '@/hooks/useSettings';
 import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
@@ -158,7 +161,7 @@ export default function AddScreen() {
           </>
         )}
 
-        {accounts.length > 0 && (
+        {SHOW_ACCOUNTS && accounts.length > 0 && (
           <>
             <SectionLabel>{type === 'expense' ? 'PAID FROM' : 'RECEIVED IN'}</SectionLabel>
             <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />

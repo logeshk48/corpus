@@ -30,6 +30,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import DateStepper from '@/components/DateStepper';
 import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
 import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
+
+// Accounts are hidden for now (code kept). Set true to bring the "Paid from" picker back.
+const SHOW_ACCOUNTS = false;
 import { useAccounts } from '@/hooks/useAccounts';
 import type { IncomeStream } from '@/types/incomeStream';
 import { styles } from './EditTransactionScreen.styles';
@@ -207,7 +210,7 @@ export default function EditTransactionScreen() {
               </View>
             </View>
 
-            {accounts.length > 0 && (
+            {SHOW_ACCOUNTS && accounts.length > 0 && (
               <>
                 <SectionLabel>{type === 'expense' ? 'PAID FROM' : 'RECEIVED IN'}</SectionLabel>
                 <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />

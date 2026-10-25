@@ -4,8 +4,6 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
 import { useBills } from '@/hooks/useBills';
 import { useIous } from '@/hooks/useIous';
-import { useAccounts } from '@/hooks/useAccounts';
-import { accountBalances, accountTotals } from '@/utils/accounts';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -40,8 +38,6 @@ export default function HomeScreen() {
   const { settings } = useSettings();
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
   const { ious } = useIous();
-  const { accounts } = useAccounts();
-  const { transactions: yearTx } = useTransactions('last12Months'); // balances need every entry since each account was added
   const iouTotals = totals(byPerson(ious));
   const repayNudge = chainNudges(ious)[0];
   const reminders = actionable(moneyReminders(ious));
@@ -141,20 +137,6 @@ export default function HomeScreen() {
           <Text style={styles.linkText}>Jars</Text>
           <Text style={styles.linkValue}>
             {vaults.length > 0 ? `${formatINR(jarsTotal)} in jars` : 'Start a jar'}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/accounts' as Href)}
-        >
-          <View style={[styles.linkIcon, styles.linkIconGold]}>
-            <Ionicons name="wallet-outline" size={16} color={Corpus.gold} />
-          </View>
-          <Text style={styles.linkText}>Accounts</Text>
-          <Text style={styles.linkValue}>
-            {accounts.length > 0 ? `${formatINR(accountTotals(accountBalances(accounts, yearTx)).have)} you have` : 'Add cash & bank'}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>
