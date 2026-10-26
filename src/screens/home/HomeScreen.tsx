@@ -4,6 +4,8 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
 import { useBills } from '@/hooks/useBills';
 import { useIous } from '@/hooks/useIous';
+import { useAccounts } from '@/hooks/useAccounts';
+import { accountBalances, accountTotals, cardReminders, verifiedAgo } from '@/utils/accounts';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -38,9 +40,13 @@ export default function HomeScreen() {
   const { settings } = useSettings();
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
   const { ious } = useIous();
+  const { accounts } = useAccounts();
+  // balances come from check-ins; tagged entries since then (rare) still count
+  const accList = accountBalances(accounts, transactions);
+  const accStale = accList.some((a) => verifiedAgo(a).stale);
   const iouTotals = totals(byPerson(ious));
   const repayNudge = chainNudges(ious)[0];
-  const reminders = actionable(moneyReminders(ious));
+  const reminders = actionable([...moneyReminders(ious), ...cardReminders(accList)]);
   const [showSafe, setShowSafe] = useState(false);
   const { bills } = useBills();
   const { showToast } = useToast();
@@ -137,6 +143,20 @@ export default function HomeScreen() {
           <Text style={styles.linkText}>Jars</Text>
           <Text style={styles.linkValue}>
             {vaults.length > 0 ? `${formatINR(jarsTotal)} in jars` : 'Start a jar'}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
+          onPress={() => router.push('/accounts' as Href)}
+        >
+          <View style={[styles.linkIcon, styles.linkIconGold]}>
+            <Ionicons name="wallet-outline" size={16} color={Corpus.gold} />
+          </View>
+          <Text style={styles.linkText}>Accounts</Text>
+          <Text style={[styles.linkValue, accStale && { color: Corpus.warning }]}>
+            {accounts.length === 0 ? 'Add cash & bank' : accStale ? 'Update balances' : `${formatINR(accountTotals(accList).have)} you have`}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
         </Pressable>

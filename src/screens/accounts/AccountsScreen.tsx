@@ -4,10 +4,11 @@ import { useToast } from '@/context/ToastContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
-import { addAccount, deleteAccount, updateAccount } from '@/services/accounts';
+import { addAccount, checkIn, deleteAccount, updateAccount } from '@/services/accounts';
+import UpdateBalancesSheet from './UpdateBalancesSheet';
 import { saveSettings } from '@/services/settings';
 import { accountTypeMeta, type NewAccount } from '@/types/account';
-import { accountBalances, accountTotals, unassignedCount, type AccountBalance } from '@/utils/accounts';
+import { accountBalances, accountTotals, nextCardDue, verifiedAgo, type AccountBalance } from '@/utils/accounts';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -29,14 +30,16 @@ export default function AccountsScreen() {
   const { settings } = useSettings();
   const { transactions } = useTransactions('last12Months');
   const [sheet, setSheet] = useState<{ editing?: AccountBalance } | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   const list = useMemo(() => accountBalances(accounts, transactions), [accounts, transactions]);
   const totals = accountTotals(list);
-  const unlinked = unassignedCount(transactions, accounts);
 
-  const save = async (a: NewAccount, makeDefault: boolean) => {
+  const save = async (a: NewAccount, makeDefault: boolean, newBalance: number) => {
     try {
-      const id = sheet?.editing ? (await updateAccount(sheet.editing.id, a), sheet.editing.id) : await addAccount(a);
+      const ed = sheet?.editing;
+      const id = ed ? (await updateAccount(ed.id, a), ed.id) : await addAccount(a);
+      if (ed && newBalance !== ed.balance) await checkIn({ ...ed, ...a }, newBalance);
       if (makeDefault && settings.defaultAccountId !== id) await saveSettings({ defaultAccountId: id });
       if (!makeDefault && settings.defaultAccountId === id) await saveSettings({ defaultAccountId: undefined });
       showToast({ message: sheet?.editing ? 'Account updated' : `${a.name} added` });
@@ -65,6 +68,17 @@ export default function AccountsScreen() {
     showToast({ message: 'Cash and Bank added. Tap each to set its balance' });
   };
 
+  const saveAll = async (values: { account: AccountBalance; balance: number }[]) => {
+    try {
+      await Promise.all(values.map((v) => checkIn(v.account, v.balance)));
+      showToast({ message: 'All balances verified ✓' });
+      setUpdating(false);
+    } catch (e) {
+      console.error(e);
+      showToast({ message: 'Could not save. Try again.' });
+    }
+  };
+
   const renderAccount = (a: AccountBalance) => {
     const credit = a.type === 'credit';
     const used = credit && a.creditLimit ? Math.min(100, Math.round((Math.max(0, a.balance) / a.creditLimit) * 100)) : 0;
@@ -79,12 +93,11 @@ export default function AccountsScreen() {
             <Text style={styles.name}>
               {a.name} {settings.defaultAccountId === a.id ? <Text style={{ color: Corpus.gold }}>★</Text> : null}
             </Text>
-            <Text style={styles.meta}>
-              {credit
-                ? [a.statementDay ? `Bill on ${a.statementDay}th` : '', a.dueDay ? `due ${a.dueDay}th` : ''].filter(Boolean).join(' · ') || 'Credit card'
-                : a.monthIn || a.monthOut
-                  ? `This month: +${formatINR(a.monthIn)} · −${formatINR(a.monthOut)}`
-                  : accountTypeMeta(a.type).label}
+            <Text style={[styles.meta, verifiedAgo(a).stale && { color: Corpus.warning }]}>
+              {verifiedAgo(a).label}
+              {credit && nextCardDue(a)
+                ? ` · bill due ${nextCardDue(a)!.due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}${nextCardDue(a)!.daysLeft <= 3 ? ` (${nextCardDue(a)!.daysLeft === 0 ? 'today' : `${nextCardDue(a)!.daysLeft}d`})` : ''}`
+                : ''}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
@@ -142,20 +155,26 @@ export default function AccountsScreen() {
               )}
             </View>
 
-            {money.length > 0 && <SectionLabel right="Tap to edit or correct">CASH & BANK</SectionLabel>}
+            <Button
+              label={list.some((a) => verifiedAgo(a).stale) ? 'Update balances · some are old' : 'Update balances'}
+              icon="refresh"
+              variant={list.some((a) => verifiedAgo(a).stale) ? 'primary' : 'secondary'}
+              onPress={() => setUpdating(true)}
+            />
+
+            {money.length > 0 && <SectionLabel right="Tap to edit">CASH & BANK</SectionLabel>}
             {money.map(renderAccount)}
             {cards.length > 0 && <SectionLabel>CREDIT CARDS</SectionLabel>}
             {cards.map(renderAccount)}
 
-            {unlinked > 0 && (
-              <Text style={styles.note}>
-                ℹ️ {unlinked} older entr{unlinked === 1 ? 'y isn’t' : 'ies aren’t'} linked to an account, so they don’t change these balances. New entries ask “Paid from”.
-              </Text>
-            )}
+            <Text style={styles.note}>
+              ℹ️ Open your bank and card apps about once a week and tap “Update balances”. It takes 30 seconds and keeps your net worth accurate.
+            </Text>
           </>
         )}
       </ScrollView>
 
+      {updating && <UpdateBalancesSheet list={list} onClose={() => setUpdating(false)} onSave={saveAll} />}
       {sheet && (
         <AccountSheet
           editing={sheet.editing}

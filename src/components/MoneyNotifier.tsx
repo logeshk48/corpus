@@ -1,4 +1,6 @@
 import { useIous } from '@/hooks/useIous';
+import { useAccounts } from '@/hooks/useAccounts';
+import { accountBalances, cardReminders } from '@/utils/accounts';
 import { moneyReminders, notificationsToSchedule } from '@/utils/debtReminders';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef } from 'react';
@@ -23,6 +25,7 @@ if (Platform.OS !== 'web') {
 
 export default function MoneyNotifier() {
   const { ious, loading } = useIous();
+  const { accounts } = useAccounts();
   const asked = useRef(false);
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export default function MoneyNotifier() {
             });
           }
         }
-        const plan = notificationsToSchedule(moneyReminders(ious));
+        const plan = notificationsToSchedule([...moneyReminders(ious), ...cardReminders(accountBalances(accounts, []))]);
         if (plan.length === 0) {
           await cancelOurs();
           return;
@@ -61,7 +64,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, loading]);
+  }, [ious, accounts, loading]);
 
   return null;
 }

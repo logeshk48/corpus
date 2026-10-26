@@ -21,3 +21,15 @@ export async function updateAccount(id: string, changes: Partial<NewAccount>) {
 export async function deleteAccount(id: string) {
   await deleteDoc(doc(col(), id));
 }
+
+// Check-in: "my bank app shows ₹X right now". Resets the starting point to today
+// (later tagged entries still move it) and records the balance in history.
+export async function checkIn(a: Account, balance: number, now = new Date()) {
+  const { withCheckin } = await import('@/utils/accounts');
+  await updateDoc(doc(col(), a.id), {
+    opening: balance,
+    openingDate: now.toISOString(),
+    verifiedAt: now.toISOString(),
+    checkins: withCheckin(a, balance, now),
+  });
+}

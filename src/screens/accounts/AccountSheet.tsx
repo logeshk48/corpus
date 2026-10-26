@@ -13,7 +13,7 @@ type Props = {
   editing?: AccountBalance;
   isDefault: boolean;
   onClose: () => void;
-  onSave: (a: NewAccount, makeDefault: boolean) => Promise<void>;
+  onSave: (a: NewAccount, makeDefault: boolean, newBalance: number) => Promise<void>;
   onDelete?: () => void;
 };
 
@@ -42,18 +42,21 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
     if (!valid || busy) return;
     setBusy(true);
     try {
-      const opening = editing ? editing.opening + (value - editing.balance) : value;
+      // editing: balance changes are saved as a check-in by the screen (see onSave)
+      const opening = editing ? editing.opening : value;
       await onSave(
         {
           name: name.trim(),
           type,
           opening: Math.round(opening * 100) / 100,
           openingDate: editing?.openingDate ?? new Date().toISOString(),
+          verifiedAt: editing ? editing.verifiedAt : new Date().toISOString(),
           creditLimit: credit && Number(limit) > 0 ? Number(limit) : undefined,
           statementDay: credit ? day(stmt) : undefined,
           dueDay: credit ? day(due) : undefined,
         },
-        makeDefault
+        makeDefault,
+        value
       );
     } finally {
       setBusy(false);
@@ -98,7 +101,7 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
               <TextInput style={f.input} value={balance} onChangeText={(t) => setBalance(t.replace(/[^0-9.-]/g, ''))} placeholder="0" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
               <Text style={sheet.hint}>
                 {editing
-                  ? 'Change this if it doesn’t match your bank app. Corpus adjusts the starting amount, not your entries'
+                  ? 'Type what your bank or card app shows today. Saved as a check-in'
                   : 'Check your bank or card app. From now on, Corpus updates it as you add entries'}
               </Text>
             </View>
