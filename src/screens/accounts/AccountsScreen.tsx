@@ -6,6 +6,9 @@ import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { addAccount, checkIn, deleteAccount, updateAccount } from '@/services/accounts';
 import UpdateBalancesSheet from './UpdateBalancesSheet';
+import { useIous } from '@/hooks/useIous';
+import { addCheckinTotal, gapMatters, reconcile } from '@/utils/reconcile';
+import type { Href } from 'expo-router';
 import { saveSettings } from '@/services/settings';
 import { accountTypeMeta, type NewAccount } from '@/types/account';
 import { accountBalances, accountTotals, nextCardDue, verifiedAgo, type AccountBalance } from '@/utils/accounts';
@@ -31,6 +34,12 @@ export default function AccountsScreen() {
   const { transactions } = useTransactions('last12Months');
   const [sheet, setSheet] = useState<{ editing?: AccountBalance } | null>(null);
   const [updating, setUpdating] = useState(false);
+  const { ious } = useIous();
+  const ct = settings.checkinTotals ?? [];
+  const recon = useMemo(
+    () => (ct.length >= 2 ? reconcile(ct[ct.length - 2], ct[ct.length - 1], transactions, ious) : null),
+    [ct, transactions, ious]
+  );
 
   const list = useMemo(() => accountBalances(accounts, transactions), [accounts, transactions]);
   const totals = accountTotals(list);
@@ -71,6 +80,8 @@ export default function AccountsScreen() {
   const saveAll = async (values: { account: AccountBalance; balance: number }[]) => {
     try {
       await Promise.all(values.map((v) => checkIn(v.account, v.balance)));
+      const net = values.reduce((s, v) => s + (v.account.type === 'credit' ? -Math.max(0, v.balance) : v.balance), 0);
+      await saveSettings({ checkinTotals: addCheckinTotal(settings.checkinTotals, net) });
       showToast({ message: 'All balances verified ✓' });
       setUpdating(false);
     } catch (e) {
@@ -166,6 +177,33 @@ export default function AccountsScreen() {
             {money.map(renderAccount)}
             {cards.length > 0 && <SectionLabel>CREDIT CARDS</SectionLabel>}
             {cards.map(renderAccount)}
+
+            {recon && (
+              <View style={[styles.card, gapMatters(recon) && { borderColor: recon.gap < 0 ? Corpus.warningLine : Corpus.incomeLine, borderWidth: 1 }]}>
+                <Text style={styles.name}>
+                  {gapMatters(recon)
+                    ? recon.gap < 0
+                      ? `🔍 ${formatINR(-recon.gap)} of spending isn’t logged`
+                      : `🔍 ${formatINR(recon.gap)} more than expected`
+                    : '✅ Everything adds up'}
+                </Text>
+                <Text style={styles.meta}>
+                  Since {new Date(recon.from).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}: your money {recon.actualChange >= 0 ? 'went up' : 'went down'} {formatINR(Math.abs(recon.actualChange))}. You logged {formatINR(recon.loggedSpend)} spent
+                  {recon.loggedIncome ? `, ${formatINR(recon.loggedIncome)} earned` : ''}
+                  {recon.peopleFlow ? `, ${formatINR(Math.abs(recon.peopleFlow))} ${recon.peopleFlow < 0 ? 'lent/repaid out' : 'from people'}` : ''}.
+                  {gapMatters(recon) && recon.gap > 0 ? ' Maybe income or a refund you didn’t add?' : ''}
+                </Text>
+                {gapMatters(recon) && recon.gap < 0 && (
+                  <Button
+                    size="sm"
+                    icon="add"
+                    label={`Log ${formatINR(-recon.gap)} now`}
+                    onPress={() => router.push(`/add?amount=${-recon.gap}&note=${encodeURIComponent('Unlogged spending')}` as Href)}
+                    style={{ alignSelf: 'flex-start' }}
+                  />
+                )}
+              </View>
+            )}
 
             <Text style={styles.note}>
               ℹ️ Open your bank and card apps about once a week and tap “Update balances”. It takes 30 seconds and keeps your net worth accurate.

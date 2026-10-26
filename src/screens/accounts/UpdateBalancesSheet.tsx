@@ -4,6 +4,7 @@ import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.
 import { styles as f } from '@/screens/ious/components/IouSheet.styles';
 import { accountTypeMeta } from '@/types/account';
 import { verifiedAgo, type AccountBalance } from '@/utils/accounts';
+import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -56,7 +57,16 @@ export default function UpdateBalancesSheet({ list, onClose, onSave }: { list: A
                       selectTextOnFocus
                     />
                   </View>
-                  <Text style={[sheet.hint, v.stale && { color: Corpus.warning }]}>Last {v.label}</Text>
+                  {(() => {
+                    const d = Math.round((Number(values[a.id]) || 0) - a.balance);
+                    if (d === 0) return <Text style={[sheet.hint, v.stale && { color: Corpus.warning }]}>Same as last time · {v.label}</Text>;
+                    const good = a.type === 'credit' ? d < 0 : d > 0;
+                    return (
+                      <Text style={[sheet.hint, { color: good ? Corpus.income : Corpus.warning }]}>
+                        {d > 0 ? '+' : '−'}{formatINR(Math.abs(d))} since last time ({v.label.replace('verified ', '')})
+                      </Text>
+                    );
+                  })()}
                 </View>
               );
             })}

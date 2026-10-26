@@ -1,6 +1,6 @@
 import { useIous } from '@/hooks/useIous';
 import { useAccounts } from '@/hooks/useAccounts';
-import { accountBalances, cardReminders } from '@/utils/accounts';
+import { accountBalances, cardReminders, verifiedAgo } from '@/utils/accounts';
 import { moneyReminders, notificationsToSchedule } from '@/utils/debtReminders';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef } from 'react';
@@ -41,7 +41,20 @@ export default function MoneyNotifier() {
             });
           }
         }
-        const plan = notificationsToSchedule([...moneyReminders(ious), ...cardReminders(accountBalances(accounts, []))]);
+        const cards = cardReminders(accountBalances(accounts, []));
+        const plan = notificationsToSchedule([...moneyReminders(ious), ...cards]);
+        // card bills: also 3 days before
+        for (const c of cards) {
+          const d = new Date(c.when.getTime() - 3 * 86_400_000);
+          if (d > new Date()) plan.push({ id: `${c.id}:3d`, date: d, title: c.title, body: c.body.replace(/^Due in \d+ days/, 'Due in 3 days') });
+        }
+        // weekly balance check-in: next Sunday 7 PM, only if something is 7+ days old
+        if (accounts.some((a) => verifiedAgo(a).stale || verifiedAgo(a).days >= 6)) {
+          const now = new Date();
+          const sun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((7 - now.getDay()) % 7), 19);
+          if (sun <= now) sun.setDate(sun.getDate() + 7);
+          plan.push({ id: 'checkin:weekly', date: sun, title: 'Update your balances', body: 'Open your bank & card apps, 30 seconds keeps your net worth right' });
+        }
         if (plan.length === 0) {
           await cancelOurs();
           return;

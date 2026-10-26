@@ -6,6 +6,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { findCategory } from '@/constants/categories';
 import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
 import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
 
 // Accounts are hidden for now (code kept). Set true to bring the "Paid from" picker back.
@@ -33,10 +34,15 @@ function notify(title: string, message: string) {
 }
 
 export default function AddScreen() {
-  const [amount, setAmount] = useState('');
+  const params = useLocalSearchParams<{ amount?: string; note?: string }>();
+  const [amount, setAmount] = useState(params.amount ?? '');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(params.note ?? '');
+  useEffect(() => {
+    if (params.amount) setAmount(params.amount);
+    if (params.note) setNote(params.note);
+  }, [params.amount, params.note]);
   const [day, setDay] = useState(() => new Date());
   const [streamId, setStreamId] = useState(NO_STREAM);
   const [saving, setSaving] = useState(false);
