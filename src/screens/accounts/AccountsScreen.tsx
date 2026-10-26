@@ -9,6 +9,8 @@ import UpdateBalancesSheet from './UpdateBalancesSheet';
 import { useIous } from '@/hooks/useIous';
 import { useBills } from '@/hooks/useBills';
 import { cardHealth, moneyHealth } from '@/utils/moneyHealth';
+import { bestSwipeDay, detectPayday, idleEarnings, minBalanceRisk, spendBetween, untilPayday } from '@/utils/payday';
+import { findCategory } from '@/constants/categories';
 import { addCheckinTotal, gapMatters, reconcile } from '@/utils/reconcile';
 import type { Href } from 'expo-router';
 import { saveSettings } from '@/services/settings';
@@ -46,6 +48,7 @@ export default function AccountsScreen() {
 
   const list = useMemo(() => accountBalances(accounts, transactions), [accounts, transactions]);
   const totals = accountTotals(list);
+  const payday = useMemo(() => detectPayday(transactions), [transactions]);
   const health = useMemo(() => moneyHealth(totals.have, totals.cardDues, bills, transactions), [totals.have, totals.cardDues, bills, transactions]);
 
   const save = async (a: NewAccount, makeDefault: boolean, newBalance: number) => {
@@ -130,6 +133,26 @@ export default function AccountsScreen() {
             </Text>
           </>
         ) : null}
+        {(() => {
+          const m = minBalanceRisk(a);
+          if (!m || (!m.below && !m.close)) return null;
+          return (
+            <Text style={[styles.note, { color: m.below ? Corpus.danger : Corpus.warning }]}>
+              {m.below
+                ? `⚠️ ${formatINR(-m.room)} below the ${formatINR(a.minBalance!)} minimum. Banks charge a penalty for this`
+                : `Only ${formatINR(m.room)} above the ${formatINR(a.minBalance!)} minimum balance`}
+            </Text>
+          );
+        })()}
+        {(() => {
+          const s = bestSwipeDay(a);
+          if (!s) return null;
+          return (
+            <Text style={styles.note}>
+              💳 Best day for big purchases: the {s.best}th (up to {s.maxFreeDays} days interest-free; buying the day before the bill gives only {s.worstFreeDays})
+            </Text>
+          );
+        })()}
         {credit && a.balance > 0 && (
           <Text style={styles.note}>
             Pay the full {formatINR(a.balance)}. Paying only the minimum costs about {formatINR(cardHealth(a.balance, a.creditLimit).monthlyInterestIfUnpaid)} a month in interest (~42% a year)
@@ -203,9 +226,19 @@ export default function AccountsScreen() {
                   At your usual {formatINR(health.perDay)}/day, your money lasts about <Text style={{ color: health.runwayDays < 15 ? Corpus.warning : Corpus.text, fontWeight: '600' }}>{health.runwayDays} days</Text>
                 </Text>
               )}
+              {(() => {
+                const u = untilPayday(health.free, health.perDay, payday);
+                if (!u || !payday) return null;
+                return (
+                  <Text style={[styles.meta, { color: u.fits ? Corpus.income : Corpus.warning }]}>
+                    💰 Pay day ~{payday.next.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} ({payday.daysLeft} day{payday.daysLeft > 1 ? 's' : ''}) → you can spend {formatINR(u.allowance)}/day.
+                    {u.fits ? ' Your usual spending fits ✓' : ` At your usual pace you’d need ${formatINR(u.gap)} more`}
+                  </Text>
+                );
+              })()}
               {health.idle > 0 && (
                 <Text style={[styles.meta, { color: Corpus.goldSoft }]}>
-                  💡 {formatINR(health.idle)} is sitting idle beyond a 3-month safety buffer ({formatINR(health.monthly)}/month). Consider a jar, FD or investing it
+                  💡 {formatINR(health.idle)} is sitting idle beyond a 3-month safety buffer ({formatINR(health.monthly)}/month). In an FD it could earn about {formatINR(idleEarnings(health.idle))} more a year than in savings (estimate)
                 </Text>
               )}
             </View>
@@ -237,6 +270,11 @@ export default function AccountsScreen() {
                   {recon.peopleFlow ? `, ${formatINR(Math.abs(recon.peopleFlow))} ${recon.peopleFlow < 0 ? 'lent/repaid out' : 'from people'}` : ''}.
                   {gapMatters(recon) && recon.gap > 0 ? ' Maybe income or a refund you didn’t add?' : ''}
                 </Text>
+                {spendBetween(transactions, recon.from, recon.to).length > 0 && (
+                  <Text style={styles.meta}>
+                    Where it went: {spendBetween(transactions, recon.from, recon.to).map((x) => `${findCategory('expense', x.category)?.label ?? x.category} ${formatINR(x.amount)}`).join(' · ')}
+                  </Text>
+                )}
                 {gapMatters(recon) && recon.gap < 0 && (
                   <Button
                     size="sm"

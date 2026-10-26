@@ -10,6 +10,7 @@ export type Account = {
   statementDay?: number;   // 1–31: day the card bill is generated
   dueDay?: number;         // 1–31: day the card bill must be paid
   archived?: boolean;
+  minBalance?: number;     // bank's required minimum balance (penalty if below)
   verifiedAt?: string;     // ISO: last time you confirmed the balance from your bank/card app
   checkins?: { date: string; balance: number }[]; // balance history (newest last, max 60)
 };

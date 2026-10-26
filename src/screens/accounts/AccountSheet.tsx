@@ -32,6 +32,7 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
   const [stmt, setStmt] = useState(editing?.statementDay ? String(editing.statementDay) : '');
   const [due, setDue] = useState(editing?.dueDay ? String(editing.dueDay) : '');
   const [makeDefault, setMakeDefault] = useState(isDefault);
+  const [minBal, setMinBal] = useState(editing?.minBalance ? String(editing.minBalance) : '');
   const [busy, setBusy] = useState(false);
 
   const credit = type === 'credit';
@@ -54,6 +55,7 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
           creditLimit: credit && Number(limit) > 0 ? Number(limit) : undefined,
           statementDay: credit ? day(stmt) : undefined,
           dueDay: credit ? day(due) : undefined,
+          minBalance: type === 'bank' && Number(minBal) > 0 ? Number(minBal) : undefined,
         },
         makeDefault,
         value
@@ -123,6 +125,13 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
                   </View>
                 </View>
               </>
+            )}
+
+            {type === 'bank' && (
+              <View style={f.field}>
+                <Text style={f.label}>MINIMUM BALANCE (OPTIONAL)</Text>
+                <TextInput style={f.input} value={minBal} onChangeText={(t) => setMinBal(num(t))} placeholder="e.g. 10000 · Corpus warns before you go below" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
+              </View>
             )}
 
             {!credit && (
