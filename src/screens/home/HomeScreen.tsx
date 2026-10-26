@@ -6,6 +6,7 @@ import { useBills } from '@/hooks/useBills';
 import { useIous } from '@/hooks/useIous';
 import { useAccounts } from '@/hooks/useAccounts';
 import { accountBalances, accountTotals, cardReminders, verifiedAgo } from '@/utils/accounts';
+import { moneyHealth } from '@/utils/moneyHealth';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -46,9 +47,14 @@ export default function HomeScreen() {
   const accStale = accList.some((a) => verifiedAgo(a).stale);
   const iouTotals = totals(byPerson(ious));
   const repayNudge = chainNudges(ious)[0];
-  const reminders = actionable([...moneyReminders(ious), ...cardReminders(accList)]);
-  const [showSafe, setShowSafe] = useState(false);
   const { bills } = useBills();
+  const accTotals = accountTotals(accList);
+  const health = accounts.length ? moneyHealth(accTotals.have, accTotals.cardDues, bills, transactions) : null;
+  const shortAlert = health?.short
+    ? [{ id: 'short', iouId: '', when: new Date(), title: `${formatINR(-health.free)} short for bills & card dues`, body: `You have ${formatINR(health.have)}, but ${formatINR(health.billsDue + health.cardDues)} is due in the next 30 days`, urgency: 'overdue' as const }]
+    : [];
+  const reminders = actionable([...shortAlert, ...moneyReminders(ious), ...cardReminders(accList)]);
+  const [showSafe, setShowSafe] = useState(false);
   const { showToast } = useToast();
   const [paying, setPaying] = useState<Bill | null>(null);
 

@@ -7,6 +7,8 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { addAccount, checkIn, deleteAccount, updateAccount } from '@/services/accounts';
 import UpdateBalancesSheet from './UpdateBalancesSheet';
 import { useIous } from '@/hooks/useIous';
+import { useBills } from '@/hooks/useBills';
+import { cardHealth, moneyHealth } from '@/utils/moneyHealth';
 import { addCheckinTotal, gapMatters, reconcile } from '@/utils/reconcile';
 import type { Href } from 'expo-router';
 import { saveSettings } from '@/services/settings';
@@ -35,6 +37,7 @@ export default function AccountsScreen() {
   const [sheet, setSheet] = useState<{ editing?: AccountBalance } | null>(null);
   const [updating, setUpdating] = useState(false);
   const { ious } = useIous();
+  const { bills } = useBills();
   const ct = settings.checkinTotals ?? [];
   const recon = useMemo(
     () => (ct.length >= 2 ? reconcile(ct[ct.length - 2], ct[ct.length - 1], transactions, ious) : null),
@@ -43,6 +46,7 @@ export default function AccountsScreen() {
 
   const list = useMemo(() => accountBalances(accounts, transactions), [accounts, transactions]);
   const totals = accountTotals(list);
+  const health = useMemo(() => moneyHealth(totals.have, totals.cardDues, bills, transactions), [totals.have, totals.cardDues, bills, transactions]);
 
   const save = async (a: NewAccount, makeDefault: boolean, newBalance: number) => {
     try {
@@ -126,6 +130,11 @@ export default function AccountsScreen() {
             </Text>
           </>
         ) : null}
+        {credit && a.balance > 0 && (
+          <Text style={styles.note}>
+            Pay the full {formatINR(a.balance)}. Paying only the minimum costs about {formatINR(cardHealth(a.balance, a.creditLimit).monthlyInterestIfUnpaid)} a month in interest (~42% a year)
+          </Text>
+        )}
       </Pressable>
     );
   };
@@ -162,6 +171,41 @@ export default function AccountsScreen() {
               {totals.cardDues > 0 && (
                 <Text style={styles.heroSub}>
                   {formatINR(totals.cardDues)} owed on cards · {formatINR(totals.net)} after paying them
+                </Text>
+              )}
+            </View>
+
+            {ct.length >= 2 && (
+              <View style={styles.trend}>
+                {ct.slice(-12).map((c, k, arr) => {
+                  const max = Math.max(...arr.map((x) => Math.abs(x.net)), 1);
+                  return (
+                    <View key={c.date} style={styles.trendCol}>
+                      <View style={[styles.trendBar, { height: Math.max(3, (Math.abs(c.net) / max) * 44), backgroundColor: c.net < 0 ? Corpus.danger : k === arr.length - 1 ? Corpus.gold : Corpus.cardAlt }]} />
+                      <Text style={styles.trendLabel}>{new Date(c.date).getDate()}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            <View style={[styles.card, health.short && { borderColor: Corpus.dangerLine, borderWidth: 1 }]}>
+              <Text style={styles.name}>
+                {health.short ? `⚠️ ${formatINR(-health.free)} short for what’s due` : `${formatINR(health.free)} actually free`}
+              </Text>
+              <Text style={styles.meta}>
+                {formatINR(health.have)} you have
+                {health.billsDue ? ` − ${formatINR(health.billsDue)} bills due in 30 days` : ''}
+                {health.cardDues ? ` − ${formatINR(health.cardDues)} card dues` : ''}
+              </Text>
+              {health.runwayDays !== null && (
+                <Text style={styles.meta}>
+                  At your usual {formatINR(health.perDay)}/day, your money lasts about <Text style={{ color: health.runwayDays < 15 ? Corpus.warning : Corpus.text, fontWeight: '600' }}>{health.runwayDays} days</Text>
+                </Text>
+              )}
+              {health.idle > 0 && (
+                <Text style={[styles.meta, { color: Corpus.goldSoft }]}>
+                  💡 {formatINR(health.idle)} is sitting idle beyond a 3-month safety buffer ({formatINR(health.monthly)}/month). Consider a jar, FD or investing it
                 </Text>
               )}
             </View>
