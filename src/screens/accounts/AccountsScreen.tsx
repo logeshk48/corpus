@@ -1,5 +1,5 @@
 import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useSettings } from '@/hooks/useSettings';
@@ -178,7 +178,7 @@ export default function AccountsScreen() {
           <ActivityIndicator color={Corpus.gold} style={{ paddingVertical: 60 }} />
         ) : list.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: 40 }}>🏦</Text>
+            <Text style={{ fontSize: Type.hero }}>🏦</Text>
             <Text style={styles.emptyTitle}>Where is your money?</Text>
             <Text style={styles.emptyText}>
               Add your cash, bank account, wallet and credit cards. When you log an expense, pick where it was paid from, and every balance stays up to date.
@@ -214,7 +214,7 @@ export default function AccountsScreen() {
 
             <View style={[styles.card, health.short && { borderColor: Corpus.dangerLine, borderWidth: 1 }]}>
               <Text style={styles.name}>
-                {health.short ? `⚠️ ${formatINR(-health.free)} short for what’s due` : `${formatINR(health.free)} actually free`}
+                {health.short ? `⚠️ ${formatINR(-health.free)} short for what’s due` : `${formatINR(health.free)} free to spend`}
               </Text>
               <Text style={styles.meta}>
                 {formatINR(health.have)} you have
@@ -223,7 +223,7 @@ export default function AccountsScreen() {
               </Text>
               {health.runwayDays !== null && (
                 <Text style={styles.meta}>
-                  At your usual {formatINR(health.perDay)}/day, your money lasts about <Text style={{ color: health.runwayDays < 15 ? Corpus.warning : Corpus.text, fontWeight: '600' }}>{health.runwayDays} days</Text>
+                  You spend about {formatINR(health.perDay)} a day. At that pace this money lasts <Text style={{ color: health.runwayDays < 15 ? Corpus.warning : Corpus.text, fontWeight: '600' }}>{health.runwayDays} more days</Text>
                 </Text>
               )}
               {(() => {

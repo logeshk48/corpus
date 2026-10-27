@@ -10,8 +10,9 @@ function startOfDay(d: Date): Date {
 }
 
 // Start and end of a period, in the user's local time
-export function getRange(period: Period, now: Date = new Date()): DateRange {
+export function getRange(period: Period, now: Date = new Date(), cycleStartDay = 1): DateRange {
   const today = startOfDay(now);
+  const startDay = Math.min(Math.max(1, Math.round(cycleStartDay)), 28);
 
   switch (period) {
     case 'today': {
@@ -29,8 +30,10 @@ export function getRange(period: Period, now: Date = new Date()): DateRange {
       return { start, end };
     }
     case 'month': {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      // Your "month" can start on pay day: on the 25th with startDay 25, the cycle is 25 Oct → 25 Nov
+      const started = now.getDate() >= startDay;
+      const start = new Date(now.getFullYear(), now.getMonth() + (started ? 0 : -1), startDay);
+      const end = new Date(start.getFullYear(), start.getMonth() + 1, startDay);
       return { start, end };
     }
     case 'year': {

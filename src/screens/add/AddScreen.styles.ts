@@ -44,6 +44,11 @@ export const styles = StyleSheet.create({
     padding: 0,
   },
   guessHint: { fontSize: Type.small, color: Corpus.goldSoft, marginTop: -8 },
+  dayChips: { flexDirection: 'row', gap: Space.sm },
+  dayChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: Radius.md, borderWidth: 1, borderColor: Corpus.border, backgroundColor: Corpus.card },
+  dayChipOn: { borderColor: Corpus.gold, backgroundColor: Corpus.goldActive },
+  dayChipText: { fontSize: Type.body, color: Corpus.textMuted },
+  dayChipTextOn: { color: Corpus.gold, fontWeight: '600' },
   noteInput: {
     backgroundColor: Corpus.card,
     borderRadius: Radius.md,

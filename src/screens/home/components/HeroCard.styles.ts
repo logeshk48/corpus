@@ -31,7 +31,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   amount: {
-    fontSize: Type.hero,
+    fontSize: Type.amount,
     fontWeight: '500',
     marginTop: 4,
   },

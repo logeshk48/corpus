@@ -1,5 +1,5 @@
 import { Button, SectionLabel } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Space } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
 import { logOut } from '@/services/auth';
@@ -25,6 +25,8 @@ export default function SettingsScreen() {
   // Drafts: what's typed but not yet saved
   const [name, setName] = useState('');
   const [budget, setBudget] = useState('');
+  const [aside, setAside] = useState('');
+  const [cycle, setCycle] = useState('');
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,14 +35,22 @@ export default function SettingsScreen() {
   useEffect(() => {
     setName(settings.displayName ?? '');
     setBudget(settings.monthlyBudget ? String(settings.monthlyBudget) : '');
-  }, [settings.displayName, settings.monthlyBudget]);
+    setAside(settings.setAside ? String(settings.setAside) : '');
+    setCycle(settings.cycleStartDay && settings.cycleStartDay > 1 ? String(settings.cycleStartDay) : '');
+  }, [settings.displayName, settings.monthlyBudget, settings.setAside, settings.cycleStartDay]);
 
   const savedName = settings.displayName ?? '';
   const savedBudget = settings.monthlyBudget;
   const budgetNumber = budget.trim() === '' ? undefined : Number(budget);
   const budgetInvalid =
     budgetNumber !== undefined && (!Number.isFinite(budgetNumber) || budgetNumber <= 0);
-  const isDirty = name.trim() !== savedName || budgetNumber !== savedBudget;
+  const asideNumber = aside.trim() === '' ? undefined : Number(aside);
+  const cycleNumber = cycle.trim() === '' || Number(cycle) <= 1 ? undefined : Math.min(28, Number(cycle));
+  const isDirty =
+    name.trim() !== savedName ||
+    budgetNumber !== savedBudget ||
+    asideNumber !== settings.setAside ||
+    cycleNumber !== settings.cycleStartDay;
   const canSave = isDirty && !budgetInvalid && !saving;
 
   const shownName = savedName || user?.email?.split('@')[0] || 'Corpus member';
@@ -54,6 +64,8 @@ export default function SettingsScreen() {
       await saveSettings({
         displayName: name.trim() || undefined,
         monthlyBudget: budgetNumber,
+        setAside: asideNumber,
+        cycleStartDay: cycleNumber,
       });
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2000);
@@ -137,6 +149,48 @@ export default function SettingsScreen() {
                   ) : (
                     <Text style={styles.rowHint}>Used by budgets and Safe-to-Spend</Text>
                   )}
+                </View>
+              </View>
+            </View>
+
+            <View style={[styles.group, { marginTop: Space.sm }]}>
+              <View style={styles.row}>
+                <View style={styles.rowIcon}>
+                  <Ionicons name="lock-closed-outline" size={15} color={Corpus.gold} />
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowLabel}>Keep aside</Text>
+                  <View style={styles.inlineRow}>
+                    <Text style={styles.rupee}>₹</Text>
+                    <TextInput
+                      style={[styles.rowInput, { flex: 1 }]}
+                      value={aside}
+                      onChangeText={(t) => setAside(t.replace(/[^0-9]/g, ''))}
+                      placeholder="0"
+                      placeholderTextColor={Corpus.textFaint}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <Text style={styles.rowHint}>Money in your account that is not for spending. Corpus leaves it out of Safe to spend</Text>
+                </View>
+              </View>
+              <View style={[styles.row, styles.rowDivider]}>
+                <View style={styles.rowIcon}>
+                  <Ionicons name="calendar-outline" size={15} color={Corpus.gold} />
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowLabel}>My month starts on</Text>
+                  <TextInput
+                    style={styles.rowInput}
+                    value={cycle}
+                    onChangeText={(t) => setCycle(t.replace(/[^0-9]/g, '').slice(0, 2))}
+                    placeholder="1"
+                    placeholderTextColor={Corpus.textFaint}
+                    keyboardType="number-pad"
+                  />
+                  <Text style={styles.rowHint}>
+                    {Number(cycle) > 1 ? `Your month runs ${cycle}th to ${cycle}th, like your pay day` : 'Day of the month. Set your salary day so budgets match your pay cycle'}
+                  </Text>
                 </View>
               </View>
             </View>

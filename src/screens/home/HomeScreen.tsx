@@ -19,6 +19,11 @@ import { useToast } from '@/context/ToastContext';
 import type { Bill } from '@/types/bill';
 import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
 import { computeSafeToSpend } from '@/utils/safeToSpend';
+import { catchUp } from '@/utils/catchUp';
+import { frequentPicks, type QuickPick } from '@/utils/quickAdd';
+import { addTransaction } from '@/services/transactions';
+import QuickAdd from './components/QuickAdd';
+import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
 import { useState } from 'react';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
@@ -80,11 +85,28 @@ export default function HomeScreen() {
   };
 
   // The heart of Corpus: how much can I safely spend today?
+  const { transactions: yearTx } = useTransactions('last12Months');
+  const picks = frequentPicks(yearTx, 'expense', new Date(), 4);
+  const behind = catchUp(yearTx);
+
+  // One tap on Home logs it — the fastest path there is
+  const quickLog = async (p: QuickPick) => {
+    try {
+      await addTransaction({ type: 'expense', amount: p.amount, category: p.category, note: p.note || undefined, date: new Date().toISOString() });
+      showToast({ message: `${p.note || 'Expense'} ${formatINR(p.amount)} logged` });
+    } catch (e) {
+      console.error('Quick log failed:', e);
+      showToast({ message: 'Could not save. Try again.' });
+    }
+  };
+
   const safe = computeSafeToSpend({
     monthTransactions: transactions,
     jars: vaults,
     monthlyBudget: settings.monthlyBudget,
     billsDue: unpaidThisMonth(bills),
+    setAside: settings.setAside,
+    cycleStartDay: settings.cycleStartDay,
   });
 
   // Real budgets: overall month + the 3 categories closest to their limit
@@ -122,6 +144,10 @@ export default function HomeScreen() {
           onOpen={(b) => router.push(`/bill/${b.id}` as Href)}
         />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
+
+        <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
+
+        {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
         <View style={styles.statsRow}>
           <StatCard label="Spent today" value={formatINR(spentToday)} />
           <StatCard label="Month income" value={formatINR(income)} />

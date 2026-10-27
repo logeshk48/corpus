@@ -46,8 +46,12 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
 
   const color = STATUS_COLOR[result.status];
   const over = result.safeToday < 0;
-  const label = over ? "Over today's limit by" : 'Safe to spend today';
-  const amount = formatINR(Math.abs(result.safeToday));
+  // A single precise figure reads as a spending target, so show a comfortable range
+  const low = Math.max(0, Math.floor((result.safeToday * 0.9) / 10) * 10);
+  const high = Math.ceil((result.safeToday * 1.1) / 10) * 10;
+  const asRange = !over && result.safeToday >= 50;
+  const label = over ? "Over today's limit by" : asRange ? 'Today you can spend about' : 'Safe to spend today';
+  const amount = asRange ? `${formatINR(low)}–${formatINR(high).replace('₹', '')}` : formatINR(Math.abs(result.safeToday));
 
   let context = `${formatINR(result.dailyAllowance)}/day for the next ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'}`;
   if (result.available < 0) context = `You've used ${formatINR(-result.available)} more than this month allows`;

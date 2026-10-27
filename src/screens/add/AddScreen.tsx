@@ -5,6 +5,7 @@ import { addTransaction } from '@/services/transactions';
 import { useTransactions } from '@/hooks/useTransactions';
 import { findCategory } from '@/constants/categories';
 import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
+import { recentDays } from '@/utils/catchUp';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
@@ -13,7 +14,7 @@ import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
 const SHOW_ACCOUNTS = false;
 import { useAccounts } from '@/hooks/useAccounts';
 import { useSettings } from '@/hooks/useSettings';
-import { Alert, Platform, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateStepper from '@/components/DateStepper';
 import { withTimeOf } from '@/utils/dates';
@@ -34,7 +35,7 @@ function notify(title: string, message: string) {
 }
 
 export default function AddScreen() {
-  const params = useLocalSearchParams<{ amount?: string; note?: string }>();
+  const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string }>();
   const [amount, setAmount] = useState(params.amount ?? '');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
@@ -174,7 +175,17 @@ export default function AddScreen() {
           </>
         )}
 
-        <SectionLabel>DATE</SectionLabel>
+        <SectionLabel right={params.catchup ? 'Filling in missed days' : undefined}>DATE</SectionLabel>
+        <View style={styles.dayChips}>
+          {recentDays(new Date(), 4).map((d) => {
+            const on = d.date.toDateString() === day.toDateString();
+            return (
+              <Pressable key={d.label} style={[styles.dayChip, on && styles.dayChipOn]} onPress={() => setDay(d.date)}>
+                <Text style={[styles.dayChipText, on && styles.dayChipTextOn]}>{d.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
         <DateStepper value={day} onChange={setDay} />
 
         {type === 'income' && (

@@ -18,6 +18,7 @@ export type SafeToSpendResult =
       spentToday: number;
       movedToJars: number;      // net: added − taken out, this month
       plansDue: number;         // jar plans still needed this month
+      setAside: number;         // money you told Corpus not to count
       billsDue: number;         // recurring bills not yet paid this month
       limitedByBudget: boolean; // the monthly budget was the stricter limit
       monthlyBudget?: number;
@@ -28,6 +29,8 @@ type Input = {
   jars: VaultWithBalance[];
   monthlyBudget?: number;
   billsDue?: number; // unpaid recurring bills this month
+  setAside?: number; // money you keep aside, never counted as spendable
+  cycleStartDay?: number; // your month starts on this day (pay day)
   now?: Date;
 };
 
@@ -39,6 +42,8 @@ export function computeSafeToSpend({
   jars,
   monthlyBudget,
   billsDue = 0,
+  setAside = 0,
+  cycleStartDay = 1,
   now = new Date(),
 }: Input): SafeToSpendResult {
   let income = 0;
@@ -59,15 +64,20 @@ export function computeSafeToSpend({
   }, 0);
 
   // Unpaid bills are reserved in BOTH limits — that money is already promised
-  const incomeBased = income > 0 ? income - spent - movedToJars - plansDue - billsDue : null;
-  const budgetBased = monthlyBudget && monthlyBudget > 0 ? monthlyBudget - spent - billsDue : null;
+  const keep = Math.max(0, setAside);
+  const incomeBased = income > 0 ? income - spent - movedToJars - plansDue - billsDue - keep : null;
+  const budgetBased = monthlyBudget && monthlyBudget > 0 ? monthlyBudget - spent - billsDue - keep : null;
   if (incomeBased === null && budgetBased === null) return { status: 'noData' };
 
   const limitedByBudget = budgetBased !== null && (incomeBased === null || budgetBased < incomeBased);
   const available = limitedByBudget ? budgetBased! : incomeBased!;
 
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysLeft = daysInMonth - now.getDate() + 1;
+  // days left in YOUR cycle (pay day to pay day when set)
+  const startDay = Math.min(Math.max(1, Math.round(cycleStartDay)), 28);
+  const cycleStart = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= startDay ? 0 : -1), startDay);
+  const cycleEnd = new Date(cycleStart.getFullYear(), cycleStart.getMonth() + 1, startDay);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysLeft = Math.max(1, Math.round((cycleEnd.getTime() - today.getTime()) / 86_400_000));
 
   // Today's allowance is fixed at the START of today, so spending today counts against it
   const availableAtStartOfToday = available + spentToday;
@@ -92,6 +102,7 @@ export function computeSafeToSpend({
     movedToJars,
     plansDue,
     billsDue,
+    setAside: keep,
     limitedByBudget,
     monthlyBudget,
   };
