@@ -9,7 +9,7 @@ import { WORK_MODES } from '@/utils/onboarding';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './SettingsScreen.styles';
 
@@ -210,6 +210,39 @@ export default function SettingsScreen() {
                 <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
               </Pressable>
             </View>
+
+            {/* NOTIFICATIONS — each saves instantly */}
+            <SectionLabel>NOTIFICATIONS</SectionLabel>
+            <View style={styles.group}>
+              {(
+                [
+                  { k: 'people', icon: 'people-outline', label: 'Money with people', hint: 'Due dates, interest, instalments, “repay Arun”' },
+                  { k: 'cards', icon: 'card-outline', label: 'Card bills', hint: '3 days before, the day before, and on the day' },
+                  { k: 'budget', icon: 'pie-chart-outline', label: 'Budget warning', hint: 'One evening alert once 80% of your month is used' },
+                  { k: 'checkin', icon: 'refresh-outline', label: 'Weekly balance check', hint: 'Sunday 7 PM, only if balances are old' },
+                ] as const
+              ).map((n, i) => {
+                const value = settings.notify?.[n.k] !== false;
+                return (
+                  <View key={n.k} style={[styles.row, i > 0 && styles.rowDivider]}>
+                    <View style={styles.rowIcon}>
+                      <Ionicons name={n.icon} size={15} color={Corpus.gold} />
+                    </View>
+                    <View style={styles.rowBody}>
+                      <Text style={styles.rowLabel}>{n.label}</Text>
+                      <Text style={styles.rowHint}>{n.hint}</Text>
+                    </View>
+                    <Switch
+                      value={value}
+                      onValueChange={(v) => saveSettings({ notify: { ...settings.notify, [n.k]: v } })}
+                      trackColor={{ true: Corpus.gold, false: Corpus.cardAlt }}
+                      thumbColor={Corpus.text}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+            <Text style={styles.rowHint}>Notifications show on your phone app. On the web, the same reminders appear on Home.</Text>
 
             {/* PREFERENCES */}
             <SectionLabel>PREFERENCES</SectionLabel>

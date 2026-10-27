@@ -10,6 +10,8 @@ export type Settings = {
   checkinTotals?: { date: string; net: number }[]; // money you have − card dues, at each "Update balances" (max 26) // pre-selected in Add
   setAside?: number;        // money in your account that is NOT for spending this month
   cycleStartDay?: number;   // 1–28: your month starts on pay day, not the 1st
+  // Phone notification types — missing means ON
+  notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean };
   upiId?: string;          // added to lent-money reminders, e.g. name@okaxis
   phones?: Record<string, string>; // person key (lowercase name) → mobile number, for WhatsApp reminders   // ISO — set when first-run setup is finished or skipped
   monthlyBudget?: number; // total spending budget per month, in INR

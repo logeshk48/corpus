@@ -14,7 +14,7 @@ import {
   type OnboardingAnswers,
 } from '@/utils/onboarding';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -94,7 +94,7 @@ export default function OnboardingScreen() {
       await applySetupPlan(plan);
       const made = plan.streams.length + plan.vaults.length;
       showToast({ message: made > 0 ? `Corpus is ready · ${made} things set up` : 'Corpus is ready' });
-      router.replace('/');
+      router.replace('/add?first=1' as Href);
     } catch (e) {
       console.error('Onboarding save failed:', e);
       setError('Could not save. Check your connection and try again.');
@@ -146,9 +146,26 @@ export default function OnboardingScreen() {
                   <View key={i} style={[styles.seg, i < step && styles.segOn]} />
                 ))}
               </View>
-              <Text style={styles.stepCount}>
-                {step}/{QUESTION_COUNT}
-              </Text>
+              {name === 'budget' || name === 'jars' ? (
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => {
+                    // Skipping means "not now" — nothing is created for this step
+                    if (name === 'budget') update({ monthlyBudget: undefined });
+                    if (name === 'jars') {
+                      seeded.current.jars = true;
+                      update({ jars: [] });
+                    }
+                    goTo(step + 1);
+                  }}
+                >
+                  <Text style={styles.skipText}>Skip</Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.stepCount}>
+                  {step}/{QUESTION_COUNT}
+                </Text>
+              )}
             </>
           )}
         </View>

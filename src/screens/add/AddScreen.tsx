@@ -7,7 +7,7 @@ import { findCategory } from '@/constants/categories';
 import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
 import { recentDays } from '@/utils/catchUp';
 import { useEffect, useMemo, useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
 
 // Accounts are hidden for now (code kept). Set true to bring the "Paid from" picker back.
@@ -35,7 +35,8 @@ function notify(title: string, message: string) {
 }
 
 export default function AddScreen() {
-  const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string }>();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string; first?: string }>();
   const [amount, setAmount] = useState(params.amount ?? '');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
@@ -126,6 +127,7 @@ export default function AddScreen() {
       setNote('');
       setDay(new Date()); // next entry defaults to today again
       setStreamId(NO_STREAM);
+      if (params.first) router.replace('/' as Href); // first expense done → straight to Home
     } catch (e: any) {
       console.error('Save failed:', e);
       notify('Could not save', 'Something went wrong. Check your connection and try again.');
@@ -143,6 +145,14 @@ export default function AddScreen() {
       >
         <Text style={styles.heading}>Add transaction</Text>
 
+        {params.first && (
+          <View style={styles.firstBanner}>
+            <Text style={styles.firstTitle}>Last step: log one thing you spent today</Text>
+            <Text style={styles.firstText}>
+              Chai, auto, lunch — anything. That’s the whole habit: a few seconds a day. Things you log twice become one-tap buttons on Home.
+            </Text>
+          </View>
+        )}
         <TypeToggle value={type} onChange={handleTypeChange} />
 
         <View style={styles.amountSection}>

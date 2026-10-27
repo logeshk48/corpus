@@ -17,12 +17,14 @@ import PayBillSheet from '@/screens/bills/components/PayBillSheet';
 import { logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
 import { useToast } from '@/context/ToastContext';
 import type { Bill } from '@/types/bill';
-import { buildBudgetStatuses, overallBudget } from '@/utils/budgets';
+import { overallBudget } from '@/utils/budgets';
 import { computeSafeToSpend } from '@/utils/safeToSpend';
 import { catchUp } from '@/utils/catchUp';
 import { frequentPicks, type QuickPick } from '@/utils/quickAdd';
-import { addTransaction } from '@/services/transactions';
+import { addTransactionNow, deleteTransaction } from '@/services/transactions';
 import QuickAdd from './components/QuickAdd';
+import Shortcuts, { type Shortcut } from './components/Shortcuts';
+import { compactINR } from '@/utils/format';
 import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
 import { useState } from 'react';
@@ -33,10 +35,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter, type Href } from 'expo-router';
-import BudgetBar from './components/BudgetBar';
 import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
-import StatCard from './components/StatCard';
 import TransactionRow from './components/TransactionRow';
 import { styles } from './HomeScreen.styles';
 
@@ -91,13 +91,12 @@ export default function HomeScreen() {
 
   // One tap on Home logs it — the fastest path there is
   const quickLog = async (p: QuickPick) => {
-    try {
-      await addTransaction({ type: 'expense', amount: p.amount, category: p.category, note: p.note || undefined, date: new Date().toISOString() });
-      showToast({ message: `${p.note || 'Expense'} ${formatINR(p.amount)} logged` });
-    } catch (e) {
-      console.error('Quick log failed:', e);
-      showToast({ message: 'Could not save. Try again.' });
-    }
+    const id = addTransactionNow({ type: 'expense', amount: p.amount, category: p.category, note: p.note || undefined, date: new Date().toISOString() });
+    showToast({
+      message: `${p.note || 'Expense'} ${formatINR(p.amount)} logged`,
+      actionLabel: 'Undo',
+      onAction: () => deleteTransaction(id),
+    });
   };
 
   const safe = computeSafeToSpend({
@@ -111,8 +110,6 @@ export default function HomeScreen() {
 
   // Real budgets: overall month + the 3 categories closest to their limit
   const overall = overallBudget(transactions, settings.monthlyBudget);
-  const topBudgets = buildBudgetStatuses(transactions, settings.categoryBudgets).slice(0, 3);
-  const hasBudgets = overall !== null || topBudgets.length > 0;
 
   const income = transactions
     .filter((t) => t.type === 'income')
@@ -129,6 +126,48 @@ export default function HomeScreen() {
     .reduce((sum, t) => sum + t.amount, 0);
 
   const recent = transactions.slice(0, 5);
+
+  const accHave = accountTotals(accList).have;
+  const budgetPct = overall && overall.limit > 0 ? Math.round((overall.spent / overall.limit) * 100) : null;
+  const shortcuts: Shortcut[] = [
+    {
+      key: 'accounts', label: 'Accounts', icon: 'wallet-outline',
+      value: accounts.length === 0 ? 'Add cash & bank' : accStale ? 'Update balances' : `${compactINR(accHave)} you have`,
+      tone: accStale ? 'warn' : 'normal',
+      onPress: () => router.push('/accounts' as Href),
+    },
+    {
+      key: 'budgets', label: 'Budgets', icon: 'pie-chart-outline',
+      value: budgetPct === null ? 'Set a limit' : `${budgetPct}% used`,
+      tone: budgetPct === null ? 'normal' : budgetPct > 100 ? 'danger' : budgetPct > 80 ? 'warn' : 'good',
+      onPress: () => router.push('/budgets' as Href),
+    },
+    {
+      key: 'people', label: 'People', icon: 'swap-horizontal',
+      value: repayNudge
+        ? `Repay ${repayNudge.borrowed.person}`
+        : iouTotals.toGet > 0 ? `${compactINR(iouTotals.toGet)} to get`
+        : iouTotals.toPay > 0 ? `${compactINR(iouTotals.toPay)} to pay` : 'All square',
+      tone: repayNudge ? 'warn' : 'normal',
+      onPress: () => router.push('/ious' as Href),
+    },
+    {
+      key: 'jars', label: 'Jars', icon: 'file-tray-stacked-outline',
+      value: vaults.length > 0 ? `${compactINR(jarsTotal)} saved` : 'Start saving',
+      onPress: () => router.push('/vaults' as Href),
+    },
+    {
+      key: 'income', label: 'Income', icon: 'git-branch-outline',
+      value: income > 0 ? `${compactINR(income)} this month` : 'Add income',
+      tone: income > 0 ? 'good' : 'normal',
+      onPress: () => router.push('/income' as Href),
+    },
+    {
+      key: 'bills', label: 'Bills', icon: 'repeat',
+      value: bills.length > 0 ? `${bills.filter((b) => b.active).length} active` : 'Add rent, EMIs',
+      onPress: () => router.push('/bills' as Href),
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -148,100 +187,11 @@ export default function HomeScreen() {
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
 
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
-        <View style={styles.statsRow}>
-          <StatCard label="Spent today" value={formatINR(spentToday)} />
-          <StatCard label="Month income" value={formatINR(income)} />
-          <StatCard label="Month spent" value={formatINR(spent)} />
-        </View>
-
-        <Pressable
-          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/income' as Href)}
-        >
-          <View style={styles.linkIcon}>
-            <Ionicons name="git-branch-outline" size={16} color={Corpus.income} />
-          </View>
-          <Text style={styles.linkText}>Income streams</Text>
-          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/vaults')}
-        >
-          <View style={[styles.linkIcon, styles.linkIconGold]}>
-            <Ionicons name="file-tray-stacked-outline" size={16} color={Corpus.gold} />
-          </View>
-          <Text style={styles.linkText}>Jars</Text>
-          <Text style={styles.linkValue}>
-            {vaults.length > 0 ? `${formatINR(jarsTotal)} in jars` : 'Start a jar'}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/accounts' as Href)}
-        >
-          <View style={[styles.linkIcon, styles.linkIconGold]}>
-            <Ionicons name="wallet-outline" size={16} color={Corpus.gold} />
-          </View>
-          <Text style={styles.linkText}>Accounts</Text>
-          <Text style={[styles.linkValue, accStale && { color: Corpus.warning }]}>
-            {accounts.length === 0 ? 'Add cash & bank' : accStale ? 'Update balances' : `${formatINR(accountTotals(accList).have)} you have`}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
-        </Pressable>
-
-        <Pressable
-          style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.7 }]}
-          onPress={() => router.push('/ious' as Href)}
-        >
-          <View style={[styles.linkIcon, styles.linkIconGold]}>
-            <Ionicons name="swap-horizontal" size={16} color={Corpus.gold} />
-          </View>
-          <Text style={styles.linkText}>Lent, borrowed & debts</Text>
-          <Text style={styles.linkValue}>
-            {repayNudge
-              ? `🔁 Repay ${repayNudge.borrowed.person} ${formatINR(repayNudge.repayNow)}`
-              : iouTotals.toGet > 0
-              ? `${formatINR(iouTotals.toGet)} to get`
-              : iouTotals.toPay > 0
-                ? `${formatINR(iouTotals.toPay)} to pay`
-                : 'All square'}
-          </Text>
-          <Ionicons name="chevron-forward" size={16} color={Corpus.textMuted} />
-        </Pressable>
-
         <MoneyReminders items={reminders} onPress={() => router.push('/ious' as Href)} />
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitleInline}>Budgets</Text>
-          <Pressable onPress={() => router.push('/budgets')} hitSlop={8}>
-            <Text style={styles.viewAll}>{hasBudgets ? 'Manage' : 'Set up'}</Text>
-          </Pressable>
-        </View>
-        {hasBudgets ? (
-          <Pressable
-            style={({ pressed }) => [styles.budgets, pressed && { opacity: 0.7 }]}
-            onPress={() => router.push('/budgets')}
-          >
-            {overall && (
-              <BudgetBar label="Whole month" spent={overall.spent} total={overall.limit} />
-            )}
-            {topBudgets.map((b) => (
-              <BudgetBar key={b.categoryId} label={b.label} spent={b.spent} total={b.limit} />
-            ))}
-          </Pressable>
-        ) : (
-          <Pressable onPress={() => router.push('/budgets')}>
-            <Text style={styles.emptyText}>
-              No budgets yet. Set monthly limits to see how your spending is tracking.
-            </Text>
-          </Pressable>
-        )}
+        <Shortcuts items={shortcuts} />
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitleInline}>Recent</Text>

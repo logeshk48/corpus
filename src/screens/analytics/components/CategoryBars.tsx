@@ -16,9 +16,15 @@ type Props = {
 // Sorted horizontal bars, one hue. ▲▼ vs last month; a white tick marks the budget limit.
 export default function CategoryBars({ data, previous, budgets, previousLabel = 'last month', onPress }: Props) {
   const max = Math.max(...data.map((d) => Math.max(d.amount, budgets?.[d.id] ?? 0)), 1);
+  // What's gone over budget matters more than what's biggest, so it goes first
+  const over = (d: (typeof data)[number]) => {
+    const limit = budgets?.[d.id];
+    return limit && d.amount > limit ? d.amount - limit : 0;
+  };
+  const rows = [...data].sort((a, b) => over(b) - over(a) || b.amount - a.amount);
   return (
     <View style={styles.list}>
-      {data.map((d) => {
+      {rows.map((d) => {
         const before = previous?.get(d.id) ?? 0;
         const pct = before > 0 ? Math.round(((d.amount - before) / before) * 100) : null;
         const limit = budgets?.[d.id];

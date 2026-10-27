@@ -9,6 +9,7 @@ const PROMISES = [
   { icon: 'flash', title: 'One honest number', text: 'What you can safely spend today, after bills and savings' },
   { icon: 'calendar', title: 'Bills that never surprise you', text: 'Rent, EMIs and subscriptions are set aside before they’re due' },
   { icon: 'layers', title: 'Jars for what matters', text: 'Tax, emergencies and goals, each with its own pot' },
+  { icon: 'lock-closed', title: 'No bank login, no SMS reading', text: 'You type what you spend. Your bank details never touch Corpus' },
 ] as const;
 
 export default function WelcomeStep({ answers, update }: StepProps) {

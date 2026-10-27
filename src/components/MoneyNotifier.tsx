@@ -1,4 +1,8 @@
 import { useIous } from '@/hooks/useIous';
+import { useSettings } from '@/hooks/useSettings';
+import { useTransactions } from '@/hooks/useTransactions';
+import { overallBudget } from '@/utils/budgets';
+import { formatINR } from '@/utils/format';
 import { useAccounts } from '@/hooks/useAccounts';
 import { accountBalances, cardReminders, verifiedAgo } from '@/utils/accounts';
 import { moneyReminders, notificationsToSchedule } from '@/utils/debtReminders';
@@ -26,6 +30,9 @@ if (Platform.OS !== 'web') {
 export default function MoneyNotifier() {
   const { ious, loading } = useIous();
   const { accounts } = useAccounts();
+  const { settings } = useSettings();
+  const { transactions } = useTransactions('month');
+  const on = (k: 'people' | 'cards' | 'checkin' | 'budget') => settings.notify?.[k] !== false;
   const asked = useRef(false);
 
   useEffect(() => {
@@ -42,14 +49,14 @@ export default function MoneyNotifier() {
           }
         }
         const cards = cardReminders(accountBalances(accounts, []));
-        const plan = notificationsToSchedule([...moneyReminders(ious), ...cards]);
+        const plan = notificationsToSchedule([...(on('people') ? moneyReminders(ious) : []), ...(on('cards') ? cards : [])]);
         // card bills: also 3 days before
-        for (const c of cards) {
+        for (const c of on('cards') ? cards : []) {
           const d = new Date(c.when.getTime() - 3 * 86_400_000);
           if (d > new Date()) plan.push({ id: `${c.id}:3d`, date: d, title: c.title, body: c.body.replace(/^Due in \d+ days/, 'Due in 3 days') });
         }
         // weekly balance check-in: next Sunday 7 PM, only if something is 7+ days old
-        if (accounts.some((a) => verifiedAgo(a).stale || verifiedAgo(a).days >= 6)) {
+        if (on('checkin') && accounts.some((a) => verifiedAgo(a).stale || verifiedAgo(a).days >= 6)) {
           const now = new Date();
           const sun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((7 - now.getDay()) % 7), 19);
           if (sun <= now) sun.setDate(sun.getDate() + 7);
@@ -58,6 +65,21 @@ export default function MoneyNotifier() {
         if (plan.length === 0) {
           await cancelOurs();
           return;
+        }
+        // Budget: one evening heads-up once 80% of the month's budget is used
+        const ob = overallBudget(transactions, settings.monthlyBudget);
+        if (on('budget') && ob && ob.limit > 0 && ob.spent / ob.limit >= 0.8) {
+          const now = new Date();
+          const eve = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20);
+          if (eve > now) {
+            const pct = Math.round((ob.spent / ob.limit) * 100);
+            plan.push({
+              id: `budget:${eve.toISOString().slice(0, 10)}`,
+              date: eve,
+              title: pct >= 100 ? 'Over this month’s budget' : `${pct}% of this month’s budget used`,
+              body: pct >= 100 ? `${formatINR(ob.spent - ob.limit)} over your ${formatINR(ob.limit)} limit` : `${formatINR(ob.limit - ob.spent)} left. Go easy for the rest of the month`,
+            });
+          }
         }
         const perm = await Notifications.getPermissionsAsync();
         if (!perm.granted) {
@@ -77,7 +99,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, loading]);
+  }, [ious, accounts, loading, settings.notify, settings.monthlyBudget, transactions]);
 
   return null;
 }

@@ -95,3 +95,12 @@ export async function restoreTransaction(id: string, tx: NewTransaction) {
     ...clean(tx),
   });
 }
+
+
+// INSTANT ADD: the id is created on the phone, so the entry shows (and can be undone)
+// immediately, even on a slow connection. Firestore syncs it in the background.
+export function addTransactionNow(tx: NewTransaction): string {
+  const ref = doc(txCollection());
+  setDoc(ref, { ...clean(tx), createdAt: serverTimestamp() }).catch((e) => console.error('Sync failed:', e));
+  return ref.id;
+}
