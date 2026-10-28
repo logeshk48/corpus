@@ -1,6 +1,7 @@
 // Indian grouping: 12,34,567 (not 1,234,567). Used everywhere money is shown.
 export function formatINR(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+  // minus goes before the ₹: −₹1,250 (not ₹-1,250)
+  return amount < 0 ? `−₹${Math.abs(amount).toLocaleString('en-IN')}` : `₹${amount.toLocaleString('en-IN')}`;
 }
 
 // Short Indian form for big numbers: 1.25 L, 3.4 Cr. Readable at a glance on charts
@@ -22,5 +23,5 @@ function trim(v: number): string {
 
 // Big headline figures: "₹1,25,000 · 1.25 L" — exact first, short form as a hint
 export function formatINRLong(amount: number): string {
-  return Math.abs(amount) >= 1_00_000 ? `${formatINR(amount)} · ${compactINR(amount).replace('₹', '')}` : formatINR(amount);
+  return Math.abs(amount) >= 1_00_000 ? `${formatINR(amount)} · ${compactINR(amount).replace('−₹', '−').replace('₹', '')}` : formatINR(amount);
 }

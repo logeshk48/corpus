@@ -163,9 +163,9 @@ export default function HomeScreen() {
       onPress: () => router.push('/income' as Href),
     },
     {
-      key: 'bills', label: 'Bills', icon: 'repeat',
-      value: bills.length > 0 ? `${bills.filter((b) => b.active).length} active` : 'Add rent, EMIs',
-      onPress: () => router.push('/bills' as Href),
+      key: 'networth', label: 'Net worth', icon: 'trending-up-outline',
+      value: 'See it all',
+      onPress: () => router.push('/networth' as Href),
     },
   ];
 
