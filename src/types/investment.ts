@@ -11,8 +11,14 @@ export type Investment = {
   rate?: number;           // % a year: FD rate, EPF 8.25, PPF 7.1 — used to grow the value automatically
   maturityDate?: string;   // FD
   units?: number;          // MF / stock / crypto (optional, for later live prices)
-  schemeCode?: string;     // MF scheme code (live NAV, Day 4)
+  schemeCode?: string;     // MF scheme code (AMFI) → live NAV
+  symbol?: string;         // stock / ETF / gold ETF ticker, e.g. RELIANCE.NS → live price
+  npsCode?: string;        // NPS scheme code, e.g. SM001003 → live NAV
+  coinId?: string;         // CoinGecko id, e.g. bitcoin → live INR price
+  fundClass?: 'equity' | 'debt' | 'hybrid' | 'gold' | 'other'; // for tax rules (from the AMFI category)
+  lots?: Lot[];            // each purchase — used for long/short-term tax (FIFO when selling)
 };
+export type Lot = { date: string; units: number; price: number };
 export type NewInvestment = Omit<Investment, 'id'>;
 
 export const INVEST_TYPES: { id: InvestType; label: string; icon: string; liquid: boolean; grows?: number; hint: string; cls: 'equity' | 'debt' | 'retirement' | 'gold' | 'crypto' | 'other' }[] = [

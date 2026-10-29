@@ -18,11 +18,12 @@ type Props = {
   onAddMoney: (h: Investment, amount: number) => Promise<void>;
   onUpdateValue: (h: Investment, value: number) => Promise<void>;
   onDelete?: () => void;
+  onSearchLive?: (t: InvestType) => void;
 };
 const num = (t: string) => t.replace(/[^0-9.]/g, '');
 const yearToIso = (y: string) => (y.length === 4 ? new Date(Number(y), 0, 1).toISOString() : undefined);
 
-export default function InvestmentSheet({ mode, onClose, onSave, onAddMoney, onUpdateValue, onDelete }: Props) {
+export default function InvestmentSheet({ mode, onClose, onSave, onAddMoney, onUpdateValue, onDelete, onSearchLive }: Props) {
   const h = mode.kind === 'new' ? undefined : mode.h;
   const [type, setType] = useState<InvestType>(h?.type ?? 'mf');
   const meta = investMeta(type);
@@ -122,6 +123,14 @@ export default function InvestmentSheet({ mode, onClose, onSave, onAddMoney, onU
         startDate: yearToIso(since)!,
         rate: Number(rate) > 0 && (isFd || isAccrual) ? Number(rate) : undefined,
         maturityDate: isFd ? yearToIso(matYear) : undefined,
+        // keep a live link if this holding has one
+        units: h?.units,
+        symbol: h?.symbol,
+        schemeCode: h?.schemeCode,
+        npsCode: h?.npsCode,
+        coinId: h?.coinId,
+        fundClass: h?.fundClass,
+        lots: h?.lots,
       });
     });
 
@@ -152,6 +161,12 @@ export default function InvestmentSheet({ mode, onClose, onSave, onAddMoney, onU
                   </Pressable>
                 ))}
               </View>
+            )}
+            {!h && ['mf', 'stock', 'nps', 'crypto', 'goldbond'].includes(type) && onSearchLive && (
+              <Pressable style={[sheet.chip, sheet.chipSuggested, { alignSelf: 'stretch', flexDirection: 'row', gap: 8, paddingVertical: 12 }]} onPress={() => onSearchLive(type)}>
+                <Ionicons name="pulse" size={16} color={Corpus.gold} />
+                <Text style={[sheet.chipTextSuggested, { flex: 1 }]}>Search it for a live {type === 'mf' || type === 'nps' ? 'NAV' : 'price'} — value updates by itself (recommended)</Text>
+              </Pressable>
             )}
             <View style={f.field}>
               <Text style={f.label}>NAME</Text>
