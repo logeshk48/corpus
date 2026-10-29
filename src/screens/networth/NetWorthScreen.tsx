@@ -1,5 +1,6 @@
 import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
+import { ChartColors } from '@/constants/chartColors';
 import { useToast } from '@/context/ToastContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
@@ -11,10 +12,11 @@ import { addAsset, deleteAsset, saveMonthSnapshot, updateAsset } from '@/service
 import type { ManualAsset, NewManualAsset } from '@/types/asset';
 import { accountBalances } from '@/utils/accounts';
 import { compactINR, formatINR, formatINRLong } from '@/utils/format';
-import { jarsCheck, netWorthHistory, netWorthItems, netWorthTotals, type Confidence, type NwItem } from '@/utils/netWorth';
+import { composition, explainChange, healthRatios, jarsCheck, monthlyPace, netWorthHistory, netWorthItems, netWorthTotals, nextMilestone, staleItems, type Confidence, type NwGroup, type NwItem } from '@/utils/netWorth';
+import { monthlySpend } from '@/utils/moneyHealth';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AssetSheet from './AssetSheet';
 import { styles } from './NetWorthScreen.styles';
@@ -25,6 +27,19 @@ const VIEWS: { key: ViewKey; label: string; hint: string }[] = [
   { key: 'withoutHome', label: 'Without home', hint: 'Leaves out the home you live in and its loan' },
   { key: 'liquid', label: 'Liquid', hint: 'Cash and bank you could use now − all your debts' },
 ];
+const GROUP: Record<NwGroup, { label: string; color: string }> = {
+  cash: { label: 'Cash & bank', color: Corpus.income },
+  receivable: { label: 'Owed to you', color: ChartColors.netWorth.receivable },
+  home: { label: 'Home', color: ChartColors.netWorth.home },
+  property: { label: 'Property', color: ChartColors.netWorth.property },
+  vehicle: { label: 'Vehicles', color: ChartColors.netWorth.vehicle },
+  gold: { label: 'Gold', color: Corpus.gold },
+  other: { label: 'Other', color: Corpus.textMuted },
+  card: { label: 'Credit cards', color: Corpus.danger },
+  loan: { label: 'Loans', color: Corpus.warning },
+  homeLoan: { label: 'Home loan', color: ChartColors.netWorth.home },
+  people: { label: 'Owed to people', color: ChartColors.netWorth.people },
+};
 const PILL: Record<Confidence, { label: string; color: string }> = {
   verified: { label: 'VERIFIED', color: Corpus.income },
   manual: { label: 'YOUR VALUE', color: Corpus.textMuted },
@@ -43,6 +58,7 @@ export default function NetWorthScreen() {
   const { assets, snapshots, loading: asLoading } = useAssets();
   const [view, setView] = useState<ViewKey>('total');
   const [sheet, setSheet] = useState<{ editing?: ManualAsset } | null>(null);
+  const [goldRate, setGoldRate] = useState<string | null>(null);
 
   const input = useMemo(
     () => ({ accounts: accountBalances(accounts, transactions), ious, bills, assets }),
@@ -66,6 +82,26 @@ export default function NetWorthScreen() {
   }, [loading, totals.total, totals.withoutHome, totals.liquid]);
 
   const prev = history.length >= 2 ? history[history.length - 2] : null;
+  const changes = useMemo(() => (prev ? explainChange(netWorthItems(input, prev.date, false), items) : null), [prev?.key, input, items]);
+  const pace = monthlyPace(history.map((h) => h.totals.total));
+  const milestone = nextMilestone(totals.total, pace);
+  const spend = monthlySpend(transactions);
+  const income = useMemo(() => {
+    const from = Date.now() - 90 * 86_400_000;
+    const inc = transactions.filter((t) => t.type === 'income' && new Date(t.date).getTime() > from).reduce((s2, t) => s2 + t.amount, 0);
+    return inc / 3;
+  }, [transactions]);
+  const ratios = healthRatios(totals, items, spend, income);
+  const old = staleItems(items);
+  const golds = assets.filter((a) => a.kind === 'gold' && a.grams);
+  const updateGold = async () => {
+    const r = Number(goldRate);
+    if (!r) return;
+    const now = new Date().toISOString();
+    await Promise.all(golds.map((g) => updateAsset(g.id, { rate24k: r, updatedAt: now })));
+    setGoldRate(null);
+    showToast({ message: `Gold updated at ${formatINR(r)}/g` });
+  };
   const change = prev ? totals[view] - prev.totals[view] : null;
   const max = Math.max(...history.map((h) => Math.abs(h.totals[view])), 1);
 
@@ -152,6 +188,52 @@ export default function NetWorthScreen() {
               ))}
             </View>
 
+            {/* Next milestone */}
+            <View style={styles.chart}>
+              <Text style={styles.rowLabel}>
+                {milestone.debtFree ? '🎯 Next: owe nothing (₹0)' : `🎯 Next: ${compactINR(milestone.target)}`}
+              </Text>
+              <View style={styles.track}>
+                <View style={[styles.trackFill, { width: `${Math.round(milestone.progress * 100)}%` }]} />
+              </View>
+              <Text style={styles.chartNote}>
+                {formatINR(Math.max(0, milestone.target - totals.total))} to go
+                {milestone.months ? ` · at your pace about ${milestone.months} month${milestone.months > 1 ? 's' : ''} (estimate)` : pace !== null && pace <= 0 ? ' · net worth went down recently, so no estimate yet' : ' · a pace estimate appears after 2 months of history'}
+              </Text>
+            </View>
+
+            {/* What changed */}
+            {changes && changes.lines.length > 0 && prev && (
+              <View style={styles.chart}>
+                <Text style={styles.rowLabel}>What changed since end of {prev.label}</Text>
+                <View style={styles.views}>
+                  {[
+                    { l: 'Cash & owed to you', v: changes.saved },
+                    { l: 'Debt', v: changes.debtPaid },
+                    { l: 'Things you own', v: changes.valueChange },
+                  ].map((c) => (
+                    <View key={c.l} style={styles.view}>
+                      <Text style={styles.viewLabel}>{c.l}</Text>
+                      <Text style={[styles.viewValue, { color: c.v > 0 ? Corpus.income : c.v < 0 ? Corpus.danger : Corpus.textMuted }]}>
+                        {c.v > 0 ? '+' : ''}{compactINR(c.v)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+                {changes.lines.slice(0, 5).map((l) => (
+                  <View key={l.id} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={styles.chartNote}>
+                      {l.label}
+                      {l.kind === 'debt' && l.delta > 0 ? ' · paid down' : l.kind === 'debt' ? ' · grew' : l.kind === 'new' ? ' · added' : l.kind === 'value' ? ' · value changed' : ''}
+                    </Text>
+                    <Text style={[styles.chartNote, { color: l.delta > 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
+                      {l.delta > 0 ? '+' : ''}{formatINR(l.delta)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {history.length >= 2 && (
               <View style={styles.chart}>
                 <View style={styles.bars}>
@@ -177,6 +259,80 @@ export default function NetWorthScreen() {
                 <Text style={styles.warnText}>
                   ⚠️ Your jars ({formatINR(jars.jarsTotal)}) add up to more than your cash and bank ({formatINR(jars.cash)}). Jar money lives inside your bank balance, so update your balances or take money out of a jar.
                 </Text>
+              </View>
+            )}
+
+            {/* Health numbers */}
+            <View style={styles.views}>
+              <View style={styles.view}>
+                <Text style={styles.viewLabel}>Debt vs assets</Text>
+                <Text style={[styles.viewValue, { color: ratios.debtToAssets > 0.5 ? Corpus.danger : ratios.debtToAssets > 0.3 ? Corpus.warning : Corpus.income }]}>
+                  {!Number.isFinite(ratios.debtToAssets) ? 'All debt' : ratios.debtToAssets > 1 ? `${ratios.debtToAssets.toFixed(1)}× assets` : `${Math.round(ratios.debtToAssets * 100)}%`}
+                </Text>
+              </View>
+              <View style={styles.view}>
+                <Text style={styles.viewLabel}>Cash covers</Text>
+                <Text style={[styles.viewValue, { color: (ratios.monthsCovered ?? 0) < 1 ? Corpus.warning : Corpus.text }]}>
+                  {ratios.monthsCovered === null ? '—' : `${ratios.monthsCovered.toFixed(1)} mo`}
+                </Text>
+              </View>
+              <View style={styles.view}>
+                <Text style={styles.viewLabel}>Worth in income</Text>
+                <Text style={[styles.viewValue, { color: (ratios.monthsOfIncome ?? 0) < 0 ? Corpus.danger : Corpus.text }]}>
+                  {ratios.monthsOfIncome === null ? '—' : `${ratios.monthsOfIncome < 0 ? '−' : ''}${Math.abs(ratios.monthsOfIncome).toFixed(1)} mo`}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.note}>
+              Debt vs assets under 30% is comfortable. "Cash covers" = months your cash and bank pay your usual spending. "Worth in income" = your net worth in months of income.
+            </Text>
+
+            {/* Composition */}
+            {(['asset', 'liability'] as const).map((side) => {
+              const parts = composition(items, side);
+              if (parts.length === 0) return null;
+              return (
+                <View key={side} style={styles.chart}>
+                  <Text style={styles.rowLabel}>{side === 'asset' ? 'What you own is made of' : 'What you owe is made of'}</Text>
+                  <View style={styles.stack}>
+                    {parts.map((p) => (
+                      <View key={p.group} style={{ flex: Math.max(p.share, 0.02), backgroundColor: GROUP[p.group].color }} />
+                    ))}
+                  </View>
+                  <View style={styles.legend}>
+                    {parts.map((p) => (
+                      <Text key={p.group} style={styles.chartNote}>
+                        <Text style={{ color: GROUP[p.group].color }}>● </Text>
+                        {GROUP[p.group].label} {Math.round(p.share * 100)}%
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              );
+            })}
+
+            {/* Old values + one gold rate for all gold */}
+            {(old.length > 0 || golds.length > 0) && (
+              <View style={[styles.chart, old.length > 0 && { borderColor: Corpus.warningLine, borderWidth: 1 }]}>
+                {old.length > 0 && (
+                  <>
+                    <Text style={styles.rowLabel}>⏳ {old.length} value{old.length > 1 ? 's are' : ' is'} old</Text>
+                    <Text style={styles.chartNote}>{old.map((o) => o.label).join(' · ')}. Tap each below to update, or update balances in Accounts.</Text>
+                  </>
+                )}
+                {golds.length > 0 &&
+                  (goldRate === null ? (
+                    <Pressable onPress={() => setGoldRate(String(golds[0].rate24k ?? ''))}>
+                      <Text style={[styles.chartNote, { color: Corpus.gold }]}>
+                        💰 Gold at {formatINR(golds[0].rate24k ?? 0)}/g (24K). Tap to update today's rate for all your gold
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                      <TextInput style={styles.rateInput} value={goldRate} onChangeText={(t) => setGoldRate(t.replace(/[^0-9.]/g, ''))} keyboardType="numeric" placeholder="24K rate per gram" placeholderTextColor={Corpus.textFaint} autoFocus />
+                      <Button size="sm" label="Update gold" onPress={updateGold} />
+                    </View>
+                  ))}
               </View>
             )}
 

@@ -216,3 +216,71 @@ export function netWorthHistory(d: NwInput, months = 12, now = new Date()) {
   }
   return out;
 }
+
+// ─── "What changed": item-by-item difference between two moments ───
+export type ChangeLine = { id: string; label: string; delta: number; kind: 'saved' | 'debt' | 'value' | 'new' | 'gone' };
+
+export function explainChange(before: NwItem[], after: NwItem[]): { lines: ChangeLine[]; saved: number; debtPaid: number; valueChange: number; total: number } {
+  const signed = (i: NwItem) => (i.side === 'asset' ? i.value : -i.value);
+  const b = new Map(before.map((i) => [i.id, i]));
+  const a = new Map(after.map((i) => [i.id, i]));
+  const lines: ChangeLine[] = [];
+  for (const id of new Set([...b.keys(), ...a.keys()])) {
+    const x = b.get(id);
+    const y = a.get(id);
+    const delta = Math.round((y ? signed(y) : 0) - (x ? signed(x) : 0));
+    if (delta === 0) continue;
+    const item = (y ?? x)!;
+    // cash and money owed to you move together (a repayment is cash ↑, receivable ↓);
+    // debts are always "debt"; only things like gold, vehicles and property are "value"
+    let kind: ChangeLine['kind'];
+    if (item.side === 'liability') kind = 'debt';
+    else if (item.group === 'cash' || item.group === 'receivable') kind = 'saved';
+    else if (!x) kind = 'new';
+    else if (!y) kind = 'gone';
+    else kind = 'value';
+    lines.push({ id, label: item.label, delta, kind });
+  }
+  lines.sort((p, q) => Math.abs(q.delta) - Math.abs(p.delta));
+  const sum = (k: ChangeLine['kind'][]) => lines.filter((l) => k.includes(l.kind)).reduce((s, l) => s + l.delta, 0);
+  return { lines, saved: sum(['saved']), debtPaid: sum(['debt']), valueChange: sum(['value', 'new', 'gone']), total: lines.reduce((s, l) => s + l.delta, 0) };
+}
+
+// ─── Milestones: reach ₹0 first (if negative), then ₹1 L, 5 L, 10 L, 25 L, 50 L, 1 Cr, 2 Cr, 5 Cr, 10 Cr ───
+const STEPS = [0, 1_00_000, 5_00_000, 10_00_000, 25_00_000, 50_00_000, 1_00_00_000, 2_00_00_000, 5_00_00_000, 10_00_00_000];
+
+export function nextMilestone(current: number, monthlyPace: number | null) {
+  const target = STEPS.find((s) => s > current) ?? Math.ceil(current / 10_00_00_000 + 1) * 10_00_00_000;
+  const from = [...STEPS].reverse().find((s) => s <= current) ?? Math.min(current, 0);
+  const span = target - from || 1;
+  const progress = Math.max(0, Math.min(1, (current - from) / span));
+  const months = monthlyPace && monthlyPace > 0 ? Math.ceil((target - current) / monthlyPace) : null;
+  return { target, from, progress, months, debtFree: target === 0 };
+}
+
+// Average month-on-month change over the last few saved months
+export function monthlyPace(totals: number[]) {
+  if (totals.length < 2) return null;
+  const last = totals.slice(-4);
+  return (last[last.length - 1] - last[0]) / (last.length - 1);
+}
+
+// ─── What it's made of ───
+export function composition(items: NwItem[], side: 'asset' | 'liability') {
+  const map = new Map<NwGroup, number>();
+  for (const i of items.filter((x) => x.side === side && x.value > 0)) map.set(i.group, (map.get(i.group) ?? 0) + i.value);
+  const total = [...map.values()].reduce((s, v) => s + v, 0);
+  return [...map.entries()].map(([group, value]) => ({ group, value, share: total ? value / total : 0 })).sort((a, b) => b.value - a.value);
+}
+
+// ─── Health numbers ───
+export function healthRatios(t: NwTotals, items: NwItem[], monthlySpend: number, monthlyIncome: number) {
+  const liquidAssets = items.filter((i) => i.side === 'asset' && i.liquid).reduce((s, i) => s + i.value, 0);
+  return {
+    debtToAssets: t.assets > 0 ? t.liabilities / t.assets : t.liabilities > 0 ? Infinity : 0,
+    monthsCovered: monthlySpend > 0 ? liquidAssets / monthlySpend : null,
+    monthsOfIncome: monthlyIncome > 0 ? t.total / monthlyIncome : null,
+  };
+}
+
+export const staleItems = (items: NwItem[]) => items.filter((i) => i.confidence === 'stale');

@@ -16,4 +16,6 @@ export const ChartColors = {
   // Calendar heatmap — sequential amber, more = brighter (ordinal check passed, faintest 2.16:1)
   heat: ['#23262E', '#684e16', '#946c0c', '#c08600', '#efae38'] as const,
   budgetMarker: '#F5F2E8',
+  // Net worth composition (identity colours, one per group)
+  netWorth: { receivable: '#7FB7E0', home: '#A78BDB', property: '#C88BDB', vehicle: '#E08A6B', people: '#E08A6B' },
 };

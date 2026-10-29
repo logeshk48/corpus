@@ -33,5 +33,10 @@ export const styles = StyleSheet.create({
   warn: { backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine, borderWidth: 1, borderRadius: Radius.md, padding: 12 },
   warnText: { fontSize: Type.small, color: Corpus.text, lineHeight: 17 },
   note: { fontSize: Type.small, color: Corpus.textFaint, lineHeight: 17 },
+  track: { height: 8, borderRadius: 4, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },
+  trackFill: { height: 8, borderRadius: 4, backgroundColor: Corpus.gold },
+  stack: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', gap: 2 },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
+  rateInput: { flex: 1, backgroundColor: Corpus.bg, borderRadius: Radius.md, borderWidth: 1, borderColor: Corpus.border, paddingHorizontal: 12, paddingVertical: 8, fontSize: Type.bodyLg, color: Corpus.text },
   empty: { fontSize: Type.body, color: Corpus.textMuted, paddingVertical: 12 },
 });

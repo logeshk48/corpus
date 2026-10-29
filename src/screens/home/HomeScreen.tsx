@@ -7,6 +7,8 @@ import { useIous } from '@/hooks/useIous';
 import { useAccounts } from '@/hooks/useAccounts';
 import { accountBalances, accountTotals, cardReminders, verifiedAgo } from '@/utils/accounts';
 import { moneyHealth } from '@/utils/moneyHealth';
+import { useAssets } from '@/hooks/useAssets';
+import { netWorthItems, netWorthTotals } from '@/utils/netWorth';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -128,6 +130,8 @@ export default function HomeScreen() {
   const recent = transactions.slice(0, 5);
 
   const accHave = accountTotals(accList).have;
+  const { assets } = useAssets();
+  const nw = netWorthTotals(netWorthItems({ accounts: accList, ious, bills, assets })).total;
   const budgetPct = overall && overall.limit > 0 ? Math.round((overall.spent / overall.limit) * 100) : null;
   const shortcuts: Shortcut[] = [
     {
@@ -164,7 +168,8 @@ export default function HomeScreen() {
     },
     {
       key: 'networth', label: 'Net worth', icon: 'trending-up-outline',
-      value: 'See it all',
+      value: accounts.length === 0 && assets.length === 0 ? 'See it all' : compactINR(nw),
+      tone: accounts.length === 0 && assets.length === 0 ? 'normal' : nw < 0 ? 'danger' : 'good',
       onPress: () => router.push('/networth' as Href),
     },
   ];
