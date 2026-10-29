@@ -51,9 +51,11 @@ export function vehicleValue(price: number, purchaseIso: string, at = new Date()
 // Gold: grams × purity × 24K rate (rate excludes making charges and GST, like IBJA)
 export const goldValue = (grams: number, karat: number, rate24k: number) => Math.round(grams * (karat / 24) * rate24k);
 
-export function assetValue(a: ManualAsset, at = new Date()) {
+export function assetValue(a: ManualAsset, at = new Date(), goldRate?: number | null) {
   if (a.kind === 'vehicle' && a.purchasePrice && a.purchaseDate) return vehicleValue(a.purchasePrice, a.purchaseDate, at);
-  if (a.kind === 'gold' && a.grams && a.karat && a.rate24k) return goldValue(a.grams, a.karat, a.rate24k);
+  // gold follows today's rate (live or your own) when we have one
+  const rate = goldRate ?? a.rate24k;
+  if (a.kind === 'gold' && a.grams && a.karat && rate) return goldValue(a.grams, a.karat, rate);
   return a.value;
 }
 
@@ -92,6 +94,7 @@ export type NwInput = {
   bills: Bill[];
   assets: ManualAsset[];
   jarsTotal?: number;
+  goldRate?: { rate: number; mode: 'live' | 'custom' } | null; // today's 24K ₹/g
 };
 
 export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem[] {
@@ -154,17 +157,20 @@ export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem
 
   for (const a of d.assets) {
     if (new Date(a.addedAt) > at) continue;
-    const auto = (a.kind === 'vehicle' && a.purchasePrice && a.purchaseDate) || (a.kind === 'gold' && a.grams && a.rate24k);
+    const auto = (a.kind === 'vehicle' && a.purchasePrice && a.purchaseDate) || (a.kind === 'gold' && a.grams && (a.rate24k || d.goldRate));
+    const priced = a.kind === 'gold' && !!a.grams && !!d.goldRate && isNow;
     const f = freshness(a.updatedAt, at, a.kind === 'gold' ? 45 : 365);
     items.push({
       id: `asset:${a.id}`,
       label: a.name,
       side: 'asset',
       group: a.kind,
-      value: assetValue(a, at),
+      value: assetValue(a, at, priced ? d.goldRate!.rate : null),
       liquid: false,
-      confidence: a.kind === 'vehicle' && auto ? 'estimated' : f.confidence === 'stale' ? 'stale' : 'manual',
-      note: a.kind === 'vehicle' && auto ? 'falls each year (insurance schedule)' : a.kind === 'gold' && auto ? `${a.grams} g · ${a.karat}K · ${f.note}` : f.note,
+      confidence: priced ? (d.goldRate!.mode === 'live' ? 'verified' : 'manual') : a.kind === 'vehicle' && auto ? 'estimated' : f.confidence === 'stale' ? 'stale' : 'manual',
+      note: priced
+        ? `${a.grams} g · ${a.karat}K · ${d.goldRate!.mode === 'live' ? 'live market rate' : 'your rate'} ₹${d.goldRate!.rate.toLocaleString('en-IN')}/g`
+        : a.kind === 'vehicle' && auto ? 'falls each year (insurance schedule)' : a.kind === 'gold' && auto ? `${a.grams} g · ${a.karat}K · ${f.note}` : f.note,
       link: '/networth',
     });
   }

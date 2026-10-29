@@ -8,6 +8,7 @@ import { useBills } from '@/hooks/useBills';
 import { useIous } from '@/hooks/useIous';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
+import { useGoldRate } from '@/hooks/useGoldRate';
 import { addAsset, deleteAsset, saveMonthSnapshot, updateAsset } from '@/services/assets';
 import type { ManualAsset, NewManualAsset } from '@/types/asset';
 import { accountBalances } from '@/utils/accounts';
@@ -57,12 +58,13 @@ export default function NetWorthScreen() {
   const { total: jarsTotal } = useVaults();
   const { assets, snapshots, loading: asLoading } = useAssets();
   const [view, setView] = useState<ViewKey>('total');
+  const gold = useGoldRate();
   const [sheet, setSheet] = useState<{ editing?: ManualAsset } | null>(null);
   const [goldRate, setGoldRate] = useState<string | null>(null);
 
   const input = useMemo(
-    () => ({ accounts: accountBalances(accounts, transactions), ious, bills, assets }),
-    [accounts, transactions, ious, bills, assets]
+    () => ({ accounts: accountBalances(accounts, transactions), ious, bills, assets, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null }),
+    [accounts, transactions, ious, bills, assets, gold.rate, gold.mode]
   );
   const items = useMemo(() => netWorthItems(input), [input]);
   const totals = netWorthTotals(items);
@@ -97,11 +99,11 @@ export default function NetWorthScreen() {
   const updateGold = async () => {
     const r = Number(goldRate);
     if (!r) return;
-    const now = new Date().toISOString();
-    await Promise.all(golds.map((g) => updateAsset(g.id, { rate24k: r, updatedAt: now })));
+    await gold.setCustom(r);
     setGoldRate(null);
-    showToast({ message: `Gold updated at ${formatINR(r)}/g` });
+    showToast({ message: `Using your price ${formatINR(r)}/g for all gold` });
   };
+
   const change = prev ? totals[view] - prev.totals[view] : null;
   const max = Math.max(...history.map((h) => Math.abs(h.totals[view])), 1);
 
@@ -320,19 +322,30 @@ export default function NetWorthScreen() {
                     <Text style={styles.chartNote}>{old.map((o) => o.label).join(' · ')}. Tap each below to update, or update balances in Accounts.</Text>
                   </>
                 )}
-                {golds.length > 0 &&
-                  (goldRate === null ? (
-                    <Pressable onPress={() => setGoldRate(String(golds[0].rate24k ?? ''))}>
-                      <Text style={[styles.chartNote, { color: Corpus.gold }]}>
-                        💰 Gold at {formatINR(golds[0].rate24k ?? 0)}/g (24K). Tap to update today's rate for all your gold
-                      </Text>
-                    </Pressable>
-                  ) : (
-                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                      <TextInput style={styles.rateInput} value={goldRate} onChangeText={(t) => setGoldRate(t.replace(/[^0-9.]/g, ''))} keyboardType="numeric" placeholder="24K rate per gram" placeholderTextColor={Corpus.textFaint} autoFocus />
-                      <Button size="sm" label="Update gold" onPress={updateGold} />
-                    </View>
-                  ))}
+                {golds.length > 0 && (
+                  <View style={{ gap: 6 }}>
+                    <Text style={[styles.chartNote, { color: Corpus.gold }]}>
+                      💰 Gold 24K: {gold.rate ? `${formatINR(gold.rate)}/g` : gold.fetching ? 'getting today’s price…' : 'price unavailable offline'}
+                      {gold.mode === 'live'
+                        ? gold.liveAt ? ` · live market price, ${new Date(gold.liveAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : ''
+                        : ' · your own price'}
+                    </Text>
+                    {gold.mode === 'live' && (
+                      <Text style={styles.chartNote}>International price + 15% import duty, before GST and making charges. Updates every 30 min.</Text>
+                    )}
+                    {goldRate === null ? (
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Button size="sm" variant="secondary" icon="create-outline" label={gold.mode === 'custom' ? 'Change my price' : 'Use my own price'} onPress={() => setGoldRate(String(gold.rate ?? ''))} />
+                        {gold.mode === 'custom' && <Button size="sm" icon="pulse" label="Use live price" onPress={() => gold.useLive()} />}
+                      </View>
+                    ) : (
+                      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                        <TextInput style={styles.rateInput} value={goldRate} onChangeText={(t) => setGoldRate(t.replace(/[^0-9.]/g, ''))} keyboardType="numeric" placeholder="Your jeweller's 24K rate per gram" placeholderTextColor={Corpus.textFaint} autoFocus />
+                        <Button size="sm" label="Save" onPress={updateGold} />
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             )}
 

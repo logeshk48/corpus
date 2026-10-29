@@ -12,6 +12,8 @@ export type Settings = {
   cycleStartDay?: number;   // 1–28: your month starts on pay day, not the 1st
   // Phone notification types — missing means ON
   notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean };
+  // Gold price: live market rate (default) or your own jeweller's rate
+  gold?: { mode?: 'live' | 'custom'; customRate24k?: number; lastLive?: { rate: number; at: string } };
   upiId?: string;          // added to lent-money reminders, e.g. name@okaxis
   phones?: Record<string, string>; // person key (lowercase name) → mobile number, for WhatsApp reminders   // ISO — set when first-run setup is finished or skipped
   monthlyBudget?: number; // total spending budget per month, in INR

@@ -6,6 +6,7 @@ import { ASSET_KINDS, assetKindMeta, type AssetKind, type ManualAsset, type NewM
 import { formatINR } from '@/utils/format';
 import { goldValue, vehicleValue } from '@/utils/netWorth';
 import { Ionicons } from '@expo/vector-icons';
+import { useGoldRate } from '@/hooks/useGoldRate';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -21,14 +22,17 @@ export default function AssetSheet({ editing, onClose, onSave, onDelete }: Props
   const [grams, setGrams] = useState(editing?.grams ? String(editing.grams) : '');
   const [karat, setKarat] = useState<24 | 22 | 18>(editing?.karat ?? 22);
   const [rate, setRate] = useState(editing?.rate24k ? String(editing.rate24k) : '');
+  const gold = useGoldRate();
+  // gold uses today's live (or your own) rate; typing one here is only needed offline
+  const effectiveRate = gold.rate ?? (Number(rate) || 0);
   const [busy, setBusy] = useState(false);
 
   const purchaseDate = year.length === 4 ? new Date(Number(year), 6, 1).toISOString() : undefined;
   const preview =
     kind === 'vehicle' && Number(price) > 0 && purchaseDate
       ? vehicleValue(Number(price), purchaseDate)
-      : kind === 'gold' && Number(grams) > 0 && Number(rate) > 0
-        ? goldValue(Number(grams), karat, Number(rate))
+      : kind === 'gold' && Number(grams) > 0 && effectiveRate > 0
+        ? goldValue(Number(grams), karat, effectiveRate)
         : Number(value) || 0;
   const valid = name.trim().length > 0 && preview > 0;
 
@@ -47,7 +51,7 @@ export default function AssetSheet({ editing, onClose, onSave, onDelete }: Props
         purchaseDate: kind === 'vehicle' ? purchaseDate : undefined,
         grams: kind === 'gold' && Number(grams) > 0 ? Number(grams) : undefined,
         karat: kind === 'gold' ? karat : undefined,
-        rate24k: kind === 'gold' && Number(rate) > 0 ? Number(rate) : undefined,
+        rate24k: kind === 'gold' && effectiveRate > 0 ? effectiveRate : undefined,
       });
     } finally {
       setBusy(false);
@@ -112,10 +116,14 @@ export default function AssetSheet({ editing, onClose, onSave, onDelete }: Props
                     </Pressable>
                   ))}
                 </View>
+                {gold.rate ? (
+                  <Text style={sheet.hint}>Using today's {gold.mode === 'live' ? 'live market' : 'your own'} 24K rate: ₹{gold.rate.toLocaleString('en-IN')}/g. It updates automatically.</Text>
+                ) : (
                 <View style={f.field}>
                   <Text style={f.label}>TODAY'S 24K RATE PER GRAM</Text>
                   <TextInput style={f.input} value={rate} onChangeText={(t) => setRate(digits(t))} placeholder="Check a jeweller or news site" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
                 </View>
+                )}
                 <Text style={sheet.hint}>Valued without making charges or GST, which you wouldn't get back if you sold.</Text>
               </>
             ) : (
