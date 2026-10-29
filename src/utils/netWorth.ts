@@ -1,5 +1,8 @@
 import type { Account } from '@/types/account';
 import type { ManualAsset } from '@/types/asset';
+import type { Investment } from '@/types/investment';
+import { investMeta } from '@/types/investment';
+import { currentValue, isStale } from './investments';
 import type { Bill } from '@/types/bill';
 import type { Iou } from '@/types/iou';
 import { isLoan } from './iou';
@@ -12,7 +15,7 @@ import { loanStatus } from './loan';
 
 const DAY = 86_400_000;
 export type Confidence = 'verified' | 'manual' | 'estimated' | 'stale';
-export type NwGroup = 'cash' | 'receivable' | 'home' | 'property' | 'vehicle' | 'gold' | 'other' | 'card' | 'loan' | 'homeLoan' | 'people';
+export type NwGroup = 'cash' | 'investment' | 'retirement' | 'receivable' | 'home' | 'property' | 'vehicle' | 'gold' | 'other' | 'card' | 'loan' | 'homeLoan' | 'people';
 
 export type NwItem = {
   id: string;
@@ -95,6 +98,7 @@ export type NwInput = {
   assets: ManualAsset[];
   jarsTotal?: number;
   goldRate?: { rate: number; mode: 'live' | 'custom' } | null; // today's 24K ₹/g
+  investments?: Investment[];
 };
 
 export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem[] {
@@ -172,6 +176,24 @@ export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem
         ? `${a.grams} g · ${a.karat}K · ${d.goldRate!.mode === 'live' ? 'live market rate' : 'your rate'} ₹${d.goldRate!.rate.toLocaleString('en-IN')}/g`
         : a.kind === 'vehicle' && auto ? 'falls each year (insurance schedule)' : a.kind === 'gold' && auto ? `${a.grams} g · ${a.karat}K · ${f.note}` : f.note,
       link: '/networth',
+    });
+  }
+  for (const h of d.investments ?? []) {
+    if (new Date(h.startDate) > at) continue;
+    const meta = investMeta(h.type);
+    const { value, auto } = currentValue(h, at);
+    const stale = isNow && isStale(h, at);
+    const ret = meta.cls === 'retirement';
+    items.push({
+      id: `inv:${h.id}`,
+      label: h.name,
+      side: 'asset',
+      group: ret ? 'retirement' : 'investment',
+      value,
+      liquid: meta.liquid,
+      confidence: stale ? 'stale' : auto ? 'estimated' : 'manual',
+      note: auto ? `grows at ${h.rate}% a year` : freshness(h.valueAt, at, 45).note,
+      link: '/invest',
     });
   }
   return items;

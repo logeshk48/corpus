@@ -9,6 +9,7 @@ import { accountBalances, accountTotals, cardReminders, verifiedAgo } from '@/ut
 import { moneyHealth } from '@/utils/moneyHealth';
 import { useAssets } from '@/hooks/useAssets';
 import { useGoldRate } from '@/hooks/useGoldRate';
+import { useInvestments } from '@/hooks/useInvestments';
 import { netWorthItems, netWorthTotals } from '@/utils/netWorth';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
@@ -133,7 +134,8 @@ export default function HomeScreen() {
   const accHave = accountTotals(accList).have;
   const { assets } = useAssets();
   const gold = useGoldRate();
-  const nw = netWorthTotals(netWorthItems({ accounts: accList, ious, bills, assets, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null })).total;
+  const { investments } = useInvestments();
+  const nw = netWorthTotals(netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null })).total;
   const budgetPct = overall && overall.limit > 0 ? Math.round((overall.spent / overall.limit) * 100) : null;
   const shortcuts: Shortcut[] = [
     {

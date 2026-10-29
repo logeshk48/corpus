@@ -9,6 +9,7 @@ import { useIous } from '@/hooks/useIous';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
 import { useGoldRate } from '@/hooks/useGoldRate';
+import { useInvestments } from '@/hooks/useInvestments';
 import { addAsset, deleteAsset, saveMonthSnapshot, updateAsset } from '@/services/assets';
 import type { ManualAsset, NewManualAsset } from '@/types/asset';
 import { accountBalances } from '@/utils/accounts';
@@ -30,6 +31,8 @@ const VIEWS: { key: ViewKey; label: string; hint: string }[] = [
 ];
 const GROUP: Record<NwGroup, { label: string; color: string }> = {
   cash: { label: 'Cash & bank', color: Corpus.income },
+  investment: { label: 'Investments', color: ChartColors.netWorth.investment },
+  retirement: { label: 'EPF / PPF / NPS', color: ChartColors.netWorth.retirement },
   receivable: { label: 'Owed to you', color: ChartColors.netWorth.receivable },
   home: { label: 'Home', color: ChartColors.netWorth.home },
   property: { label: 'Property', color: ChartColors.netWorth.property },
@@ -59,12 +62,13 @@ export default function NetWorthScreen() {
   const { assets, snapshots, loading: asLoading } = useAssets();
   const [view, setView] = useState<ViewKey>('total');
   const gold = useGoldRate();
+  const { investments } = useInvestments();
   const [sheet, setSheet] = useState<{ editing?: ManualAsset } | null>(null);
   const [goldRate, setGoldRate] = useState<string | null>(null);
 
   const input = useMemo(
-    () => ({ accounts: accountBalances(accounts, transactions), ious, bills, assets, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null }),
-    [accounts, transactions, ious, bills, assets, gold.rate, gold.mode]
+    () => ({ accounts: accountBalances(accounts, transactions), ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null }),
+    [accounts, transactions, ious, bills, assets, investments, gold.rate, gold.mode]
   );
   const items = useMemo(() => netWorthItems(input), [input]);
   const totals = netWorthTotals(items);
