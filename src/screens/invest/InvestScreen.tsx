@@ -22,6 +22,8 @@ import InvestmentSheet, { type InvSheetMode } from './InvestmentSheet';
 import { m } from './Market.styles';
 import MarketSearchSheet, { type Target } from './MarketSearchSheet';
 import ImportSheet from './ImportSheet';
+import GoalsCard from './GoalsCard';
+import GoalSheet from './GoalSheet';
 import MixCard from './MixCard';
 import SipCards from './SipCards';
 import SipSheet from './SipSheet';
@@ -29,6 +31,7 @@ import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/inv
 import { saveMix, subscribeMix, type MixSnap } from '@/services/investMix';
 import { holdingXirr, portfolioXirr } from '@/utils/returns';
 import { monthKey, nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
+import type { InvestGoal } from '@/types/settings';
 import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
 import { styles } from './InvestScreen.styles';
@@ -106,6 +109,28 @@ export default function InvestScreen() {
     }
   };
   const sipSkip = (p: (typeof pending)[number]) => skipSip(p.h, p).then(() => showToast({ message: 'Marked as skipped' }));
+
+  // Goals
+  const goals = settings.investGoals ?? [];
+  const [goalOpen, setGoalOpen] = useState<{ goal?: InvestGoal } | null>(null);
+  const saveGoal = async (g: InvestGoal, linkIds: string[]) => {
+    await saveSettings({ investGoals: [...goals.filter((x) => x.id !== g.id), g] });
+    await Promise.all(
+      investments.map((h) => {
+        const want = linkIds.includes(h.id);
+        if (want && h.goalId !== g.id) return updateInvestment(h.id, { goalId: g.id });
+        if (!want && h.goalId === g.id) return updateInvestment(h.id, { goalId: undefined });
+        return null;
+      })
+    );
+    setGoalOpen(null);
+    showToast({ message: `${g.name} saved` });
+  };
+  const deleteGoal = async (g: InvestGoal) => {
+    await saveSettings({ investGoals: goals.filter((x) => x.id !== g.id) });
+    await Promise.all(investments.filter((h) => h.goalId === g.id).map((h) => updateInvestment(h.id, { goalId: undefined })));
+    setGoalOpen(null);
+  };
 
   // Mix history: one snapshot per month (latest value wins)
   const [mixHistory, setMixHistory] = useState<MixSnap[]>([]);
@@ -233,6 +258,8 @@ export default function InvestScreen() {
                 onTarget={(t) => saveSettings({ mixTarget: { equity: t } }).catch(() => {})}
               />
             )}
+
+            <GoalsCard goals={goals} list={investments} onAdd={() => setGoalOpen({})} onOpen={(g) => setGoalOpen({ goal: g })} />
 
             {fySales.length > 0 && (
               <View style={styles.card}>
@@ -470,6 +497,15 @@ export default function InvestScreen() {
               showToast({ message: history ? 'Could not get past NAVs. Check your internet and try again.' : 'Could not save the SIP. Try again.' });
             }
           }}
+        />
+      )}
+      {goalOpen && (
+        <GoalSheet
+          goal={goalOpen.goal}
+          list={investments}
+          onClose={() => setGoalOpen(null)}
+          onSave={saveGoal}
+          onDelete={goalOpen.goal ? () => deleteGoal(goalOpen.goal!) : undefined}
         />
       )}
       {importing && (

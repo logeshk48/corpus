@@ -22,8 +22,8 @@ import { logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayme
 import { useToast } from '@/context/ToastContext';
 import type { Bill } from '@/types/bill';
 import { overallBudget } from '@/utils/budgets';
-import { computeSafeToSpend } from '@/utils/safeToSpend';
-import { sipReminders } from '@/utils/sip';
+import { computeSafeToSpend, cycleBounds } from '@/utils/safeToSpend';
+import { nextSip, sipInvested, sipsDueBefore, sipReminders } from '@/utils/sip';
 import { catchUp } from '@/utils/catchUp';
 import { frequentPicks, type QuickPick } from '@/utils/quickAdd';
 import { addTransactionNow, deleteTransaction } from '@/services/transactions';
@@ -59,6 +59,10 @@ export default function HomeScreen() {
   const repayNudge = chainNudges(ious)[0];
   const { bills } = useBills();
   const { investments } = useInvestments();
+  const cyc = cycleBounds(new Date(), settings.cycleStartDay);
+  const sipThisCycle = sipInvested(investments, cyc.start) + sipsDueBefore(investments, cyc.end);
+  const investedThisMonth = sipInvested(investments, cyc.start);
+  const nextSipAll = investments.map((h) => nextSip(h)).filter(Boolean).sort((a, b) => a!.date.getTime() - b!.date.getTime())[0] ?? null;
   const accTotals = accountTotals(accList);
   const health = accounts.length ? moneyHealth(accTotals.have, accTotals.cardDues, bills, transactions) : null;
   const shortAlert = health?.short
@@ -111,6 +115,7 @@ export default function HomeScreen() {
     monthlyBudget: settings.monthlyBudget,
     billsDue: unpaidThisMonth(bills),
     setAside: settings.setAside,
+    investing: sipThisCycle,
     cycleStartDay: settings.cycleStartDay,
   });
 
@@ -202,6 +207,19 @@ export default function HomeScreen() {
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
         <Shortcuts items={shortcuts} />
+
+        {(investedThisMonth > 0 || nextSipAll) && (
+          <Pressable style={styles.linkCard} onPress={() => router.push('/invest' as Href)}>
+            <View style={[styles.linkIcon, styles.linkIconGold]}>
+              <Ionicons name="trending-up" size={16} color={Corpus.gold} />
+            </View>
+            <Text style={styles.linkText}>
+              {investedThisMonth > 0 ? `Invested ${formatINR(investedThisMonth)} this month` : 'SIPs'}
+              {nextSipAll ? `  ·  next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+          </Pressable>
+        )}
 
         <View style={styles.sectionRow}>
           <Text style={styles.sectionTitleInline}>Recent</Text>
