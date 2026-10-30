@@ -76,7 +76,9 @@ export const sellUnits = async (h: Investment, units: number, price: number, dat
 const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
 
 // ─── SIPs ───
-export const saveSip = (h: Investment, sip: Sip | null) => updateInvestment(h.id, { sip: sip ?? undefined });
+// Firestore rejects `undefined` inside an object (e.g. no step-up), so drop those keys
+const cleanSip = (sip: Sip): Sip => Object.fromEntries(Object.entries(sip).filter(([, v]) => v !== undefined)) as Sip;
+export const saveSip = (h: Investment, sip: Sip | null) => updateInvestment(h.id, { sip: sip ? cleanSip(sip) : undefined });
 
 // "Yes, it went through": buy units at that day's NAV / price (or just add the money for manual holdings)
 export async function confirmSip(h: Investment, inst: Instalment, auto = false) {
@@ -112,13 +114,13 @@ export async function saveSipWithHistory(h: Investment, sip: Sip, since: Date, a
   const b = backfillSip(points, sip, since);
   const keepLog = (h.sipLog ?? []).filter((l) => !b.entries.some((e) => e.month === l.month));
   if (alreadyIncluded) {
-    await updateInvestment(h.id, { sip: { ...sip, start: since.toISOString() }, sipLog: [...keepLog, ...b.entries] });
+    await updateInvestment(h.id, { sip: cleanSip({ ...sip, start: since.toISOString() }), sipLog: [...keepLog, ...b.entries] });
   } else {
     const lots = [...lotsOf(h), ...b.lots].sort((a, b2) => (a.date < b2.date ? -1 : 1));
     const units = round4((h.units ?? 0) + b.units);
     const unitPrice = h.units ? h.value / h.units : b.lots.length ? b.lots[b.lots.length - 1].price : 0;
     await updateInvestment(h.id, {
-      sip: { ...sip, start: since.toISOString() },
+      sip: cleanSip({ ...sip, start: since.toISOString() }),
       sipLog: [...keepLog, ...b.entries],
       lots,
       units,

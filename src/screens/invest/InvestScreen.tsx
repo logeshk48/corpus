@@ -14,7 +14,7 @@ import { bookedThisYear, portfolioTax } from '@/utils/capitalGains';
 import { dividendTotal, fyOf, fyStart } from '@/utils/corporateActions';
 import { useRealized } from '@/hooks/useRealized';
 import { deleteRealized } from '@/services/realized';
-import { formatPct, formatPrice, getLive, parseWatch, priceTime, refKey, shortSymbol, watchId, type LiveKind, type LivePrice } from '@/utils/market';
+import { formatPct, formatPrice, fundClassOf, getLive, parseWatch, priceTime, refKey, shortSymbol, watchId, type LiveKind, type LivePrice } from '@/utils/market';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +25,7 @@ import ImportSheet from './ImportSheet';
 import SipCards from './SipCards';
 import SipSheet from './SipSheet';
 import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/investments';
+import { holdingXirr, portfolioXirr } from '@/utils/returns';
 import { nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
 import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
@@ -83,8 +84,11 @@ export default function InvestScreen() {
   const dayGain = Object.values(live).reduce((a, l) => (l.kind === 'stock' && l.dayGain != null ? a + l.dayGain : a), 0);
   const hasStockLive = Object.values(live).some((l) => l.kind === 'stock');
   const pf = useMemo(() => portfolio(investments), [investments]);
+  const xirrAll = useMemo(() => portfolioXirr(investments.map((h) => ({ h, value: currentValue(h).value }))), [investments]);
+
   // SIPs
   const [sipFor, setSipFor] = useState<Investment | null>(null);
+  const [sipPick, setSipPick] = useState(false); // search opened to start a new SIP
   const [sipForId, setSipForId] = useState<string | null>(null); // a fund just added for a SIP → open its SIP sheet once it appears
   useEffect(() => {
     const h = sipForId && investments.find((x) => x.id === sipForId);
@@ -127,6 +131,7 @@ export default function InvestScreen() {
           <Text style={styles.heading}>Invest</Text>
           {investments.length > 0 && (
             <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Button size="sm" variant="secondary" icon="repeat" label="SIP" onPress={() => (setSipPick(true), setSearch('fund'))} />
               <Button size="sm" variant="secondary" icon="clipboard-outline" label="Import" onPress={() => setImporting(true)} />
               <Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} />
             </View>
@@ -173,6 +178,7 @@ export default function InvestScreen() {
               Mutual funds, stocks, FDs, EPF, PPF, NPS, gold bonds. Add what you have and see what it's worth, what you've gained, and how it's split. Nothing is linked to your bank or demat.
             </Text>
             <Button label="Search & add (live price)" icon="search" onPress={() => setSearch('stock')} style={{ alignSelf: 'stretch', marginTop: 12 }} />
+            <Button variant="secondary" label="Start a SIP" icon="repeat" onPress={() => (setSipPick(true), setSearch('fund'))} style={{ alignSelf: 'stretch' }} />
             <Button variant="secondary" label="Paste from Zerodha / Groww / any app" icon="clipboard-outline" onPress={() => setImporting(true)} style={{ alignSelf: 'stretch' }} />
             <Button variant="ghost" label="Add FD, EPF, PPF or other" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch' }} />
           </View>
@@ -185,6 +191,11 @@ export default function InvestScreen() {
               <Text style={[styles.heroSub, { color: pf.gain >= 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
                 {pf.gain >= 0 ? '▲' : '▼'} {formatINR(Math.abs(pf.gain))} ({pf.gain >= 0 ? '+' : '−'}{Math.abs(pf.pct).toFixed(1)}%) overall
               </Text>
+              {xirrAll != null && (
+                <Text style={styles.heroSub}>
+                  {xirrAll >= 0 ? '+' : '−'}{Math.abs(xirrAll).toFixed(1)}% a year (XIRR) · counts when each rupee went in
+                </Text>
+              )}
               {divs > 0 && <Text style={[styles.heroSub, { color: Corpus.income }]}>+ {formatINR(divs)} dividends received</Text>}
               {hasStockLive && (
                 <Text style={[styles.heroSub, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>
@@ -280,6 +291,7 @@ export default function InvestScreen() {
                 const meta = investMeta(h.type);
                 const g = gain(h);
                 const cagr = yearlyReturn(h);
+                const xr = holdingXirr(h, g.value);
                 const ns = nextSip(h);
                 const streak = h.sip ? sipStreak(h) : null;
                 const auto = currentValue(h).auto;
@@ -314,7 +326,11 @@ export default function InvestScreen() {
                         </Text>
                       </View>
                     </View>
-                    {cagr !== null && <Text style={styles.note}>About {cagr.toFixed(1)}% a year since {new Date(h.startDate).getFullYear()} (rough, ignores SIP timing)</Text>}
+                    {xr != null ? (
+                      <Text style={styles.note}>{xr >= 0 ? '+' : '−'}{Math.abs(xr).toFixed(1)}% a year (XIRR)</Text>
+                    ) : cagr !== null ? (
+                      <Text style={styles.note}>About {cagr.toFixed(1)}% a year since {new Date(h.startDate).getFullYear()}</Text>
+                    ) : null}
                     {h.sip && (
                       <Text style={[styles.note, { color: h.sip.active ? Corpus.textMuted : Corpus.textFaint }]}>
                         ↻ SIP {formatINR(sipAmount(h.sip, new Date()))} on the {h.sip.day === 1 ? '1st' : `${h.sip.day}th`}
@@ -372,10 +388,27 @@ export default function InvestScreen() {
           onClose={() => {
             setSearch(null);
             setLinkFor(null);
+            setSipPick(false);
           }}
           onPick={(t) => {
             setSearch(null);
-            setTarget(t);
+            if (!sipPick) return setTarget(t);
+            setSipPick(false);
+            // already own it → SIP on that holding; otherwise the holding is created when you save the SIP
+            const own = investments.find((h) => liveRefOf(h) && refKey(liveRefOf(h)!) === refKey(t));
+            setSipFor(
+              own ?? {
+                id: '',
+                name: (t.name ?? t.id).slice(0, 60),
+                type: t.kind === 'nps' ? 'nps' : t.kind === 'stock' ? (/gold|sgb/i.test(`${t.id} ${t.name}`) ? 'goldbond' : 'stock') : 'mf',
+                units: 0,
+                invested: 0,
+                value: 0,
+                valueAt: new Date().toISOString(),
+                startDate: new Date().toISOString(),
+                ...(t.kind === 'stock' ? { symbol: t.id } : t.kind === 'fund' ? { schemeCode: t.id, fundClass: fundClassOf(undefined, t.name) } : t.kind === 'nps' ? { npsCode: t.id } : {}),
+              }
+            );
           }}
         />
       )}
@@ -386,20 +419,34 @@ export default function InvestScreen() {
           onClose={() => setSipFor(null)}
           onSave={async (sip, history) => {
             try {
+              // new SIP picked from search: create the holding first
+              let h = sipFor;
+              if (!h.id && sip) {
+                const { id: _new, ...rest } = h;
+                const plain = Object.fromEntries(Object.entries(sip).filter(([, v]) => v !== undefined)) as typeof sip;
+                const id = await addInvestment(history ? rest : { ...rest, sip: plain });
+                h = { ...h, id };
+                if (!history) {
+                  showToast({ message: `SIP of ${formatINR(sip.amount)} into ${h.name} started` });
+                  setSipFor(null);
+                  return;
+                }
+              }
               if (sip && history) {
-                const b = await saveSipWithHistory(sipFor, sip, history.since, history.alreadyIncluded);
+                const b = await saveSipWithHistory(h, sip, history.since, history.alreadyIncluded);
                 showToast({
                   message: history.alreadyIncluded
                     ? `${b.entries.length} past SIPs recorded`
                     : `${b.entries.length} past SIPs added · ${b.units} units for ${formatINR(b.invested)}`,
                 });
               } else {
-                await saveSip(sipFor, sip);
+                await saveSip(h, sip);
                 showToast({ message: sip?.active ? `SIP of ${formatINR(sip.amount)} on the ${sip.day === 1 ? '1st' : `${sip.day}th`} saved` : 'SIP stopped' });
               }
               setSipFor(null);
             } catch (e) {
-              showToast({ message: e instanceof Error && /NAV/.test(e.message) ? e.message : 'Could not get past NAVs. Check your internet and try again.' });
+              console.error('SIP save failed', e);
+              showToast({ message: history ? 'Could not get past NAVs. Check your internet and try again.' : 'Could not save the SIP. Try again.' });
             }
           }}
         />
