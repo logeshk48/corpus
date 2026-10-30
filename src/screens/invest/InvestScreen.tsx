@@ -8,7 +8,7 @@ import { saveSettings } from '@/services/settings';
 import { addInvestment, addMoney, buyUnits, deleteInvestment, sellUnits, updateInvestment, updateValue } from '@/services/investments';
 import { investMeta, type Investment, type NewInvestment } from '@/types/investment';
 import { compactINR, formatINR, formatINRLong } from '@/utils/format';
-import { currentValue, daysOld, gain, isStale, portfolio, yearlyReturn } from '@/utils/investments';
+import { currentValue, daysOld, gain, isStale, needsCheckup, portfolio, yearlyReturn } from '@/utils/investments';
 import { Ionicons } from '@expo/vector-icons';
 import { bookedThisYear, portfolioTax } from '@/utils/capitalGains';
 import { dividendTotal, fyOf, fyStart } from '@/utils/corporateActions';
@@ -22,11 +22,13 @@ import InvestmentSheet, { type InvSheetMode } from './InvestmentSheet';
 import { m } from './Market.styles';
 import MarketSearchSheet, { type Target } from './MarketSearchSheet';
 import ImportSheet from './ImportSheet';
+import MixCard from './MixCard';
 import SipCards from './SipCards';
 import SipSheet from './SipSheet';
 import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/investments';
+import { saveMix, subscribeMix, type MixSnap } from '@/services/investMix';
 import { holdingXirr, portfolioXirr } from '@/utils/returns';
-import { nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
+import { monthKey, nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
 import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
 import { styles } from './InvestScreen.styles';
@@ -105,6 +107,18 @@ export default function InvestScreen() {
   };
   const sipSkip = (p: (typeof pending)[number]) => skipSip(p.h, p).then(() => showToast({ message: 'Marked as skipped' }));
 
+  // Mix history: one snapshot per month (latest value wins)
+  const [mixHistory, setMixHistory] = useState<MixSnap[]>([]);
+  useEffect(() => subscribeMix(setMixHistory), []);
+  const mixKey = `${monthKey(new Date())}:${Math.round(pf.value / 1000)}`;
+  useEffect(() => {
+    if (!investments.length || loading) return;
+    const byCls: Record<string, number> = {};
+    for (const a of pf.allocation) byCls[a.cls] = Math.round(a.value);
+    saveMix({ month: monthKey(new Date()), total: Math.round(pf.value), invested: Math.round(pf.invested), byCls, at: new Date().toISOString() }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mixKey, loading]);
+  const checkup = investments.filter((h) => needsCheckup(h));
 
   const run = async (fn: () => Promise<unknown>, msg: string) => {
     try {
@@ -209,23 +223,15 @@ export default function InvestScreen() {
 
             <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
 
-            {pf.allocation.length > 1 && (
-              <View style={styles.card}>
-                <Text style={styles.name}>How it's split</Text>
-                <View style={styles.stack}>
-                  {pf.allocation.map((a) => (
-                    <View key={a.cls} style={{ flex: Math.max(a.share, 0.02), backgroundColor: CLASS[a.cls].color }} />
-                  ))}
-                </View>
-                <View style={styles.legend}>
-                  {pf.allocation.map((a) => (
-                    <Text key={a.cls} style={styles.meta}>
-                      <Text style={{ color: CLASS[a.cls].color }}>● </Text>
-                      {CLASS[a.cls].label} {Math.round(a.share * 100)}%
-                    </Text>
-                  ))}
-                </View>
-              </View>
+            {pf.allocation.length > 0 && (
+              <MixCard
+                allocation={pf.allocation}
+                total={pf.value}
+                target={settings.mixTarget?.equity}
+                history={mixHistory}
+                colors={CLASS}
+                onTarget={(t) => saveSettings({ mixTarget: { equity: t } }).catch(() => {})}
+              />
             )}
 
             {fySales.length > 0 && (
@@ -283,6 +289,21 @@ export default function InvestScreen() {
               </View>
             )}
 
+            {checkup.length > 0 && (
+              <View style={[styles.card, { borderColor: Corpus.warningLine }]}>
+                <Text style={styles.name}>Monthly check-up · {checkup.length} to update</Text>
+                <Text style={styles.meta}>These don’t have a live price. Open your app or statement and type today’s value — 1 minute keeps your net worth right.</Text>
+                {checkup.map((h) => (
+                  <View key={h.id} style={m.posRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={m.rowName} numberOfLines={1}>{h.name}</Text>
+                      <Text style={m.small}>{formatINR(h.value)} · {daysOld(h)} days ago</Text>
+                    </View>
+                    <Button size="sm" variant="secondary" icon="refresh" label="Update" onPress={() => setMode({ kind: 'value', h })} />
+                  </View>
+                ))}
+              </View>
+            )}
 
             <SectionLabel right="Tap to open · hold to edit">HOLDINGS</SectionLabel>
             {[...investments]
