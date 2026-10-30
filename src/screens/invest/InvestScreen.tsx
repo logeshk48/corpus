@@ -8,7 +8,7 @@ import { saveSettings } from '@/services/settings';
 import { addInvestment, addMoney, buyUnits, deleteInvestment, sellUnits, updateInvestment, updateValue } from '@/services/investments';
 import { investMeta, type Investment, type NewInvestment } from '@/types/investment';
 import { compactINR, formatINR, formatINRLong } from '@/utils/format';
-import { currentValue, daysOld, gain, isStale, needsCheckup, portfolio, yearlyReturn } from '@/utils/investments';
+import { currentValue, daysOld, gain, isStale, portfolio, yearlyReturn } from '@/utils/investments';
 import { Ionicons } from '@expo/vector-icons';
 import { bookedThisYear, portfolioTax } from '@/utils/capitalGains';
 import { dividendTotal, fyOf, fyStart } from '@/utils/corporateActions';
@@ -22,16 +22,9 @@ import InvestmentSheet, { type InvSheetMode } from './InvestmentSheet';
 import { m } from './Market.styles';
 import MarketSearchSheet, { type Target } from './MarketSearchSheet';
 import ImportSheet from './ImportSheet';
-import GoalsCard from './GoalsCard';
-import GoalSheet from './GoalSheet';
-import MixCard from './MixCard';
-import SipCards from './SipCards';
 import SipSheet from './SipSheet';
-import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/investments';
-import { saveMix, subscribeMix, type MixSnap } from '@/services/investMix';
-import { holdingXirr, portfolioXirr } from '@/utils/returns';
-import { monthKey, nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
-import type { InvestGoal } from '@/types/settings';
+import { saveSip, saveSipWithHistory } from '@/services/investments';
+import { nextSip, sipAmount, sipStreak } from '@/utils/sip';
 import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
 import { styles } from './InvestScreen.styles';
@@ -89,8 +82,6 @@ export default function InvestScreen() {
   const dayGain = Object.values(live).reduce((a, l) => (l.kind === 'stock' && l.dayGain != null ? a + l.dayGain : a), 0);
   const hasStockLive = Object.values(live).some((l) => l.kind === 'stock');
   const pf = useMemo(() => portfolio(investments), [investments]);
-  const xirrAll = useMemo(() => portfolioXirr(investments.map((h) => ({ h, value: currentValue(h).value }))), [investments]);
-
   // SIPs
   const [sipFor, setSipFor] = useState<Investment | null>(null);
   const [sipForId, setSipForId] = useState<string | null>(null); // a fund just added for a SIP → open its SIP sheet once it appears
@@ -98,51 +89,7 @@ export default function InvestScreen() {
     const h = sipForId && investments.find((x) => x.id === sipForId);
     if (h) (setSipFor(h), setSipForId(null));
   }, [sipForId, investments]);
-  const pending = useMemo(() => pendingSips(investments), [investments]);
-  const sipYes = async (p: (typeof pending)[number]) => {
-    try {
-      const e = await confirmSip(p.h, p);
-      showToast({ message: e.units ? `${p.h.name}: +${e.units} units at ${formatPrice(e.price)}` : `${formatINR(p.amount)} added to ${p.h.name}` });
-    } catch {
-      showToast({ message: 'NAV for that day isn’t out yet. Try again tomorrow.' });
-    }
-  };
-  const sipSkip = (p: (typeof pending)[number]) => skipSip(p.h, p).then(() => showToast({ message: 'Marked as skipped' }));
 
-  // Goals
-  const goals = settings.investGoals ?? [];
-  const [goalOpen, setGoalOpen] = useState<{ goal?: InvestGoal } | null>(null);
-  const saveGoal = async (g: InvestGoal, linkIds: string[]) => {
-    await saveSettings({ investGoals: [...goals.filter((x) => x.id !== g.id), g] });
-    await Promise.all(
-      investments.map((h) => {
-        const want = linkIds.includes(h.id);
-        if (want && h.goalId !== g.id) return updateInvestment(h.id, { goalId: g.id });
-        if (!want && h.goalId === g.id) return updateInvestment(h.id, { goalId: undefined });
-        return null;
-      })
-    );
-    setGoalOpen(null);
-    showToast({ message: `${g.name} saved` });
-  };
-  const deleteGoal = async (g: InvestGoal) => {
-    await saveSettings({ investGoals: goals.filter((x) => x.id !== g.id) });
-    await Promise.all(investments.filter((h) => h.goalId === g.id).map((h) => updateInvestment(h.id, { goalId: undefined })));
-    setGoalOpen(null);
-  };
-
-  // Mix history: one snapshot per month (latest value wins)
-  const [mixHistory, setMixHistory] = useState<MixSnap[]>([]);
-  useEffect(() => subscribeMix(setMixHistory), []);
-  const mixKey = `${monthKey(new Date())}:${Math.round(pf.value / 1000)}`;
-  useEffect(() => {
-    if (!investments.length || loading) return;
-    const byCls: Record<string, number> = {};
-    for (const a of pf.allocation) byCls[a.cls] = Math.round(a.value);
-    saveMix({ month: monthKey(new Date()), total: Math.round(pf.value), invested: Math.round(pf.invested), byCls, at: new Date().toISOString() }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mixKey, loading]);
-  const checkup = investments.filter((h) => needsCheckup(h));
 
   const run = async (fn: () => Promise<unknown>, msg: string) => {
     try {
@@ -227,11 +174,6 @@ export default function InvestScreen() {
               <Text style={[styles.heroSub, { color: pf.gain >= 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
                 {pf.gain >= 0 ? '▲' : '▼'} {formatINR(Math.abs(pf.gain))} ({pf.gain >= 0 ? '+' : '−'}{Math.abs(pf.pct).toFixed(1)}%) overall
               </Text>
-              {xirrAll != null && (
-                <Text style={styles.heroSub}>
-                  {xirrAll >= 0 ? '+' : '−'}{Math.abs(xirrAll).toFixed(1)}% a year (XIRR) · counts when each rupee went in
-                </Text>
-              )}
               {divs > 0 && <Text style={[styles.heroSub, { color: Corpus.income }]}>+ {formatINR(divs)} dividends received</Text>}
               {hasStockLive && (
                 <Text style={[styles.heroSub, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>
@@ -243,20 +185,24 @@ export default function InvestScreen() {
               )}
             </View>
 
-            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
-
-            {pf.allocation.length > 0 && (
-              <MixCard
-                allocation={pf.allocation}
-                total={pf.value}
-                target={settings.mixTarget?.equity}
-                history={mixHistory}
-                colors={CLASS}
-                onTarget={(t) => saveSettings({ mixTarget: { equity: t } }).catch(() => {})}
-              />
+            {pf.allocation.length > 1 && (
+              <View style={styles.card}>
+                <Text style={styles.name}>How it's split</Text>
+                <View style={styles.stack}>
+                  {pf.allocation.map((a) => (
+                    <View key={a.cls} style={{ flex: Math.max(a.share, 0.02), backgroundColor: CLASS[a.cls].color }} />
+                  ))}
+                </View>
+                <View style={styles.legend}>
+                  {pf.allocation.map((a) => (
+                    <Text key={a.cls} style={styles.meta}>
+                      <Text style={{ color: CLASS[a.cls].color }}>● </Text>
+                      {CLASS[a.cls].label} {Math.round(a.share * 100)}%
+                    </Text>
+                  ))}
+                </View>
+              </View>
             )}
-
-            <GoalsCard goals={goals} list={investments} onAdd={() => setGoalOpen({})} onOpen={(g) => setGoalOpen({ goal: g })} />
 
             {fySales.length > 0 && (
               <View style={styles.card}>
@@ -313,21 +259,6 @@ export default function InvestScreen() {
               </View>
             )}
 
-            {checkup.length > 0 && (
-              <View style={[styles.card, { borderColor: Corpus.warningLine }]}>
-                <Text style={styles.name}>Monthly check-up · {checkup.length} to update</Text>
-                <Text style={styles.meta}>These don’t have a live price. Open your app or statement and type today’s value — 1 minute keeps your net worth right.</Text>
-                {checkup.map((h) => (
-                  <View key={h.id} style={m.posRow}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={m.rowName} numberOfLines={1}>{h.name}</Text>
-                      <Text style={m.small}>{formatINR(h.value)} · {daysOld(h)} days ago</Text>
-                    </View>
-                    <Button size="sm" variant="secondary" icon="refresh" label="Update" onPress={() => setMode({ kind: 'value', h })} />
-                  </View>
-                ))}
-              </View>
-            )}
 
             <SectionLabel right="Tap to open · hold to edit">HOLDINGS</SectionLabel>
             {[...investments]
@@ -336,7 +267,6 @@ export default function InvestScreen() {
                 const meta = investMeta(h.type);
                 const g = gain(h);
                 const cagr = yearlyReturn(h);
-                const xr = holdingXirr(h, g.value);
                 const ns = nextSip(h);
                 const streak = h.sip ? sipStreak(h) : null;
                 const auto = currentValue(h).auto;
@@ -371,11 +301,7 @@ export default function InvestScreen() {
                         </Text>
                       </View>
                     </View>
-                    {xr != null ? (
-                      <Text style={styles.note}>{xr >= 0 ? '+' : '−'}{Math.abs(xr).toFixed(1)}% a year (XIRR)</Text>
-                    ) : cagr !== null ? (
-                      <Text style={styles.note}>About {cagr.toFixed(1)}% a year since {new Date(h.startDate).getFullYear()}</Text>
-                    ) : null}
+                    {cagr !== null && <Text style={styles.note}>About {cagr.toFixed(1)}% a year since {new Date(h.startDate).getFullYear()} (rough, ignores SIP timing)</Text>}
                     {h.sip && (
                       <Text style={[styles.note, { color: h.sip.active ? Corpus.textMuted : Corpus.textFaint }]}>
                         ↻ SIP {formatINR(sipAmount(h.sip, new Date()))} on the {h.sip.day === 1 ? '1st' : `${h.sip.day}th`}
@@ -463,15 +389,6 @@ export default function InvestScreen() {
               showToast({ message: e instanceof Error && /NAV/.test(e.message) ? e.message : 'Could not get past NAVs. Check your internet and try again.' });
             }
           }}
-        />
-      )}
-      {goalOpen && (
-        <GoalSheet
-          goal={goalOpen.goal}
-          list={investments}
-          onClose={() => setGoalOpen(null)}
-          onSave={saveGoal}
-          onDelete={goalOpen.goal ? () => deleteGoal(goalOpen.goal!) : undefined}
         />
       )}
       {importing && (

@@ -182,8 +182,7 @@ export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem
     if (new Date(h.startDate) > at) continue;
     const meta = investMeta(h.type);
     const { value, auto } = currentValue(h, at);
-    const live = !!h.units && !!(h.symbol || h.schemeCode || h.npsCode || h.coinId);
-    const stale = isNow && !live && isStale(h, at);
+    const stale = isNow && isStale(h, at);
     const ret = meta.cls === 'retirement';
     items.push({
       id: `inv:${h.id}`,
@@ -192,8 +191,8 @@ export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem
       group: ret ? 'retirement' : 'investment',
       value,
       liquid: meta.liquid,
-      confidence: live && isNow ? 'verified' : stale ? 'stale' : auto ? 'estimated' : 'manual',
-      note: live && isNow ? `live price · ${Math.round(h.units! * 1000) / 1000} units` : auto ? `grows at ${h.rate}% a year` : freshness(h.valueAt, at, 45).note,
+      confidence: stale ? 'stale' : auto ? 'estimated' : 'manual',
+      note: auto ? `grows at ${h.rate}% a year` : freshness(h.valueAt, at, 45).note,
       link: '/invest',
     });
   }

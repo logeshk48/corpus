@@ -1,7 +1,4 @@
 import { useIous } from '@/hooks/useIous';
-import { useInvestments } from '@/hooks/useInvestments';
-import { sipReminders } from '@/utils/sip';
-import { needsCheckup } from '@/utils/investments';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { overallBudget } from '@/utils/budgets';
@@ -35,8 +32,7 @@ export default function MoneyNotifier() {
   const { accounts } = useAccounts();
   const { settings } = useSettings();
   const { transactions } = useTransactions('month');
-  const { investments } = useInvestments();
-  const on = (k: 'people' | 'cards' | 'checkin' | 'budget' | 'sips') => settings.notify?.[k] !== false;
+  const on = (k: 'people' | 'cards' | 'checkin' | 'budget') => settings.notify?.[k] !== false;
   const asked = useRef(false);
 
   useEffect(() => {
@@ -54,8 +50,6 @@ export default function MoneyNotifier() {
         }
         const cards = cardReminders(accountBalances(accounts, []));
         const plan = notificationsToSchedule([...(on('people') ? moneyReminders(ious) : []), ...(on('cards') ? cards : [])]);
-        // SIPs: the day before (9 AM) and "did it go through?" the day after
-        if (on('sips')) for (const r of sipReminders(investments)) if (r.when > new Date()) plan.push({ id: r.id, date: r.when, title: r.title, body: r.body });
         // card bills: also 3 days before
         for (const c of on('cards') ? cards : []) {
           const d = new Date(c.when.getTime() - 3 * 86_400_000);
@@ -67,14 +61,6 @@ export default function MoneyNotifier() {
           const sun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((7 - now.getDay()) % 7), 19);
           if (sun <= now) sun.setDate(sun.getDate() + 7);
           plan.push({ id: 'checkin:weekly', date: sun, title: 'Update your balances', body: 'Open your bank & card apps, 30 seconds keeps your net worth right' });
-        }
-        // Monthly investment check-up: 1st of next month, 10 AM, if any value has no live price
-        const manual = investments.filter((h) => !h.units || !(h.symbol || h.schemeCode || h.npsCode || h.coinId)).filter((h) => !['fd', 'epf', 'ppf'].includes(h.type));
-        if (on('checkin') && manual.length) {
-          const now = new Date();
-          const first = new Date(now.getFullYear(), now.getMonth() + 1, 1, 10);
-          const due = investments.filter((h) => needsCheckup(h)).length;
-          plan.push({ id: `invest:checkup:${first.toISOString().slice(0, 7)}`, date: first, title: 'Monthly investment check-up', body: `${manual.length} investment${manual.length > 1 ? 's' : ''} without a live price${due ? `, ${due} out of date` : ''}. 1 minute to update.` });
         }
         if (plan.length === 0) {
           await cancelOurs();
@@ -113,7 +99,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
+  }, [ious, accounts, loading, settings.notify, settings.monthlyBudget, transactions]);
 
   return null;
 }

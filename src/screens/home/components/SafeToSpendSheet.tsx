@@ -91,9 +91,6 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
                       {result.billsDue > 0 && (
                         <Row label="Bills still due this month" value={result.billsDue} sign="−" />
                       )}
-                      {result.investing > 0 && (
-                        <Row label="SIPs this month (invested)" value={result.investing} sign="−" />
-                      )}
                       {result.setAside > 0 && (
                         <Row label="Kept aside (your setting)" value={result.setAside} sign="−" />
                       )}
