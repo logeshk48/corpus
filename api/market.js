@@ -254,6 +254,25 @@ async function handle(q) {
     if (range === '1d' && (!quote.time || Date.now() - new Date(quote.time).getTime() > STALE_DAYS * 86400000)) quote = await quoteOne(q.symbol);
     return { cache: range === '1d' ? 60 : 900, body: { quote, points } };
   }
+  if (op === 'probe') {
+    // Try other price sources from this server (temporary — pick what works)
+    const sym = q.symbol || 'SGBMAY29I', code = q.code || '544412', isin = q.isin || '';
+    const tryIt = async (name, fn) => { const t0 = Date.now(); try { return [name, `${Date.now() - t0}ms`, String(await fn()).slice(0, 220)]; } catch (e) { return [name, `${Date.now() - t0}ms`, 'ERR ' + String(e && e.message)]; } };
+    const txt = async (url, headers = HEADERS) => { const r = await fetch(url, { headers }); return `${r.status} ${(await r.text()).slice(0, 400)}`; };
+    const out = await Promise.all([
+      tryIt('nse-cookie', async () => {
+        const h = { ...HEADERS, Accept: '*/*', 'Accept-Language': 'en-IN,en;q=0.9', Referer: 'https://www.nseindia.com/get-quotes/equity?symbol=' + sym };
+        const home = await fetch('https://www.nseindia.com/', { headers: { ...HEADERS, Accept: 'text/html' } });
+        const cookie = (home.headers.getSetCookie ? home.headers.getSetCookie() : [home.headers.get('set-cookie') || '']).map((c) => c.split(';')[0]).join('; ');
+        return `home ${home.status} | ` + (await txt(`https://www.nseindia.com/api/quote-equity?symbol=${encodeURIComponent(sym)}`, { ...h, Cookie: cookie }));
+      }),
+      tryIt('google-nse', async () => { const t = await txt(`https://www.google.com/finance/quote/${sym}:NSE?hl=en`, { ...HEADERS, Accept: 'text/html' }); const m = /data-last-price="([\d.]+)"/.exec(t) || /class="YMlKec fxKbKc">₹?([\d,.]+)/.exec(t); return m ? 'PRICE ' + m[1] : t.slice(0, 120); }),
+      tryIt('google-bom', async () => { const r = await fetch(`https://www.google.com/finance/quote/${code}:BOM?hl=en`, { headers: { ...HEADERS, Accept: 'text/html' } }); const t = await r.text(); const m = /data-last-price="([\d.]+)"/.exec(t); return `${r.status} ` + (m ? 'PRICE ' + m[1] : t.length); }),
+      tryIt('upstox-open', async () => txt(`https://service.upstox.com/market-data-api/v2/open/quote?i=${encodeURIComponent('NSE_EQ|' + isin)}`)),
+      tryIt('bse-plain', async () => txt(`https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w?Debtflag=&scripcode=${code}&seriesid=`, BSE_HEADERS)),
+    ]);
+    return { cache: 0, body: { out } };
+  }
   if (op === 'bse') return { cache: 30, body: await bseQuote(q.code, `${q.code}.BO`) };
   if (op === 'events') {
     // Splits / bonus issues and dividends for a stock since a date (Yahoo; amounts are per share, split-adjusted)
