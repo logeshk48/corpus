@@ -150,9 +150,39 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
 
           <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
             {err && !price ? (
-              <View style={{ paddingVertical: 30, alignItems: 'center', gap: 10 }}>
-                <Text style={m.small}>Couldn’t load live data right now.</Text>
+              <View style={{ paddingVertical: 16, gap: 10 }}>
+                <Text style={[m.small, { textAlign: 'center' }]}>
+                  {kind === 'stock'
+                    ? 'No live price for this one. Some SME stocks, gold bonds and small BSE companies aren’t covered by our free price source.'
+                    : 'Couldn’t load live data right now.'}
+                </Text>
                 <Button size="sm" variant="secondary" icon="refresh" label="Try again" onPress={() => load(range)} />
+                {kind === 'stock' && !holding && !trade && (
+                  <Button icon="add" label="I own this — add with my own price" onPress={() => setTrade('add')} />
+                )}
+                {trade === 'add' && (
+                  <TradeForm
+                    trade="add"
+                    target={target}
+                    price={null}
+                    onCancel={() => setTrade(null)}
+                    onDone={async (units, p, date) => {
+                      await onAddHolding({
+                        name: name.slice(0, 60),
+                        type: typeFor(target, name),
+                        units,
+                        invested: Math.round(units * p),
+                        value: Math.round(units * p),
+                        valueAt: new Date().toISOString(),
+                        startDate: date,
+                        lots: [{ date, units, price: p }],
+                        symbol: target.id,
+                      });
+                      setTrade(null);
+                    }}
+                  />
+                )}
+                {kind === 'stock' && <Text style={m.tiny}>It’ll show your buy value until a price is available. Long-press it in Holdings to update the value yourself.</Text>}
               </View>
             ) : (
               <>

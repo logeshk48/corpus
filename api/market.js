@@ -58,42 +58,6 @@ function quoteFrom(chart, symbol) {
   };
 }
 
-// ─── Backup price: BSE's own quote (covers BSE-only, SME, SGBs and most NSE stocks via ISIN) ───
-const BSE_HEADERS = { ...HEADERS, Accept: 'application/json, text/plain, */*', 'Accept-Language': 'en-IN,en;q=0.9', Referer: 'https://www.bseindia.com/', Origin: 'https://www.bseindia.com', 'Sec-Fetch-Site': 'same-site', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty' };
-const n2 = (v) => (v == null || v === '' || isNaN(Number(String(v).replace(/,/g, ''))) ? null : Number(String(v).replace(/,/g, '')));
-async function bseQuote(code, symbol) {
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), 8000);
-  const r = await fetch(`https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w?Debtflag=&scripcode=${code}&seriesid=`, { headers: BSE_HEADERS, signal: ctl.signal }).finally(() => clearTimeout(t));
-  if (!r.ok) throw new Error(`bse ${r.status}`);
-  const d = await r.json();
-  const h = d.Header || {}, c = d.CurrRate || {};
-  const price = n2(c.LTP) ?? n2(h.LTP);
-  if (!price) throw new Error('bse no price');
-  const prev = n2(h.PrevClose);
-  return {
-    symbol, name: (d.Cmpname && (d.Cmpname.FullN || d.Cmpname.ShortN)) || symbol, exchange: 'BSE', currency: 'INR',
-    price, prevClose: prev, change: n2(c.Chg) ?? (prev ? price - prev : null), changePct: n2(c.PcChg) ?? (prev ? ((price - prev) / prev) * 100 : null),
-    dayHigh: n2(h.High), dayLow: n2(h.Low), high52: null, low52: null, volume: null,
-    time: h.Ason ? bseTime(h.Ason) : new Date().toISOString(), type: 'EQUITY', source: 'BSE',
-  };
-}
-// "30 Oct 26 | 04:00 PM" → ISO (best effort)
-function bseTime(s) {
-  const m = /(\d{1,2}) (\w{3}) (\d{2,4})\s*\|?\s*(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(String(s));
-  if (!m) return new Date().toISOString();
-  let hh = Number(m[4]) % 12 + (/pm/i.test(m[6] || '') ? 12 : 0);
-  const y = m[3].length === 2 ? `20${m[3]}` : m[3];
-  const d = new Date(`${m[1]} ${m[2]} ${y} ${String(hh).padStart(2, '0')}:${m[5]}:00 GMT+0530`);
-  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
-}
-// Which BSE code to ask for a Yahoo symbol
-async function bseCodeFor(symbol) {
-  if (/^\d{6}\.BO$/.test(symbol)) return symbol.slice(0, 6);
-  const s = await stockList().catch(() => null);
-  const isin = s && s.isinOf.get(symbol);
-  return isin ? s.bseCode.get(isin) : null;
-}
 const STALE_DAYS = 5;
 async function quoteOne(symbol) {
   let y = null;
@@ -102,14 +66,7 @@ async function quoteOne(symbol) {
   } catch {}
   const fresh = y && y.price && y.time && Date.now() - new Date(y.time).getTime() < STALE_DAYS * 86400000;
   if (fresh || symbol.startsWith('^')) return y || { symbol, error: 'not found' };
-  // Yahoo missing or stale (common for SME, SGB, small BSE stocks) → BSE
-  try {
-    const code = await bseCodeFor(symbol);
-    if (code) {
-      const b = await bseQuote(code, symbol);
-      return { ...b, name: (y && y.name !== symbol && y.name) || b.name, high52: y ? y.high52 : null, low52: y ? y.low52 : null };
-    }
-  } catch {}
+  // Yahoo has no recent price (some SME, SGB and small BSE stocks): say so instead of guessing
   return y && y.price ? { ...y, stale: true } : { symbol, error: 'no price available' };
 }
 
@@ -145,7 +102,7 @@ function anyDate(s) {
 // ─── Every listed company (official exchange lists) ───
 // NSE main board, NSE ETFs, NSE SME (Emerge), and BSE companies not on NSE.
 // Yahoo symbols: NSE → SYMBOL.NS, BSE → SCRIPCODE.BO
-const NSE_HEADERS = { ...HEADERS, Accept: 'text/csv,*/*', Referer: 'https://www.nseindia.com/' };
+const NSE_HEADERS = { ...HEADERS, Accept: 'text/csv,*/*' };
 async function getText(url, headers = NSE_HEADERS, ms = 15000) {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), ms);
@@ -254,26 +211,6 @@ async function handle(q) {
     if (range === '1d' && (!quote.time || Date.now() - new Date(quote.time).getTime() > STALE_DAYS * 86400000)) quote = await quoteOne(q.symbol);
     return { cache: range === '1d' ? 60 : 900, body: { quote, points } };
   }
-  if (op === 'probe') {
-    // Try other price sources from this server (temporary — pick what works)
-    const sym = q.symbol || 'SGBMAY29I', code = q.code || '544412', isin = q.isin || '';
-    const tryIt = async (name, fn) => { const t0 = Date.now(); try { return [name, `${Date.now() - t0}ms`, String(await fn()).slice(0, 220)]; } catch (e) { return [name, `${Date.now() - t0}ms`, 'ERR ' + String(e && e.message)]; } };
-    const txt = async (url, headers = HEADERS) => { const r = await fetch(url, { headers }); return `${r.status} ${(await r.text()).slice(0, 400)}`; };
-    const out = await Promise.all([
-      tryIt('nse-cookie', async () => {
-        const h = { ...HEADERS, Accept: '*/*', 'Accept-Language': 'en-IN,en;q=0.9', Referer: 'https://www.nseindia.com/get-quotes/equity?symbol=' + sym };
-        const home = await fetch('https://www.nseindia.com/', { headers: { ...HEADERS, Accept: 'text/html' } });
-        const cookie = (home.headers.getSetCookie ? home.headers.getSetCookie() : [home.headers.get('set-cookie') || '']).map((c) => c.split(';')[0]).join('; ');
-        return `home ${home.status} | ` + (await txt(`https://www.nseindia.com/api/quote-equity?symbol=${encodeURIComponent(sym)}`, { ...h, Cookie: cookie }));
-      }),
-      tryIt('google-nse', async () => { const t = await txt(`https://www.google.com/finance/quote/${sym}:NSE?hl=en`, { ...HEADERS, Accept: 'text/html' }); const m = /data-last-price="([\d.]+)"/.exec(t) || /class="YMlKec fxKbKc">₹?([\d,.]+)/.exec(t); return m ? 'PRICE ' + m[1] : t.slice(0, 120); }),
-      tryIt('google-bom', async () => { const r = await fetch(`https://www.google.com/finance/quote/${code}:BOM?hl=en`, { headers: { ...HEADERS, Accept: 'text/html' } }); const t = await r.text(); const m = /data-last-price="([\d.]+)"/.exec(t); return `${r.status} ` + (m ? 'PRICE ' + m[1] : t.length); }),
-      tryIt('upstox-open', async () => txt(`https://service.upstox.com/market-data-api/v2/open/quote?i=${encodeURIComponent('NSE_EQ|' + isin)}`)),
-      tryIt('bse-plain', async () => txt(`https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w?Debtflag=&scripcode=${code}&seriesid=`, BSE_HEADERS)),
-    ]);
-    return { cache: 0, body: { out } };
-  }
-  if (op === 'bse') return { cache: 30, body: await bseQuote(q.code, `${q.code}.BO`) };
   if (op === 'events') {
     // Splits / bonus issues and dividends for a stock since a date (Yahoo; amounts are per share, split-adjusted)
     const from = Math.floor(new Date(`${q.from || '2000-01-01'}T00:00:00+05:30`).getTime() / 1000);
