@@ -17,8 +17,13 @@ export type Investment = {
   coinId?: string;         // CoinGecko id, e.g. bitcoin → live INR price
   fundClass?: 'equity' | 'debt' | 'hybrid' | 'gold' | 'other'; // for tax rules (from the AMFI category)
   lots?: Lot[];            // each purchase — used for long/short-term tax (FIFO when selling)
+  dividends?: Dividend[];  // payouts received (found automatically for NSE/BSE stocks)
+  actions?: { date: string; ratio: number; label: string }[]; // splits / bonus issues applied
+  eventsFrom?: string;     // splits after this date are applied to units (quantities entered before it are already adjusted)
+  eventsAt?: string;       // last time we checked for splits / dividends
 };
 export type Lot = { date: string; units: number; price: number };
+export type Dividend = { date: string; perShare: number; units: number; amount: number };
 export type NewInvestment = Omit<Investment, 'id'>;
 
 export const INVEST_TYPES: { id: InvestType; label: string; icon: string; liquid: boolean; grows?: number; hint: string; cls: 'equity' | 'debt' | 'retirement' | 'gold' | 'crypto' | 'other' }[] = [

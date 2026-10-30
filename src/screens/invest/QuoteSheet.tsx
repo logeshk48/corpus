@@ -4,6 +4,7 @@ import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.
 import { styles as f } from '@/screens/ious/components/IouSheet.styles';
 import type { InvestType, Investment, NewInvestment } from '@/types/investment';
 import { CLASS_LABEL, holdingTax } from '@/utils/capitalGains';
+import { dividendTotal } from '@/utils/corporateActions';
 import { formatINR } from '@/utils/format';
 import {
   compactNum, formatChange, formatPct, formatPrice, fundClassOf, getChart, getCoinChart, getCoins, getNavChart, getNavs, getNps, getNpsChart,
@@ -188,6 +189,24 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                     <Row l={`${trim(holding.units!)} ${UNIT[kind]} · avg ${formatPrice(pos.avg)}`} r={formatINR(Math.round(pos.value))} />
                     <Row l={`Invested ${formatINR(holding.invested)}`} r={`${sign(pos.pl)}${formatINR(Math.round(Math.abs(pos.pl)))} (${formatPct(pos.pct)})`} color={pos.pl >= 0 ? Corpus.income : Corpus.danger} />
                     {pos.today != null && <Row l={kind === 'stock' ? 'Today' : kind === 'crypto' ? 'Last 24h' : 'Last NAV change'} r={`${sign(pos.today)}${formatINR(Math.round(Math.abs(pos.today)))}`} color={pos.today >= 0 ? Corpus.income : Corpus.danger} />}
+                    {dividendTotal(holding) > 0 && (
+                      <>
+                        <Row l={`Dividends received (${holding.dividends!.length})`} r={`+${formatINR(dividendTotal(holding))}`} color={Corpus.income} />
+                        <Row
+                          l="Total return incl. dividends"
+                          r={`${sign(pos.pl + dividendTotal(holding))}${formatINR(Math.round(Math.abs(pos.pl + dividendTotal(holding))))} (${formatPct(holding.invested ? ((pos.pl + dividendTotal(holding)) / holding.invested) * 100 : 0)})`}
+                          color={pos.pl + dividendTotal(holding) >= 0 ? Corpus.income : Corpus.danger}
+                        />
+                        <Text style={m.tiny}>
+                          Last: ₹{holding.dividends![holding.dividends!.length - 1].perShare} a share on {new Date(holding.dividends![holding.dividends!.length - 1].date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. Dividends are taxed at your slab rate; 10% TDS above ₹10,000 a year per company.
+                        </Text>
+                      </>
+                    )}
+                    {holding.actions?.map((a) => (
+                      <Text key={a.date} style={m.tiny}>
+                        ↻ Adjusted for {a.ratio > 1 ? `a ${a.label.replace(':', '-for-')} split/bonus` : `a ${a.label} consolidation`} on {new Date(a.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}: shares ×{Math.round(a.ratio * 100) / 100}, buy price ÷{Math.round(a.ratio * 100) / 100}.
+                      </Text>
+                    ))}
                     {tax && (
                       <>
                         <View style={{ height: 0.5, backgroundColor: Corpus.border, marginVertical: 2 }} />

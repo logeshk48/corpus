@@ -229,17 +229,29 @@ export async function getStockList(): Promise<Listed[]> {
 // "RELIANCE INDUSTRIES LIMITED" → "Reliance Industries Limited"
 const tidy = (n: string) => (n === n.toUpperCase() ? n.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Etf|Psu|Bees)\b/g, (w) => w.toUpperCase()) : n);
 
-// Rank: exact symbol, symbol prefix, every word starts a word in the name, name contains
+// Names people actually type → the NSE symbol (renamed companies, nicknames, brands)
+const ALIAS: Record<string, string> = {
+  zomato: 'ETERNAL', blinkit: 'ETERNAL', hul: 'HINDUNILVR', 'l&t': 'LT', 'l & t': 'LT', lnt: 'LT', lic: 'LICI', 'l i c': 'LICI',
+  airtel: 'BHARTIARTL', 'bharti airtel': 'BHARTIARTL', jio: 'JIOFIN', dmart: 'DMART', 'd mart': 'DMART', paytm: 'PAYTM', nykaa: 'NYKAA',
+  'policy bazaar': 'POLICYBZR', policybazaar: 'POLICYBZR', indigo: 'INDIGO', 'kotak bank': 'KOTAKBANK', 'hero motocorp': 'HEROMOTOCO', 'hero honda': 'HEROMOTOCO',
+  hcl: 'HCLTECH', 'tata motors': 'TMPV', 'tata power': 'TATAPOWER', 'bajaj finserv': 'BAJAJFINSV', 'sbi life': 'SBILIFE', 'sbi card': 'SBICARD',
+  'm&m': 'M&M', mahindra: 'M&M', 'dr reddys': 'DRREDDY', ril: 'RELIANCE', 'state bank': 'SBIN', sbi: 'SBIN', bob: 'BANKBARODA', pnb: 'PNB',
+  'vodafone idea': 'IDEA', vi: 'IDEA', 'adani ports': 'ADANIPORTS', 'adani green': 'ADANIGREEN', 'ola': 'OLAELEC', 'hdfc life': 'HDFCLIFE',
+};
+
+// Rank: nickname, exact symbol, symbol prefix, every word starts a word in the name, name contains
 export function searchListed(list: Listed[], q: string, limit = 60): Listed[] {
   const query = q.trim().toLowerCase();
   if (!query) return [];
+  const alias = ALIAS[query];
   const words = query.split(/[^a-z0-9&]+/).filter(Boolean);
   const scored: { s: number; x: Listed }[] = [];
   for (const x of list) {
     const sym = x.symbol.replace(/\.(NS|BO)$/, '').toLowerCase();
     const name = x.name.toLowerCase();
     let s = 0;
-    if (sym === query.replace(/\s+/g, '')) s = 100;
+    if (alias && sym === alias.toLowerCase() && x.exchange === 'NSE') s = 120;
+    else if (sym === query.replace(/\s+/g, '')) s = 100;
     else if (sym.startsWith(query.replace(/\s+/g, ''))) s = 70;
     else {
       const nw = name.split(/[^a-z0-9&]+/);
@@ -253,3 +265,8 @@ export function searchListed(list: Listed[], q: string, limit = 60): Listed[] {
   }
   return scored.sort((a, b) => b.s - a.s || a.x.name.length - b.x.name.length).slice(0, limit).map((r) => r.x);
 }
+
+// Corporate actions for a stock since a date
+export type Events = { dividends: { date: string; amount: number }[]; splits: { date: string; ratio: number; label: string }[] };
+export const getEvents = (symbol: string, from: string) =>
+  cached(`ev:${symbol}:${from}`, 6 * 3600_000, () => call<Events>({ op: 'events', symbol, from: from.slice(0, 10) }));

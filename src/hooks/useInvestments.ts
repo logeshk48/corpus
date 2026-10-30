@@ -1,7 +1,8 @@
 import { useAuth } from '@/context/AuthContext';
-import { subscribeInvestments, updateValue } from '@/services/investments';
+import { subscribeInvestments, updateInvestment, updateValue } from '@/services/investments';
+import { applyEvents, lotsOf } from '@/utils/corporateActions';
 import type { Investment } from '@/types/investment';
-import { getLive, marketStatus, refKey, type LiveRef } from '@/utils/market';
+import { getEvents, getLive, marketStatus, refKey, type LiveRef } from '@/utils/market';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
@@ -102,6 +103,29 @@ export function useInvestments() {
       clearInterval(t);
       sub.remove();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  // Once a day per stock: apply new splits / bonus issues and pick up dividends
+  const checked = useRef(new Set<string>());
+  useEffect(() => {
+    const due = linked.filter(
+      (h) => h.symbol && !h.symbol.startsWith('^') && !checked.current.has(h.id) && (!h.eventsAt || Date.now() - new Date(h.eventsAt).getTime() > 86_400_000)
+    );
+    due.forEach((h) => checked.current.add(h.id));
+    (async () => {
+      for (const h of due) {
+        try {
+          const first = lotsOf(h).reduce((a, l) => (l.date < a ? l.date : a), h.startDate);
+          const from = h.eventsFrom && h.eventsFrom < first ? h.eventsFrom : first;
+          const ev = await getEvents(h.symbol!, from);
+          const changes = applyEvents(h, ev);
+          if (changes) await updateInvestment(h.id, changes);
+        } catch (e) {
+          console.warn('Corporate actions check failed for', h.name, e);
+        }
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 

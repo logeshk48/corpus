@@ -2,6 +2,9 @@ import type { Investment, Lot, NewInvestment } from '@/types/investment';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { clean, toUpdateData } from './firestoreUtils';
+import { addRealized } from './realized';
+import { lotsOf } from '@/utils/corporateActions';
+import { longAfterDays, taxClass } from '@/utils/capitalGains';
 
 // users/{uid}/investments/{id}
 function col() {
@@ -25,8 +28,7 @@ export const updateValue = (h: Investment, value: number) => updateInvestment(h.
 
 // Live-linked holdings (stocks / funds / NPS / crypto with units): trades change units, cost and lots.
 // Lots = each purchase. Selling uses FIFO (oldest first), the way Indian tax counts it.
-export const lotsOf = (h: Investment): Lot[] =>
-  h.lots?.length ? h.lots : h.units ? [{ date: h.startDate, units: h.units, price: h.invested / h.units }] : [];
+export { lotsOf };
 
 export const buyUnits = (h: Investment, units: number, price: number, date = new Date().toISOString()) => {
   const u = (h.units ?? 0) + units;
@@ -34,16 +36,20 @@ export const buyUnits = (h: Investment, units: number, price: number, date = new
   return updateInvestment(h.id, { units: round4(u), invested: Math.round(h.invested + units * price), value: Math.round(u * price), valueAt: new Date().toISOString(), lots, startDate: lots[0].date });
 };
 
-// Returns the profit booked (FIFO cost), and how much of it was long-term (held > 1 year)
+// Sell with FIFO cost. Long-term = lots held longer than the tax rule for this kind of asset.
+// The sale is saved (users/{uid}/realized) so this year's tax and the ₹1.25 L exemption add up.
 export const sellUnits = async (h: Investment, units: number, price: number, date = new Date()) => {
-  let left = units, profit = 0, longProfit = 0;
+  const cls = taxClass(h);
+  const after = cls ? longAfterDays(cls) : null;
+  let left = units, cost = 0, shortGain = 0, longGain = 0;
   const lots: Lot[] = [];
   for (const l of lotsOf(h)) {
     const take = Math.min(left, l.units);
     if (take > 0) {
-      const p = (price - l.price) * take;
-      profit += p;
-      if (date.getTime() - new Date(l.date).getTime() > 365 * 86_400_000) longProfit += p;
+      const g = (price - l.price) * take;
+      cost += l.price * take;
+      if (after != null && date.getTime() - new Date(l.date).getTime() > after * 86_400_000) longGain += g;
+      else shortGain += g;
       left -= take;
     }
     if (l.units - take > 0.00005) lots.push({ ...l, units: round4(l.units - take) });
@@ -57,6 +63,11 @@ export const sellUnits = async (h: Investment, units: number, price: number, dat
     lots,
     ...(lots[0] ? { startDate: lots[0].date } : {}),
   });
-  return { profit: Math.round(profit), longProfit: Math.round(longProfit) };
+  const sold = units - Math.max(0, left);
+  await addRealized({
+    investmentId: h.id, name: h.name, cls: cls ?? 'other', date: date.toISOString(),
+    units: round4(sold), sellPrice: price, cost: Math.round(cost), shortGain: Math.round(shortGain), longGain: Math.round(longGain),
+  }).catch((e) => console.warn('Could not save sale record', e));
+  return { profit: Math.round(shortGain + longGain), longProfit: Math.round(longGain) };
 };
 const round4 = (n: number) => Math.round(n * 10_000) / 10_000;

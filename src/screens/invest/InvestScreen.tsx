@@ -10,7 +10,10 @@ import { investMeta, type Investment, type NewInvestment } from '@/types/investm
 import { compactINR, formatINR, formatINRLong } from '@/utils/format';
 import { currentValue, daysOld, gain, isStale, portfolio, yearlyReturn } from '@/utils/investments';
 import { Ionicons } from '@expo/vector-icons';
-import { portfolioTax } from '@/utils/capitalGains';
+import { bookedThisYear, portfolioTax } from '@/utils/capitalGains';
+import { dividendTotal, fyOf, fyStart } from '@/utils/corporateActions';
+import { useRealized } from '@/hooks/useRealized';
+import { deleteRealized } from '@/services/realized';
 import { formatPct, formatPrice, getLive, parseWatch, priceTime, refKey, shortSymbol, watchId, type LiveKind, type LivePrice } from '@/utils/market';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
@@ -68,7 +71,11 @@ export default function InvestScreen() {
     return r ? { ...r, name: h.name } : null;
   };
   const searchFor = (h: Investment): LiveKind => (h.type === 'mf' ? 'fund' : h.type === 'nps' ? 'nps' : h.type === 'crypto' ? 'crypto' : 'stock');
-  const tax = useMemo(() => portfolioTax(investments), [investments]);
+  const realized = useRealized();
+  const booked = useMemo(() => bookedThisYear(realized, fyStart()), [realized]);
+  const fySales = realized.filter((r) => new Date(r.date) >= fyStart());
+  const tax = useMemo(() => portfolioTax(investments, new Date(), booked.exemptionUsed), [investments, booked.exemptionUsed]);
+  const divs = investments.reduce((a, h) => a + dividendTotal(h), 0);
   const dayGain = Object.values(live).reduce((a, l) => (l.kind === 'stock' && l.dayGain != null ? a + l.dayGain : a), 0);
   const hasStockLive = Object.values(live).some((l) => l.kind === 'stock');
   const pf = useMemo(() => portfolio(investments), [investments]);
@@ -157,6 +164,7 @@ export default function InvestScreen() {
               <Text style={[styles.heroSub, { color: pf.gain >= 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
                 {pf.gain >= 0 ? '▲' : '▼'} {formatINR(Math.abs(pf.gain))} ({pf.gain >= 0 ? '+' : '−'}{Math.abs(pf.pct).toFixed(1)}%) overall
               </Text>
+              {divs > 0 && <Text style={[styles.heroSub, { color: Corpus.income }]}>+ {formatINR(divs)} dividends received</Text>}
               {hasStockLive && (
                 <Text style={[styles.heroSub, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>
                   Today {dayGain >= 0 ? '+' : '−'}{formatINR(Math.round(Math.abs(dayGain))).replace('−', '')} on stocks
@@ -186,6 +194,37 @@ export default function InvestScreen() {
               </View>
             )}
 
+            {fySales.length > 0 && (
+              <View style={styles.card}>
+                <Text style={styles.name}>Profit booked in FY {fyOf(new Date())}</Text>
+                <Text style={[styles.heroValue, { color: booked.total >= 0 ? Corpus.income : Corpus.danger }]}>
+                  {booked.total >= 0 ? '+' : '−'}{formatINR(Math.abs(Math.round(booked.total)))}
+                </Text>
+                {booked.equityShort !== 0 && <Text style={styles.meta}>Short-term equity {formatINR(booked.equityShort)} · 20%</Text>}
+                {booked.equityLong !== 0 && <Text style={styles.meta}>Long-term equity {formatINR(booked.equityLong)} · {formatINR(booked.exemptionUsed)} of ₹1.25 L tax-free used, {formatINR(booked.exemptionLeft)} left</Text>}
+                {booked.otherLong !== 0 && <Text style={styles.meta}>Long-term gold / other {formatINR(booked.otherLong)} · 12.5%</Text>}
+                {booked.slab !== 0 && <Text style={styles.meta}>Slab-rate gains {formatINR(booked.slab)}</Text>}
+                {booked.crypto !== 0 && <Text style={styles.meta}>Crypto {formatINR(booked.crypto)} · 30%</Text>}
+                <Text style={[styles.meta, { color: Corpus.text, fontWeight: '600' }]}>Tax on this so far ≈ {formatINR(booked.tax)}</Text>
+                {fySales.slice(0, 5).map((r) => (
+                  <Pressable
+                    key={r.id}
+                    onLongPress={() => {
+                      const go = () => deleteRealized(r.id).then(() => showToast({ message: 'Sale record removed' }));
+                      if (Platform.OS === 'web') window.confirm(`Remove this sale record of ${r.name}? (Holding is not changed)`) && go();
+                      else Alert.alert('Remove this sale record?', 'Your holding is not changed.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: go }]);
+                    }}
+                  >
+                    <Text style={styles.note}>
+                      {new Date(r.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · sold {r.units} {r.name} at {formatPrice(r.sellPrice)} → {r.shortGain + r.longGain >= 0 ? '+' : '−'}{formatINR(Math.abs(r.shortGain + r.longGain))}
+                      {r.longGain !== 0 && r.shortGain !== 0 ? ' (part long-term)' : r.longGain !== 0 ? ' (long-term)' : ''}
+                    </Text>
+                  </Pressable>
+                ))}
+                {fySales.length > 5 && <Text style={styles.note}>+ {fySales.length - 5} more sales</Text>}
+              </View>
+            )}
+
             {(tax.equityShort > 0 || tax.equityLong !== 0 || tax.otherLong > 0 || tax.slabGains > 0 || tax.crypto > 0) && (
               <View style={styles.card}>
                 <Text style={styles.name}>Tax if you sold everything today</Text>
@@ -206,7 +245,7 @@ export default function InvestScreen() {
                       : `You can book ${formatINR(tax.exemptionLeft)} of long-term equity gains tax-free before 31 March (sell and buy back).`}
                   </Text>
                 )}
-                <Text style={styles.note}>Rough estimate with 4% cess, ignores gains you already booked this year and loss carry-forwards. Not tax advice.</Text>
+                <Text style={styles.note}>Rough estimate with 4% cess. Uses what's left of your ₹1.25 L after sales this year; ignores losses carried from past years. Not tax advice.</Text>
               </View>
             )}
 
@@ -243,6 +282,7 @@ export default function InvestScreen() {
                         {l?.changePct != null && (
                           <Text style={[styles.meta, { color: l.changePct >= 0 ? Corpus.income : Corpus.danger }]}>
                             {l.changePct >= 0 ? '▲' : '▼'} {formatPct(l.changePct)} {l.kind === 'stock' ? 'today' : l.kind === 'crypto' ? '24h' : 'last NAV'}
+                          {dividendTotal(h) > 0 ? ` · ₹${dividendTotal(h).toLocaleString('en-IN')} dividends` : ''}
                             {l.dayGain != null ? ` · ${l.dayGain >= 0 ? '+' : '−'}${formatINR(Math.round(Math.abs(l.dayGain))).replace('−', '')}` : ''}
                           </Text>
                         )}

@@ -58,6 +58,61 @@ function quoteFrom(chart, symbol) {
   };
 }
 
+// ─── Backup price: BSE's own quote (covers BSE-only, SME, SGBs and most NSE stocks via ISIN) ───
+const BSE_HEADERS = { ...HEADERS, Referer: 'https://www.bseindia.com/', Origin: 'https://www.bseindia.com' };
+const n2 = (v) => (v == null || v === '' || isNaN(Number(String(v).replace(/,/g, ''))) ? null : Number(String(v).replace(/,/g, '')));
+async function bseQuote(code, symbol) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), 8000);
+  const r = await fetch(`https://api.bseindia.com/BseIndiaAPI/api/getScripHeaderData/w?Debtflag=&scripcode=${code}&seriesid=`, { headers: BSE_HEADERS, signal: ctl.signal }).finally(() => clearTimeout(t));
+  if (!r.ok) throw new Error(`bse ${r.status}`);
+  const d = await r.json();
+  const h = d.Header || {}, c = d.CurrRate || {};
+  const price = n2(c.LTP) ?? n2(h.LTP);
+  if (!price) throw new Error('bse no price');
+  const prev = n2(h.PrevClose);
+  return {
+    symbol, name: (d.Cmpname && (d.Cmpname.FullN || d.Cmpname.ShortN)) || symbol, exchange: 'BSE', currency: 'INR',
+    price, prevClose: prev, change: n2(c.Chg) ?? (prev ? price - prev : null), changePct: n2(c.PcChg) ?? (prev ? ((price - prev) / prev) * 100 : null),
+    dayHigh: n2(h.High), dayLow: n2(h.Low), high52: null, low52: null, volume: null,
+    time: h.Ason ? bseTime(h.Ason) : new Date().toISOString(), type: 'EQUITY', source: 'BSE',
+  };
+}
+// "30 Oct 26 | 04:00 PM" → ISO (best effort)
+function bseTime(s) {
+  const m = /(\d{1,2}) (\w{3}) (\d{2,4})\s*\|?\s*(\d{1,2}):(\d{2})\s*(AM|PM)?/i.exec(String(s));
+  if (!m) return new Date().toISOString();
+  let hh = Number(m[4]) % 12 + (/pm/i.test(m[6] || '') ? 12 : 0);
+  const y = m[3].length === 2 ? `20${m[3]}` : m[3];
+  const d = new Date(`${m[1]} ${m[2]} ${y} ${String(hh).padStart(2, '0')}:${m[5]}:00 GMT+0530`);
+  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+}
+// Which BSE code to ask for a Yahoo symbol
+async function bseCodeFor(symbol) {
+  if (/^\d{6}\.BO$/.test(symbol)) return symbol.slice(0, 6);
+  const s = await stockList().catch(() => null);
+  const isin = s && s.isinOf.get(symbol);
+  return isin ? s.bseCode.get(isin) : null;
+}
+const STALE_DAYS = 5;
+async function quoteOne(symbol) {
+  let y = null;
+  try {
+    y = quoteFrom(await getJson(chartUrl(symbol, '1d')), symbol);
+  } catch {}
+  const fresh = y && y.price && y.time && Date.now() - new Date(y.time).getTime() < STALE_DAYS * 86400000;
+  if (fresh || symbol.startsWith('^')) return y || { symbol, error: 'not found' };
+  // Yahoo missing or stale (common for SME, SGB, small BSE stocks) → BSE
+  try {
+    const code = await bseCodeFor(symbol);
+    if (code) {
+      const b = await bseQuote(code, symbol);
+      return { ...b, name: (y && y.name !== symbol && y.name) || b.name, high52: y ? y.high52 : null, low52: y ? y.low52 : null };
+    }
+  } catch {}
+  return y && y.price ? { ...y, stale: true } : { symbol, error: 'no price available' };
+}
+
 const chartUrl = (symbol, range) =>
   `${YH1}/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${INTERVAL[range] || '1d'}&includePrePost=false`;
 
@@ -138,11 +193,13 @@ async function stockList() {
   ]);
   const bySym = new Map(); // yahooSymbol → [symbol, name, exchange, kind]
   const isins = new Set();
+  const isinOf = new Map(); // yahooSymbol → ISIN
+  const bseCode = new Map(); // ISIN → BSE scrip code (every BSE listing, incl. ones also on NSE)
   const kindOf = (isin, series) => (series === 'GB' ? 'g' : SME_SERIES.has(series) ? 'm' : String(isin).startsWith('INF') ? 'e' : 's');
   const add = (sym, name, ex, kind, isin) => {
     if (!sym || bySym.has(sym)) return;
     bySym.set(sym, [sym, name || sym, ex, kind]);
-    if (isin) isins.add(isin);
+    if (isin) isins.add(isin), isinOf.set(sym, isin);
   };
   // NSE (Upstox)
   if (nseU.status === 'fulfilled')
@@ -161,13 +218,15 @@ async function stockList() {
   if (sme.status === 'fulfilled') for (const r of csvRows(sme.value)) better(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY), add(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY, 'NSE', 'm', r.ISINNUMBER);
   // BSE-only companies (Yahoo uses the BSE scrip code: 500325.BO)
   if (bseU.status === 'fulfilled')
+    for (const r of bseU.value) if (r.segment === 'BSE_EQ' && r.isin && r.exchange_token) bseCode.set(r.isin, String(r.exchange_token));
+  if (bseU.status === 'fulfilled')
     for (const r of bseU.value)
       // BSE scrip codes 5xxxxx are shares / ETFs; 9xxxxx are bonds, NCDs and commercial paper — skip those
       if (r.segment === 'BSE_EQ' && /^IN[EF]/.test(r.isin || '') && !isins.has(r.isin) && /^5\d{5}$/.test(String(r.exchange_token)) && !/\d%|NCD|-PVT$|\bCP\b/i.test(r.name || r.trading_symbol || ''))
         add(`${r.exchange_token}.BO`, r.name || r.trading_symbol, 'BSE', kindOf(r.isin, ''), r.isin);
   const list = [...bySym.values()].sort((a, b) => a[1].localeCompare(b[1]));
   if (!list.length) throw new Error('exchange lists unavailable');
-  stocks = { at: Date.now(), list, sources: { upstoxNse: nseU.status, upstoxBse: bseU.status, nse: eq.status, nseEtf: etf.status, nseSme: sme.status } };
+  stocks = { at: Date.now(), list, isinOf, bseCode, sources: { upstoxNse: nseU.status, upstoxBse: bseU.status, nse: eq.status, nseEtf: etf.status, nseSme: sme.status } };
   return stocks;
 }
 
@@ -175,16 +234,35 @@ async function handle(q) {
   const op = q.op;
   if (op === 'quote') {
     const symbols = String(q.symbols || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 25);
-    const out = await Promise.allSettled(symbols.map((s) => getJson(chartUrl(s, '1d')).then((c) => quoteFrom(c, s))));
+    const out = await Promise.allSettled(symbols.map((s) => quoteOne(s)));
     return { cache: 30, body: { quotes: out.map((r, i) => (r.status === 'fulfilled' ? r.value : { symbol: symbols[i], error: String(r.reason) })) } };
   }
   if (op === 'chart') {
     const range = INTERVAL[q.range] ? q.range : '1mo';
-    const c = await getJson(chartUrl(q.symbol, range));
+    let c;
+    try {
+      c = await getJson(chartUrl(q.symbol, range));
+    } catch (e) {
+      const quote = await quoteOne(q.symbol);
+      if (!quote.price) throw e;
+      return { cache: 60, body: { quote, points: [] } }; // price from BSE, no chart history
+    }
     const res = c.chart.result[0];
     const closes = (res.indicators.quote[0] || {}).close || [];
     const points = (res.timestamp || []).map((t, i) => ({ t: new Date(t * 1000).toISOString(), c: closes[i] })).filter((p) => p.c != null);
-    return { cache: range === '1d' ? 60 : 900, body: { quote: quoteFrom(c, q.symbol), points } };
+    let quote = quoteFrom(c, q.symbol);
+    if (range === '1d' && (!quote.time || Date.now() - new Date(quote.time).getTime() > STALE_DAYS * 86400000)) quote = await quoteOne(q.symbol);
+    return { cache: range === '1d' ? 60 : 900, body: { quote, points } };
+  }
+  if (op === 'bse') return { cache: 30, body: await bseQuote(q.code, `${q.code}.BO`) };
+  if (op === 'events') {
+    // Splits / bonus issues and dividends for a stock since a date (Yahoo; amounts are per share, split-adjusted)
+    const from = Math.floor(new Date(`${q.from || '2000-01-01'}T00:00:00+05:30`).getTime() / 1000);
+    const c = await getJson(`${YH1}/v8/finance/chart/${encodeURIComponent(q.symbol)}?period1=${from}&period2=${Math.floor(Date.now() / 1000)}&interval=1d&events=div%2Csplit`, 12000);
+    const ev = (c.chart.result[0] || {}).events || {};
+    const dividends = Object.values(ev.dividends || {}).map((d) => ({ date: new Date(d.date * 1000).toISOString(), amount: d.amount })).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const splits = Object.values(ev.splits || {}).map((x) => ({ date: new Date(x.date * 1000).toISOString(), ratio: x.numerator / x.denominator, label: x.splitRatio })).sort((a, b) => (a.date < b.date ? -1 : 1));
+    return { cache: 21600, body: { dividends, splits } };
   }
   if (op === 'stocklist') {
     const s = await stockList();

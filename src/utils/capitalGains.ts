@@ -24,6 +24,7 @@ export function taxClass(h: Investment): TaxClass | null {
   return null;
 }
 const LONG_AFTER: Record<TaxClass, number | null> = { equity: 365, 'gold-listed': 365, 'gold-fund': 730, 'other-fund': 730, debt: null, crypto: null };
+export const longAfterDays = (c: TaxClass) => LONG_AFTER[c];
 export const CLASS_LABEL: Record<TaxClass, string> = {
   equity: 'Equity', 'gold-listed': 'Gold ETF / SGB', 'gold-fund': 'Gold fund', 'other-fund': 'Hybrid / other fund', debt: 'Debt fund', crypto: 'Crypto',
 };
@@ -86,4 +87,25 @@ export function portfolioTax(list: Investment[], at = new Date(), exemptionUsed 
   const taxableLong = Math.max(0, eL - exemptionLeft) + Math.max(0, oL);
   const estimate = Math.round((eS * 0.2 + taxableLong * 0.125 + Math.max(0, slab) * 0.3 + crypto * 0.3) * CESS);
   return { equityShort: eS, equityLong: eL, exemptionLeft, otherLong: oL, slabGains: slab, crypto, estimate, hasSlab: slab > 0 };
+}
+
+// ─── Gains you already booked this financial year ───
+type Sale = { cls: string; date: string; shortGain: number; longGain: number };
+export function bookedThisYear(sales: Sale[], fyStartDate: Date) {
+  let eS = 0, eL = 0, oL = 0, slab = 0, crypto = 0, count = 0;
+  for (const s of sales) {
+    if (new Date(s.date) < fyStartDate) continue;
+    count++;
+    if (s.cls === 'equity') (eS += s.shortGain), (eL += s.longGain);
+    else if (s.cls === 'crypto') crypto += Math.max(0, s.shortGain + s.longGain); // crypto losses can't be set off
+    else if (s.cls === 'debt' || s.cls === 'other') slab += s.shortGain + s.longGain;
+    else (oL += s.longGain), (slab += s.shortGain);
+  }
+  // short-term equity loss can be set off against long-term gains
+  const setOffS = eS < 0 ? eS : 0;
+  const longNet = eL + setOffS;
+  const shortNet = Math.max(0, eS);
+  const exemptionUsed = Math.min(LTCG_EXEMPTION, Math.max(0, longNet));
+  const tax = Math.round((shortNet * 0.2 + Math.max(0, longNet - LTCG_EXEMPTION) * 0.125 + Math.max(0, oL) * 0.125 + Math.max(0, slab) * 0.3 + crypto * 0.3) * CESS);
+  return { count, equityShort: eS, equityLong: eL, otherLong: oL, slab, crypto, exemptionUsed, exemptionLeft: LTCG_EXEMPTION - exemptionUsed, tax, total: eS + eL + oL + slab + crypto };
 }
