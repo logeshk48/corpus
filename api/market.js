@@ -2,7 +2,8 @@
 // Browsers can't call Yahoo / mfapi directly (CORS), so the app asks this function instead.
 //   ?op=quote&symbols=RELIANCE.NS,^NSEI     live quotes (≤25)
 //   ?op=chart&symbol=TCS.NS&range=1mo        price history (1d 5d 1mo 6mo 1y 5y)
-//   ?op=search&q=reliance                    NSE/BSE stocks, ETFs, indices
+//   ?op=search&q=reliance                    NSE/BSE stocks, ETFs, indices (Yahoo)
+//   ?op=stocklist                            EVERY listed company: NSE, NSE ETFs, NSE SME, BSE-only
 //   ?op=mfsearch&q=parag parikh              mutual fund schemes (AMFI via mfapi.in)
 //   ?op=nav&codes=122639,118989              latest NAVs (≤25)
 //   ?op=navchart&code=122639&range=1y        NAV history
@@ -86,6 +87,87 @@ function anyDate(s) {
   return isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+// ─── Every listed company (official exchange lists) ───
+// NSE main board, NSE ETFs, NSE SME (Emerge), and BSE companies not on NSE.
+// Yahoo symbols: NSE → SYMBOL.NS, BSE → SCRIPCODE.BO
+const NSE_HEADERS = { ...HEADERS, Accept: 'text/csv,*/*', Referer: 'https://www.nseindia.com/' };
+async function getText(url, headers = NSE_HEADERS, ms = 15000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  const r = await fetch(url, { headers, signal: ctl.signal }).finally(() => clearTimeout(t));
+  if (!r.ok) throw new Error(`upstream ${r.status}`);
+  return r.text();
+}
+function csvRows(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  const split = (l) => {
+    const out = []; let cur = '', qt = false;
+    for (const ch of l) { if (ch === '"') qt = !qt; else if (ch === ',' && !qt) { out.push(cur.trim()); cur = ''; } else cur += ch; }
+    out.push(cur.trim());
+    return out;
+  };
+  const head = split(lines[0]).map((h) => h.toUpperCase().replace(/\s+/g, ''));
+  return lines.slice(1).map((l) => { const c = split(l); return Object.fromEntries(head.map((h, i) => [h, c[i] || ''])); });
+}
+// Primary: Upstox's public instrument master (official exchange data, refreshed every morning, no login).
+// Backup: NSE's own CSV lists. Every company keeps its ISIN so NSE + BSE listings aren't doubled.
+const zlib = require('zlib');
+async function getGzJson(url, ms = 25000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  const r = await fetch(url, { headers: HEADERS, signal: ctl.signal }).finally(() => clearTimeout(t));
+  if (!r.ok) throw new Error(`upstream ${r.status}`);
+  const buf = Buffer.from(await r.arrayBuffer());
+  const text = buf[0] === 0x1f && buf[1] === 0x8b ? zlib.gunzipSync(buf).toString('utf8') : buf.toString('utf8');
+  return JSON.parse(text);
+}
+const UPSTOX = 'https://assets.upstox.com/market-quote/instruments/exchange';
+const SME_SERIES = new Set(['SM', 'ST', 'SZ']);
+const NSE_OK = new Set(['EQ', 'BE', 'BZ', 'SM', 'ST', 'SZ', 'GB']);
+
+let stocks = null;
+async function stockList() {
+  if (stocks && Date.now() - stocks.at < 12 * 3600_000) return stocks;
+  const A = 'https://nsearchives.nseindia.com';
+  const [nseU, bseU, eq, etf, sme] = await Promise.allSettled([
+    getGzJson(`${UPSTOX}/NSE.json.gz`),
+    getGzJson(`${UPSTOX}/BSE.json.gz`),
+    getText(`${A}/content/equities/EQUITY_L.csv`),
+    getText(`${A}/content/equities/eq_etfseclist.csv`),
+    getText(`${A}/emerge/corporates/content/SME_EQUITY_L.csv`),
+  ]);
+  const bySym = new Map(); // yahooSymbol → [symbol, name, exchange, kind]
+  const isins = new Set();
+  const kindOf = (isin, series) => (series === 'GB' ? 'g' : SME_SERIES.has(series) ? 'm' : String(isin).startsWith('INF') ? 'e' : 's');
+  const add = (sym, name, ex, kind, isin) => {
+    if (!sym || bySym.has(sym)) return;
+    bySym.set(sym, [sym, name || sym, ex, kind]);
+    if (isin) isins.add(isin);
+  };
+  // NSE (Upstox)
+  if (nseU.status === 'fulfilled')
+    for (const r of nseU.value)
+      if (r.segment === 'NSE_EQ' && NSE_OK.has(r.instrument_type) && /^IN[EF]|^IN0/.test(r.isin || '') && (r.instrument_type === 'GB' || !/^IN0/.test(r.isin)))
+        add(`${r.trading_symbol}.NS`, r.name, 'NSE', kindOf(r.isin, r.instrument_type), r.isin);
+  // NSE (official CSVs) — fills anything missing, nicer ETF names
+  if (eq.status === 'fulfilled') for (const r of csvRows(eq.value)) add(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY, 'NSE', kindOf(r.ISINNUMBER, r.SERIES), r.ISINNUMBER);
+  if (etf.status === 'fulfilled') for (const r of csvRows(etf.value)) {
+    const k = `${r.SYMBOL}.NS`;
+    if (bySym.has(k)) bySym.get(k)[1] = r.SECURITYNAME || bySym.get(k)[1];
+    else add(k, r.SECURITYNAME || r.UNDERLYING, 'NSE', 'e', r.ISINNUMBER);
+  }
+  if (sme.status === 'fulfilled') for (const r of csvRows(sme.value)) add(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY, 'NSE', 'm', r.ISINNUMBER);
+  // BSE-only companies (Yahoo uses the BSE scrip code: 500325.BO)
+  if (bseU.status === 'fulfilled')
+    for (const r of bseU.value)
+      if (r.segment === 'BSE_EQ' && /^IN[EF]/.test(r.isin || '') && !isins.has(r.isin) && r.exchange_token)
+        add(`${r.exchange_token}.BO`, r.name || r.trading_symbol, 'BSE', kindOf(r.isin, ''), r.isin);
+  const list = [...bySym.values()].sort((a, b) => a[1].localeCompare(b[1]));
+  if (!list.length) throw new Error('exchange lists unavailable');
+  stocks = { at: Date.now(), list, sources: { upstoxNse: nseU.status, upstoxBse: bseU.status, nse: eq.status, nseEtf: etf.status, nseSme: sme.status } };
+  return stocks;
+}
+
 async function handle(q) {
   const op = q.op;
   if (op === 'quote') {
@@ -100,6 +182,10 @@ async function handle(q) {
     const closes = (res.indicators.quote[0] || {}).close || [];
     const points = (res.timestamp || []).map((t, i) => ({ t: new Date(t * 1000).toISOString(), c: closes[i] })).filter((p) => p.c != null);
     return { cache: range === '1d' ? 60 : 900, body: { quote: quoteFrom(c, q.symbol), points } };
+  }
+  if (op === 'stocklist') {
+    const s = await stockList();
+    return { cache: 43200, body: { count: s.list.length, sources: s.sources, list: s.list } };
   }
   if (op === 'search') {
     const s = await getJson(`${YH2}/v1/finance/search?q=${encodeURIComponent(q.q || '')}&quotesCount=15&newsCount=0&listsCount=0`);

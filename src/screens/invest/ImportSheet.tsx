@@ -5,7 +5,7 @@ import { styles as f } from '@/screens/ious/components/IouSheet.styles';
 import type { NewInvestment } from '@/types/investment';
 import { formatINR } from '@/utils/format';
 import { parseHoldings, rankFunds, type ParsedRow } from '@/utils/importHoldings';
-import { fundClassOf, getLive, searchFunds, searchStocks, shortSymbol, type LiveRef } from '@/utils/market';
+import { fundClassOf, getLive, getStockList, searchFunds, searchListed, searchStocks, shortSymbol, type LiveRef } from '@/utils/market';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -37,13 +37,15 @@ export default function ImportSheet({ onImport, onClose }: { onImport: (list: Ne
     setMsg(null);
     setBusy(true);
     try {
+      const listed = kind === 'stock' ? await getStockList().catch(() => null) : null;
       const out: Match[] = [];
       for (let i = 0; i < parsed.length; i += 4) {
         const part = await Promise.all(
           parsed.slice(i, i + 4).map(async (r): Promise<Match> => {
             try {
               if (kind === 'stock') {
-                const hits = await searchStocks(r.name);
+                const local = listed ? searchListed(listed, r.name, 5) : [];
+                const hits = local.length ? local.map((x) => ({ symbol: x.symbol, name: x.name, exchange: x.exchange })) : await searchStocks(r.name);
                 const h = hits.find((x) => x.exchange === 'NSE') ?? hits[0];
                 return { ...r, ref: h ? { kind: 'stock', id: h.symbol } : null, matched: h ? `${h.name} · ${shortSymbol(h.symbol)}` : undefined, on: !!h };
               }

@@ -1,6 +1,7 @@
+import { Button } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
-import { searchCoins, searchFunds, searchNps, searchStocks, type CoinHit, type FundHit, type LiveKind, type LiveRef, type StockHit } from '@/utils/market';
+import { getStockList, searchCoins, searchFunds, searchListed, searchNps, searchStocks, type CoinHit, type FundHit, type Listed, type LiveKind, type LiveRef, type StockHit } from '@/utils/market';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -23,6 +24,13 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
   const [tab, setTab] = useState<LiveKind>(initial);
   const [nps, setNps] = useState<FundHit[]>([]);
   const [coins, setCoins] = useState<CoinHit[]>([]);
+  // every listed company, loaded once and searched on the phone
+  const [listed, setListed] = useState<Listed[] | null>(null);
+  const [letter, setLetter] = useState<string | null>(null);
+  const [show, setShow] = useState(100);
+  useEffect(() => {
+    getStockList().then(setListed).catch(() => setListed(null));
+  }, []);
   const [q, setQ] = useState('');
   const [stocks, setStocks] = useState<StockHit[]>([]);
   const [funds, setFunds] = useState<FundHit[]>([]);
@@ -43,7 +51,11 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
     const t = setTimeout(async () => {
       try {
         if (tab === 'stock') {
-          const r = await searchStocks(text);
+          const local = listed ? searchListed(listed, text) : [];
+          // fall back to Yahoo search (indices, anything missing from the lists)
+          const r: StockHit[] = local.length
+            ? local.map((x) => ({ symbol: x.symbol, name: x.name, exchange: x.exchange, type: x.kind === 'etf' ? 'ETF' : x.kind === 'sme' ? 'SME' : x.kind === 'sgb' ? 'SGB' : 'EQUITY' }))
+            : await searchStocks(text);
           alive && setStocks(r);
         } else if (tab === 'nps') {
           const r = await searchNps(text);
@@ -63,12 +75,12 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
       } finally {
         alive && setBusy(false);
       }
-    }, 350);
+    }, tab === 'stock' && listed ? 120 : 350);
     return () => {
       alive = false;
       clearTimeout(t);
     };
-  }, [q, tab]);
+  }, [q, tab, listed]);
 
   const list: unknown[] = { stock: stocks, fund: funds, nps, crypto: coins }[tab];
   const meta = TABS.find((t) => t.id === tab)!;
@@ -101,7 +113,46 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
             ))}
           </View>
           <ScrollView style={{ flexShrink: 1, marginTop: 6 }} keyboardShouldPersistTaps="handled">
-            {q.trim().length < 2 ? (
+            {q.trim().length < 2 && tab === 'stock' && listed ? (
+              <View style={{ gap: 8, paddingTop: 10 }}>
+                <Text style={m.tiny}>ALL {listed.length.toLocaleString('en-IN')} LISTED COMPANIES & ETFs · BROWSE A–Z</Text>
+                <View style={sheet.chips}>
+                  {['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((L) => (
+                    <Pressable key={L} style={[sheet.chip, { paddingHorizontal: 9 }, letter === L && sheet.chipSuggested]} onPress={() => (setLetter(letter === L ? null : L), setShow(100))}>
+                      <Text style={[sheet.chipText, letter === L && sheet.chipTextSuggested]}>{L}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {!letter ? (
+                  <View style={sheet.chips}>
+                    {POPULAR_STOCKS.map((p) => (
+                      <Pressable key={p} style={sheet.chip} onPress={() => setQ(p)}>
+                        <Text style={sheet.chipText}>{p}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : (
+                  (() => {
+                    const all = listed.filter((x) => (letter === '#' ? !/^[a-z]/i.test(x.name) : x.name.toUpperCase().startsWith(letter)));
+                    return (
+                      <>
+                        <Text style={m.tiny}>{all.length} starting with {letter}</Text>
+                        {all.slice(0, show).map((x) => (
+                          <Pressable key={x.symbol} style={m.row} onPress={() => onPick({ kind: 'stock', id: x.symbol, name: x.name })}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={m.rowName} numberOfLines={1}>{x.name}</Text>
+                              <Text style={m.small}>{x.symbol.replace(/\.(NS|BO)$/, '')} · {x.exchange}{x.kind === 'etf' ? ' · ETF' : x.kind === 'sme' ? ' · SME' : x.kind === 'sgb' ? ' · Gold bond' : ''}</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+                          </Pressable>
+                        ))}
+                        {all.length > show && <Button variant="ghost" label={`Show more (${all.length - show} left)`} onPress={() => setShow(show + 200)} />}
+                      </>
+                    );
+                  })()
+                )}
+              </View>
+            ) : q.trim().length < 2 ? (
               <View style={{ gap: 8, paddingTop: 10 }}>
                 <Text style={m.tiny}>POPULAR</Text>
                 <View style={sheet.chips}>
@@ -121,7 +172,7 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
                 <Pressable key={s.symbol} style={m.row} onPress={() => onPick({ kind: 'stock', id: s.symbol, name: s.name })}>
                   <View style={{ flex: 1 }}>
                     <Text style={m.rowName} numberOfLines={1}>{s.name}</Text>
-                    <Text style={m.small}>{s.symbol.replace(/\.(NS|BO)$/, '')} · {s.exchange}{s.type === 'ETF' ? ' · ETF' : s.type === 'INDEX' ? ' · Index' : ''}</Text>
+                    <Text style={m.small}>{s.symbol.replace(/\.(NS|BO)$/, '')} · {s.exchange}{s.type === 'ETF' ? ' · ETF' : s.type === 'SME' ? ' · SME' : s.type === 'SGB' ? ' · Gold bond' : s.type === 'INDEX' ? ' · Index' : ''}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
                 </Pressable>

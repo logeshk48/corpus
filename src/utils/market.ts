@@ -201,3 +201,55 @@ export function fundClassOf(category?: string, name = ''): 'equity' | 'debt' | '
   if (/hybrid|multi asset|conservative/.test(c)) return 'hybrid';
   return 'other';
 }
+
+// ─── Every listed company (NSE + ETFs + SME + BSE-only), searched on the phone ───
+export type Listed = { symbol: string; name: string; exchange: 'NSE' | 'BSE'; kind: 'stock' | 'etf' | 'sme' | 'sgb' };
+let listedCache: { at: number; list: Listed[] } | null = null;
+const LS_KEY = 'corpus.stocklist.v2';
+export async function getStockList(): Promise<Listed[]> {
+  if (listedCache && Date.now() - listedCache.at < 12 * 3600_000) return listedCache.list;
+  // web: reuse yesterday's copy instantly
+  try {
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined' && !listedCache) {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+      if (saved && Date.now() - saved.at < 24 * 3600_000) {
+        listedCache = saved;
+        return saved.list;
+      }
+    }
+  } catch {}
+  const d = await cached('stocklist', 12 * 3600_000, () => call<{ list: [string, string, string, string][] }>({ op: 'stocklist' }));
+  const list: Listed[] = d.list.map(([symbol, name, exchange, k]) => ({ symbol, name: tidy(name), exchange: exchange as 'NSE' | 'BSE', kind: k === 'e' ? 'etf' : k === 'm' ? 'sme' : k === 'g' ? 'sgb' : 'stock' }));
+  listedCache = { at: Date.now(), list };
+  try {
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') localStorage.setItem(LS_KEY, JSON.stringify(listedCache));
+  } catch {}
+  return list;
+}
+// "RELIANCE INDUSTRIES LIMITED" → "Reliance Industries Limited"
+const tidy = (n: string) => (n === n.toUpperCase() ? n.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Etf|Psu|Bees)\b/g, (w) => w.toUpperCase()) : n);
+
+// Rank: exact symbol, symbol prefix, every word starts a word in the name, name contains
+export function searchListed(list: Listed[], q: string, limit = 60): Listed[] {
+  const query = q.trim().toLowerCase();
+  if (!query) return [];
+  const words = query.split(/[^a-z0-9&]+/).filter(Boolean);
+  const scored: { s: number; x: Listed }[] = [];
+  for (const x of list) {
+    const sym = x.symbol.replace(/\.(NS|BO)$/, '').toLowerCase();
+    const name = x.name.toLowerCase();
+    let s = 0;
+    if (sym === query.replace(/\s+/g, '')) s = 100;
+    else if (sym.startsWith(query.replace(/\s+/g, ''))) s = 70;
+    else {
+      const nw = name.split(/[^a-z0-9&]+/);
+      if (words.every((w) => nw.some((n) => n.startsWith(w)))) s = 50 + (name.startsWith(words[0]) ? 10 : 0);
+      else if (name.includes(query)) s = 30;
+    }
+    if (!s) continue;
+    if (x.exchange === 'NSE') s += 3; // NSE first when a company is on both
+    if (x.kind === 'stock') s += 2;
+    scored.push({ s, x });
+  }
+  return scored.sort((a, b) => b.s - a.s || a.x.name.length - b.x.name.length).slice(0, limit).map((r) => r.x);
+}
