@@ -164,8 +164,10 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                       : `${up ? '▲' : '▼'} ${formatPct(rr)} in ${LABEL[range]}`}
                   </Text>
                   <Text style={m.tiny}>
-                    {kind === 'stock'
-                      ? `${marketStatus().open ? 'Live' : 'At last close'} · ${priceTime(info?.time)}`
+                    {kind === 'stock' && info?.time && Date.now() - new Date(info.time).getTime() > 5 * 86_400_000
+                      ? `⚠ Last traded ${new Date(info.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — rarely traded, price may be old`
+                      : kind === 'stock'
+                      ? `${marketStatus().open ? 'Live' : 'At last close'} · ${priceTime(info?.time)}${(info as { source?: string })?.source === 'BSE' ? ' · BSE' : ''}`
                       : kind === 'crypto'
                         ? `Live · ${priceTime(info?.time)}`
                         : `NAV as of ${info?.time ? new Date(info.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}`}

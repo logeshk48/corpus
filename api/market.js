@@ -59,7 +59,7 @@ function quoteFrom(chart, symbol) {
 }
 
 // ─── Backup price: BSE's own quote (covers BSE-only, SME, SGBs and most NSE stocks via ISIN) ───
-const BSE_HEADERS = { ...HEADERS, Referer: 'https://www.bseindia.com/', Origin: 'https://www.bseindia.com' };
+const BSE_HEADERS = { ...HEADERS, Accept: 'application/json, text/plain, */*', 'Accept-Language': 'en-IN,en;q=0.9', Referer: 'https://www.bseindia.com/', Origin: 'https://www.bseindia.com', 'Sec-Fetch-Site': 'same-site', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty' };
 const n2 = (v) => (v == null || v === '' || isNaN(Number(String(v).replace(/,/g, ''))) ? null : Number(String(v).replace(/,/g, '')));
 async function bseQuote(code, symbol) {
   const ctl = new AbortController();
