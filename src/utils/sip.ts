@@ -1,7 +1,7 @@
 // SIPs: what's due, what's pending confirmation, what's coming this month.
 // The app never sees your bank, so each month it asks "did it go through?" the day the SIP is due,
 // and assumes yes after AUTO_DAYS if you don't answer (most SIPs do go through).
-import type { Investment, Sip } from '@/types/investment';
+import type { Investment, Lot, Sip, SipEntry } from '@/types/investment';
 import type { MoneyReminder } from './debtReminders';
 import { formatINR } from './format';
 
@@ -109,4 +109,29 @@ export function sipReminders(list: Investment[], now = new Date()): MoneyReminde
     });
   }
   return out;
+}
+
+// ─── Past SIPs: "₹5,000 every month since Jan 2023" → units from the real NAV on each date ───
+// points: NAV history (oldest first). Uses the NAV on the SIP date, or the last one before it (holidays).
+export function backfillSip(points: { t: string; c: number }[], sip: Sip, since: Date, until = new Date()) {
+  const lots: Lot[] = [];
+  const entries: SipEntry[] = [];
+  const pts = points.map((p) => ({ t: new Date(p.t).getTime(), c: p.c })).filter((p) => p.c > 0).sort((a, b) => a.t - b.t);
+  if (!pts.length) return { lots, entries, units: 0, invested: 0 };
+  let i = 0;
+  for (let y = since.getFullYear(), m = since.getMonth(); y < until.getFullYear() || (y === until.getFullYear() && m <= until.getMonth()); m === 11 ? (y++, (m = 0)) : m++) {
+    const date = sipDate(sip, y, m);
+    if (date < since || date > until) continue;
+    const endOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59).getTime();
+    while (i + 1 < pts.length && pts[i + 1].t <= endOfDay) i++;
+    if (pts[i].t > endOfDay) continue; // fund didn't exist yet
+    const nav = pts[i].c;
+    const amount = sipAmount(sip, date);
+    const units = Math.round((amount / nav) * 1000) / 1000;
+    lots.push({ date: date.toISOString(), units, price: nav });
+    entries.push({ month: monthKey(date), status: 'done', date: date.toISOString(), amount, units, price: nav });
+  }
+  const units = Math.round(lots.reduce((a, l) => a + l.units, 0) * 1000) / 1000;
+  const invested = Math.round(lots.reduce((a, l) => a + l.units * l.price, 0));
+  return { lots, entries, units, invested };
 }

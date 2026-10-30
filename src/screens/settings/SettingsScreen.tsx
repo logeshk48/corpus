@@ -220,7 +220,7 @@ export default function SettingsScreen() {
                   { k: 'cards', icon: 'card-outline', label: 'Card bills', hint: '3 days before, the day before, and on the day' },
                   { k: 'sips', icon: 'repeat-outline', label: 'SIP reminders', hint: 'Day before the debit, and “did it go through?” after' },
                   { k: 'budget', icon: 'pie-chart-outline', label: 'Budget warning', hint: 'One evening alert once 80% of your month is used' },
-                  { k: 'checkin', icon: 'refresh-outline', label: 'Weekly balance check', hint: 'Sunday 7 PM, only if balances are old' },
+                  { k: 'checkin', icon: 'refresh-outline', label: 'Weekly balance check', hint: 'Sunday 7 PM if balances are old · 1st of the month for investments without a live price' },
                 ] as const
               ).map((n, i) => {
                 const value = settings.notify?.[n.k] !== false;

@@ -8,7 +8,7 @@ import { saveSettings } from '@/services/settings';
 import { addInvestment, addMoney, buyUnits, deleteInvestment, sellUnits, updateInvestment, updateValue } from '@/services/investments';
 import { investMeta, type Investment, type NewInvestment } from '@/types/investment';
 import { compactINR, formatINR, formatINRLong } from '@/utils/format';
-import { currentValue, daysOld, gain, isStale, portfolio, yearlyReturn } from '@/utils/investments';
+import { currentValue, daysOld, gain, isStale, needsCheckup, portfolio, yearlyReturn } from '@/utils/investments';
 import { Ionicons } from '@expo/vector-icons';
 import { bookedThisYear, portfolioTax } from '@/utils/capitalGains';
 import { dividendTotal, fyOf, fyStart } from '@/utils/corporateActions';
@@ -27,7 +27,7 @@ import GoalSheet from './GoalSheet';
 import MixCard from './MixCard';
 import SipCards from './SipCards';
 import SipSheet from './SipSheet';
-import { confirmSip, saveSip, skipSip } from '@/services/investments';
+import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/investments';
 import { saveMix, subscribeMix, type MixSnap } from '@/services/investMix';
 import { holdingXirr, portfolioXirr } from '@/utils/returns';
 import { monthKey, nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
@@ -142,7 +142,7 @@ export default function InvestScreen() {
     saveMix({ month: monthKey(new Date()), total: Math.round(pf.value), invested: Math.round(pf.invested), byCls, at: new Date().toISOString() }).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mixKey, loading]);
-  const stale = investments.filter((h) => isStale(h));
+  const checkup = investments.filter((h) => needsCheckup(h));
 
   const run = async (fn: () => Promise<unknown>, msg: string) => {
     try {
@@ -313,10 +313,20 @@ export default function InvestScreen() {
               </View>
             )}
 
-            {stale.length > 0 && (
-              <Text style={[styles.note, { color: Corpus.warning }]}>
-                ⏳ {stale.map((s) => s.name).join(', ')} {stale.length > 1 ? 'have' : 'has'}n’t been updated in over 45 days. Tap “Update value”.
-              </Text>
+            {checkup.length > 0 && (
+              <View style={[styles.card, { borderColor: Corpus.warningLine }]}>
+                <Text style={styles.name}>Monthly check-up · {checkup.length} to update</Text>
+                <Text style={styles.meta}>These don’t have a live price. Open your app or statement and type today’s value — 1 minute keeps your net worth right.</Text>
+                {checkup.map((h) => (
+                  <View key={h.id} style={m.posRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={m.rowName} numberOfLines={1}>{h.name}</Text>
+                      <Text style={m.small}>{formatINR(h.value)} · {daysOld(h)} days ago</Text>
+                    </View>
+                    <Button size="sm" variant="secondary" icon="refresh" label="Update" onPress={() => setMode({ kind: 'value', h })} />
+                  </View>
+                ))}
+              </View>
             )}
 
             <SectionLabel right="Tap to open · hold to edit">HOLDINGS</SectionLabel>
@@ -433,14 +443,24 @@ export default function InvestScreen() {
       {sipFor && (
         <SipSheet
           h={sipFor}
+          canBackfill={!!(sipFor.schemeCode || sipFor.npsCode)}
           onClose={() => setSipFor(null)}
-          onSave={async (sip) => {
+          onSave={async (sip, history) => {
             try {
-              await saveSip(sipFor, sip);
-              showToast({ message: sip?.active ? `SIP of ${formatINR(sip.amount)} on the ${sip.day === 1 ? '1st' : `${sip.day}th`} saved` : 'SIP stopped' });
+              if (sip && history) {
+                const b = await saveSipWithHistory(sipFor, sip, history.since, history.alreadyIncluded);
+                showToast({
+                  message: history.alreadyIncluded
+                    ? `${b.entries.length} past SIPs recorded`
+                    : `${b.entries.length} past SIPs added · ${b.units} units for ${formatINR(b.invested)}`,
+                });
+              } else {
+                await saveSip(sipFor, sip);
+                showToast({ message: sip?.active ? `SIP of ${formatINR(sip.amount)} on the ${sip.day === 1 ? '1st' : `${sip.day}th`} saved` : 'SIP stopped' });
+              }
               setSipFor(null);
-            } catch {
-              showToast({ message: 'Could not save. Try again.' });
+            } catch (e) {
+              showToast({ message: e instanceof Error && /NAV/.test(e.message) ? e.message : 'Could not get past NAVs. Check your internet and try again.' });
             }
           }}
         />

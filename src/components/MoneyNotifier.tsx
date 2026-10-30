@@ -1,6 +1,7 @@
 import { useIous } from '@/hooks/useIous';
 import { useInvestments } from '@/hooks/useInvestments';
 import { sipReminders } from '@/utils/sip';
+import { needsCheckup } from '@/utils/investments';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { overallBudget } from '@/utils/budgets';
@@ -66,6 +67,14 @@ export default function MoneyNotifier() {
           const sun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((7 - now.getDay()) % 7), 19);
           if (sun <= now) sun.setDate(sun.getDate() + 7);
           plan.push({ id: 'checkin:weekly', date: sun, title: 'Update your balances', body: 'Open your bank & card apps, 30 seconds keeps your net worth right' });
+        }
+        // Monthly investment check-up: 1st of next month, 10 AM, if any value has no live price
+        const manual = investments.filter((h) => !h.units || !(h.symbol || h.schemeCode || h.npsCode || h.coinId)).filter((h) => !['fd', 'epf', 'ppf'].includes(h.type));
+        if (on('checkin') && manual.length) {
+          const now = new Date();
+          const first = new Date(now.getFullYear(), now.getMonth() + 1, 1, 10);
+          const due = investments.filter((h) => needsCheckup(h)).length;
+          plan.push({ id: `invest:checkup:${first.toISOString().slice(0, 7)}`, date: first, title: 'Monthly investment check-up', body: `${manual.length} investment${manual.length > 1 ? 's' : ''} without a live price${due ? `, ${due} out of date` : ''}. 1 minute to update.` });
         }
         if (plan.length === 0) {
           await cancelOurs();

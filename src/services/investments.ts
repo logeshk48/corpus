@@ -1,6 +1,7 @@
 import type { Investment, Lot, NewInvestment, Sip, SipEntry } from '@/types/investment';
 import { liveRefOf, priceOn } from '@/utils/market';
-import type { Instalment } from '@/utils/sip';
+import { backfillSip, type Instalment } from '@/utils/sip';
+import { getNavHistory } from '@/utils/market';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { clean, toUpdateData } from './firestoreUtils';
@@ -101,3 +102,31 @@ export async function confirmSip(h: Investment, inst: Instalment, auto = false) 
 export const skipSip = (h: Investment, inst: Instalment) =>
   updateInvestment(h.id, { sipLog: [...(h.sipLog ?? []).filter((l) => l.month !== inst.month), { month: inst.month, status: 'skipped', date: inst.date.toISOString(), amount: 0 }] });
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// Save a SIP that has been running since `since`, adding every past instalment at its real NAV.
+// alreadyIncluded: your units already include them (from your app) → only log them, don't add units.
+export async function saveSipWithHistory(h: Investment, sip: Sip, since: Date, alreadyIncluded: boolean) {
+  const ref = liveRefOf(h);
+  if (!ref || (ref.kind !== 'fund' && ref.kind !== 'nps')) throw new Error('Past SIPs need a mutual fund or NPS with a live NAV');
+  const points = await getNavHistory(ref.kind, ref.id);
+  const b = backfillSip(points, sip, since);
+  const keepLog = (h.sipLog ?? []).filter((l) => !b.entries.some((e) => e.month === l.month));
+  if (alreadyIncluded) {
+    await updateInvestment(h.id, { sip: { ...sip, start: since.toISOString() }, sipLog: [...keepLog, ...b.entries] });
+  } else {
+    const lots = [...lotsOf(h), ...b.lots].sort((a, b2) => (a.date < b2.date ? -1 : 1));
+    const units = round4((h.units ?? 0) + b.units);
+    const unitPrice = h.units ? h.value / h.units : b.lots.length ? b.lots[b.lots.length - 1].price : 0;
+    await updateInvestment(h.id, {
+      sip: { ...sip, start: since.toISOString() },
+      sipLog: [...keepLog, ...b.entries],
+      lots,
+      units,
+      invested: Math.round(h.invested + b.invested),
+      value: Math.round(units * unitPrice),
+      valueAt: new Date().toISOString(),
+      startDate: lots[0]?.date ?? h.startDate,
+    });
+  }
+  return b;
+}

@@ -64,3 +64,15 @@ export const monthsUntil = (iso: string, now = new Date()) => {
   const d = new Date(iso);
   return Math.max(0, (d.getFullYear() - now.getFullYear()) * 12 + d.getMonth() - now.getMonth());
 };
+
+// SIP projection with a yearly step-up: month by month
+export function sipFuture(amount: number, stepUpPct: number, years: number, yearlyPct = 12) {
+  const r = Math.pow(1 + yearlyPct / 100, 1 / 12) - 1;
+  let v = 0, put = 0, a = amount;
+  for (let mth = 0; mth < years * 12; mth++) {
+    if (mth > 0 && mth % 12 === 0) a = a * (1 + stepUpPct / 100);
+    v = v * (1 + r) + a; // same convention as futureValue
+    put += a;
+  }
+  return { value: Math.round(v), put: Math.round(put) };
+}

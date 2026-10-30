@@ -53,3 +53,9 @@ export function portfolio(list: Investment[], at = new Date()) {
   const allocation = [...byCls.entries()].map(([cls, v]) => ({ cls, value: v, share: value ? v / value : 0 })).sort((a, b) => b.value - a.value);
   return { invested, value, gain: value - invested, pct: invested ? ((value - invested) / invested) * 100 : 0, allocation };
 }
+
+// Monthly check-up: holdings without a live price or automatic growth, not updated for 30+ days
+export const needsCheckup = (h: Investment, at = new Date()) => {
+  const live = !!h.units && !!(h.symbol || h.schemeCode || h.npsCode || h.coinId);
+  return !live && !currentValue(h, at).auto && daysOld(h, at) >= 30 && h.value > 0;
+};
