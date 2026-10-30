@@ -1,8 +1,9 @@
 import { useAuth } from '@/context/AuthContext';
-import { subscribeInvestments, updateInvestment, updateValue } from '@/services/investments';
+import { confirmSip, subscribeInvestments, updateInvestment, updateValue } from '@/services/investments';
+import { AUTO_DAYS, pendingSips } from '@/utils/sip';
 import { applyEvents, lotsOf } from '@/utils/corporateActions';
 import type { Investment } from '@/types/investment';
-import { getEvents, getLive, marketStatus, refKey, type LiveRef } from '@/utils/market';
+import { getEvents, getLive, liveRefOf, marketStatus, refKey, type LiveRef } from '@/utils/market';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
@@ -15,14 +16,8 @@ export type LiveInfo = {
   at: string;              // when the price is from
 };
 
-// Which live price a holding follows (if any)
-export function liveRefOf(h: Investment): LiveRef | null {
-  if (h.symbol) return { kind: 'stock', id: h.symbol };
-  if (h.schemeCode) return { kind: 'fund', id: h.schemeCode };
-  if (h.npsCode) return { kind: 'nps', id: h.npsCode };
-  if (h.coinId) return { kind: 'crypto', id: h.coinId };
-  return null;
-}
+export { liveRefOf };
+const sipLock = new Set<string>();
 // Linked = has units + a live source → valued live (units × price).
 export const isLinked = (h: Investment) => !!h.units && h.units > 0 && !!liveRefOf(h);
 
@@ -128,6 +123,22 @@ export function useInvestments() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+
+  // SIPs nobody answered for AUTO_DAYS → assume they went through (one per holding per pass;
+  // the next snapshot handles the next month). Module-level lock: several screens use this hook.
+  useEffect(() => {
+    const old = pendingSips(raw).filter((p) => p.ageDays >= AUTO_DAYS && !sipLock.has(`${p.h.id}:${p.month}`));
+    const seen = new Set<string>();
+    for (const p of old) {
+      if (seen.has(p.h.id)) continue;
+      seen.add(p.h.id);
+      sipLock.add(`${p.h.id}:${p.month}`);
+      confirmSip(p.h, p, true).catch((e) => {
+        sipLock.delete(`${p.h.id}:${p.month}`);
+        console.warn('Auto SIP confirm failed', e);
+      });
+    }
+  }, [raw]);
 
   // live-valued copies: value = units × price, so portfolio and net worth are live everywhere
   const investments = useMemo(

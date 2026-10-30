@@ -22,9 +22,10 @@ import InvestmentSheet, { type InvSheetMode } from './InvestmentSheet';
 import { m } from './Market.styles';
 import MarketSearchSheet, { type Target } from './MarketSearchSheet';
 import ImportSheet from './ImportSheet';
+import SipCards from './SipCards';
 import SipSheet from './SipSheet';
-import { saveSip, saveSipWithHistory } from '@/services/investments';
-import { nextSip, sipAmount, sipStreak } from '@/utils/sip';
+import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/investments';
+import { nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
 import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
 import { styles } from './InvestScreen.styles';
@@ -89,6 +90,16 @@ export default function InvestScreen() {
     const h = sipForId && investments.find((x) => x.id === sipForId);
     if (h) (setSipFor(h), setSipForId(null));
   }, [sipForId, investments]);
+  const pending = useMemo(() => pendingSips(investments), [investments]);
+  const sipYes = async (p: (typeof pending)[number]) => {
+    try {
+      const e = await confirmSip(p.h, p);
+      showToast({ message: e.units ? `${p.h.name}: +${e.units} units at ${formatPrice(e.price)}` : `${formatINR(p.amount)} added to ${p.h.name}` });
+    } catch {
+      showToast({ message: 'NAV for that day isn’t out yet. Try again tomorrow.' });
+    }
+  };
+  const sipSkip = (p: (typeof pending)[number]) => skipSip(p.h, p).then(() => showToast({ message: 'Marked as skipped' }));
 
 
   const run = async (fn: () => Promise<unknown>, msg: string) => {
@@ -184,6 +195,8 @@ export default function InvestScreen() {
                 <Text style={m.tiny}>{liveError ? 'Live prices paused — showing last known values' : `● Live · updated ${priceTime(updatedAt)}`}</Text>
               )}
             </View>
+
+            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
 
             {pf.allocation.length > 1 && (
               <View style={styles.card}>

@@ -23,6 +23,7 @@ import { useToast } from '@/context/ToastContext';
 import type { Bill } from '@/types/bill';
 import { overallBudget } from '@/utils/budgets';
 import { computeSafeToSpend } from '@/utils/safeToSpend';
+import { sipReminders } from '@/utils/sip';
 import { catchUp } from '@/utils/catchUp';
 import { frequentPicks, type QuickPick } from '@/utils/quickAdd';
 import { addTransactionNow, deleteTransaction } from '@/services/transactions';
@@ -57,12 +58,13 @@ export default function HomeScreen() {
   const iouTotals = totals(byPerson(ious));
   const repayNudge = chainNudges(ious)[0];
   const { bills } = useBills();
+  const { investments } = useInvestments();
   const accTotals = accountTotals(accList);
   const health = accounts.length ? moneyHealth(accTotals.have, accTotals.cardDues, bills, transactions) : null;
   const shortAlert = health?.short
     ? [{ id: 'short', iouId: '', when: new Date(), title: `${formatINR(-health.free)} short for bills & card dues`, body: `You have ${formatINR(health.have)}, but ${formatINR(health.billsDue + health.cardDues)} is due in the next 30 days`, urgency: 'overdue' as const }]
     : [];
-  const reminders = actionable([...shortAlert, ...moneyReminders(ious), ...cardReminders(accList)]);
+  const reminders = actionable([...shortAlert, ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
   const [showSafe, setShowSafe] = useState(false);
   const { showToast } = useToast();
   const [paying, setPaying] = useState<Bill | null>(null);
@@ -134,7 +136,6 @@ export default function HomeScreen() {
   const accHave = accountTotals(accList).have;
   const { assets } = useAssets();
   const gold = useGoldRate();
-  const { investments } = useInvestments();
   const nw = netWorthTotals(netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null })).total;
   const budgetPct = overall && overall.limit > 0 ? Math.round((overall.spent / overall.limit) * 100) : null;
   const shortcuts: Shortcut[] = [
@@ -196,7 +197,7 @@ export default function HomeScreen() {
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
 
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
-        <MoneyReminders items={reminders} onPress={() => router.push('/ious' as Href)} />
+        <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
