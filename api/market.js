@@ -150,17 +150,20 @@ async function stockList() {
       if (r.segment === 'NSE_EQ' && NSE_OK.has(r.instrument_type) && /^IN[EF]|^IN0/.test(r.isin || '') && (r.instrument_type === 'GB' || !/^IN0/.test(r.isin)))
         add(`${r.trading_symbol}.NS`, r.name, 'NSE', kindOf(r.isin, r.instrument_type), r.isin);
   // NSE (official CSVs) — fills anything missing, nicer ETF names
-  if (eq.status === 'fulfilled') for (const r of csvRows(eq.value)) add(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY, 'NSE', kindOf(r.ISINNUMBER, r.SERIES), r.ISINNUMBER);
+  // NSE's own file has full company names ("Energy Development Company Ltd" vs "ENERGY DEVE. CO.LTD")
+  const better = (k, name) => { if (bySym.has(k) && name) bySym.get(k)[1] = name; };
+  if (eq.status === 'fulfilled') for (const r of csvRows(eq.value)) { better(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY); add(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY, 'NSE', kindOf(r.ISINNUMBER, r.SERIES), r.ISINNUMBER); }
   if (etf.status === 'fulfilled') for (const r of csvRows(etf.value)) {
     const k = `${r.SYMBOL}.NS`;
     if (bySym.has(k)) bySym.get(k)[1] = r.SECURITYNAME || bySym.get(k)[1];
     else add(k, r.SECURITYNAME || r.UNDERLYING, 'NSE', 'e', r.ISINNUMBER);
   }
-  if (sme.status === 'fulfilled') for (const r of csvRows(sme.value)) add(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY, 'NSE', 'm', r.ISINNUMBER);
+  if (sme.status === 'fulfilled') for (const r of csvRows(sme.value)) better(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY), add(`${r.SYMBOL}.NS`, r.NAMEOFCOMPANY, 'NSE', 'm', r.ISINNUMBER);
   // BSE-only companies (Yahoo uses the BSE scrip code: 500325.BO)
   if (bseU.status === 'fulfilled')
     for (const r of bseU.value)
-      if (r.segment === 'BSE_EQ' && /^IN[EF]/.test(r.isin || '') && !isins.has(r.isin) && r.exchange_token)
+      // BSE scrip codes 5xxxxx are shares / ETFs; 9xxxxx are bonds, NCDs and commercial paper — skip those
+      if (r.segment === 'BSE_EQ' && /^IN[EF]/.test(r.isin || '') && !isins.has(r.isin) && /^5\d{5}$/.test(String(r.exchange_token)) && !/\d%|NCD|-PVT$|\bCP\b/i.test(r.name || r.trading_symbol || ''))
         add(`${r.exchange_token}.BO`, r.name || r.trading_symbol, 'BSE', kindOf(r.isin, ''), r.isin);
   const list = [...bySym.values()].sort((a, b) => a[1].localeCompare(b[1]));
   if (!list.length) throw new Error('exchange lists unavailable');
