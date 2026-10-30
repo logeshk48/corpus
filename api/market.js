@@ -23,8 +23,11 @@ const HEADERS = {
 const INTERVAL = { '1d': '5m', '5d': '30m', '1mo': '1d', '6mo': '1d', '1y': '1d', '5y': '1wk', max: '1mo' };
 const DAYS = { '5d': 5, '1mo': 31, '6mo': 183, '1y': 366, '5y': 1830, max: 99999 };
 
-async function getJson(url) {
-  const r = await fetch(url, { headers: HEADERS });
+// Give up on a slow source after 8 s instead of leaving the app spinning
+async function getJson(url, ms = 8000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  const r = await fetch(url, { headers: HEADERS, signal: ctl.signal }).finally(() => clearTimeout(t));
   if (!r.ok) throw new Error(`upstream ${r.status}`);
   return r.json();
 }
@@ -63,6 +66,17 @@ const mfDate = (s) => {
   return new Date(`${y}-${m}-${d}T15:30:00+05:30`).toISOString();
 };
 
+const tokens = (s) => String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+// All mutual fund schemes (~40k), cached in the function's memory for 12 h
+let funds = null;
+async function fundList() {
+  if (funds && Date.now() - funds.at < 12 * 3600_000) return funds.list;
+  const d = await getJson(`${MF}/mf`, 20000);
+  const list = d.map((x) => ({ code: String(x.schemeCode), name: x.schemeName, words: tokens(x.schemeName) }));
+  funds = { at: Date.now(), list };
+  return list;
+}
+
 const num = (v) => (v == null || v === '' || isNaN(Number(v)) ? null : Number(v));
 // "28-10-2026", "2026-10-28", "28 Oct 2026" → ISO
 function anyDate(s) {
@@ -95,7 +109,14 @@ async function handle(q) {
     return { cache: 86400, body: { results } };
   }
   if (op === 'mfsearch') {
-    const s = await getJson(`${MF}/mf/search?q=${encodeURIComponent(q.q || '')}`);
+    // mfapi's own search is slow (10 s+). Keep the full scheme list in memory and search it here.
+    const words = tokens(q.q);
+    const all = await fundList().catch(() => null);
+    if (all) {
+      const results = all.filter((x) => words.every((w) => x.words.some((n) => n.startsWith(w)))).slice(0, 40).map((x) => ({ code: x.code, name: x.name }));
+      return { cache: 86400, body: { results } };
+    }
+    const s = await getJson(`${MF}/mf/search?q=${encodeURIComponent(q.q || '')}`, 15000);
     return { cache: 86400, body: { results: (Array.isArray(s) ? s : []).slice(0, 25).map((x) => ({ code: String(x.schemeCode), name: x.schemeName })) } };
   }
   if (op === 'nav') {
@@ -130,9 +151,9 @@ async function handle(q) {
   }
   if (op === 'npssearch') {
     const all = await getJson(`${NPS}/schemes`);
-    const words = String(q.q || '').toLowerCase().split(/\s+/).filter(Boolean);
+    const words = tokens(q.q);
     const results = (all.data || [])
-      .filter(([, name]) => words.every((w) => String(name).toLowerCase().includes(w)))
+      .filter(([, name]) => words.every((w) => tokens(name).some((n) => n.startsWith(w))))
       .slice(0, 30)
       .map(([code, name]) => ({ code, name }));
     return { cache: 86400, body: { results } };
