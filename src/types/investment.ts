@@ -21,8 +21,19 @@ export type Investment = {
   actions?: { date: string; ratio: number; label: string }[]; // splits / bonus issues applied
   eventsFrom?: string;     // splits after this date are applied to units (quantities entered before it are already adjusted)
   eventsAt?: string;       // last time we checked for splits / dividends
+  sip?: Sip;               // monthly SIP into this holding
+  sipLog?: SipEntry[];     // what happened each month: went through or skipped
+  goalId?: string;         // which goal this money is for
 };
 export type Lot = { date: string; units: number; price: number };
+export type Sip = {
+  amount: number;          // ₹ a month
+  day: number;             // debit day of the month (1–28)
+  start: string;           // ISO — first SIP month
+  active: boolean;
+  stepUpPct?: number;      // yearly increase, e.g. 10 → +10% every year
+};
+export type SipEntry = { month: string; status: 'done' | 'skipped'; date: string; amount: number; units?: number; price?: number; auto?: boolean };
 export type Dividend = { date: string; perShare: number; units: number; amount: number };
 export type NewInvestment = Omit<Investment, 'id'>;
 

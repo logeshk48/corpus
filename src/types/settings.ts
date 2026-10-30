@@ -11,8 +11,10 @@ export type Settings = {
   setAside?: number;        // money in your account that is NOT for spending this month
   cycleStartDay?: number;   // 1–28: your month starts on pay day, not the 1st
   // Phone notification types — missing means ON
-  notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean };
+  notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean; sips?: boolean };
   // Gold price: live market rate (default) or your own jeweller's rate
+  investGoals?: InvestGoal[];
+  mixTarget?: { equity: number }; // % of investments you want in equity
   watchlist?: string[]; // stock symbols (RELIANCE.NS) and fund codes (mf:122639)
   gold?: { mode?: 'live' | 'custom'; customRate24k?: number; lastLive?: { rate: number; at: string } };
   upiId?: string;          // added to lent-money reminders, e.g. name@okaxis
@@ -26,3 +28,5 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   currency: 'INR',
 };
+
+export type InvestGoal = { id: string; name: string; target: number; by: string; icon?: string };

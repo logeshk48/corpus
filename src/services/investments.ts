@@ -1,4 +1,6 @@
-import type { Investment, Lot, NewInvestment } from '@/types/investment';
+import type { Investment, Lot, NewInvestment, Sip, SipEntry } from '@/types/investment';
+import { liveRefOf, priceOn } from '@/utils/market';
+import type { Instalment } from '@/utils/sip';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { clean, toUpdateData } from './firestoreUtils';
@@ -71,3 +73,31 @@ export const sellUnits = async (h: Investment, units: number, price: number, dat
   return { profit: Math.round(shortGain + longGain), longProfit: Math.round(longGain) };
 };
 const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
+
+// ─── SIPs ───
+export const saveSip = (h: Investment, sip: Sip | null) => updateInvestment(h.id, { sip: sip ?? undefined });
+
+// "Yes, it went through": buy units at that day's NAV / price (or just add the money for manual holdings)
+export async function confirmSip(h: Investment, inst: Instalment, auto = false) {
+  const day = inst.date.toISOString();
+  const ref = liveRefOf(h);
+  let entry: SipEntry = { month: inst.month, status: 'done', date: day, amount: inst.amount, ...(auto ? { auto: true } : {}) };
+  if (ref && h.units != null) {
+    let price: number | null = null;
+    try {
+      price = (await priceOn(ref, ymd(inst.date))).price;
+    } catch {}
+    if (!price && h.units) price = h.value / h.units; // offline: last known price
+    if (!price) throw new Error('No price for that day yet');
+    const units = ref.kind === 'stock' ? Math.floor(inst.amount / price) : Math.round((inst.amount / price) * 1000) / 1000;
+    if (units > 0) await buyUnits(h, units, price, day);
+    entry = { ...entry, units, price, amount: Math.round(units * price) || inst.amount };
+  } else {
+    await updateInvestment(h.id, { invested: h.invested + inst.amount, value: h.value + inst.amount, valueAt: new Date().toISOString() });
+  }
+  await updateInvestment(h.id, { sipLog: [...(h.sipLog ?? []).filter((l) => l.month !== inst.month), entry] });
+  return entry;
+}
+export const skipSip = (h: Investment, inst: Instalment) =>
+  updateInvestment(h.id, { sipLog: [...(h.sipLog ?? []).filter((l) => l.month !== inst.month), { month: inst.month, status: 'skipped', date: inst.date.toISOString(), amount: 0 }] });
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

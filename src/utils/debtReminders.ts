@@ -14,6 +14,7 @@ export type MoneyReminder = {
   title: string;         // "Ask Rahul for ₹500"
   body: string;          // "Due today · Dinner"
   urgency: 'overdue' | 'today' | 'soon' | 'later';
+  href?: string;         // where tapping it goes (default: Lent & borrowed)
 };
 
 const DAY = 86_400_000;

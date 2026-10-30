@@ -270,3 +270,12 @@ export function searchListed(list: Listed[], q: string, limit = 60): Listed[] {
 export type Events = { dividends: { date: string; amount: number }[]; splits: { date: string; ratio: number; label: string }[] };
 export const getEvents = (symbol: string, from: string) =>
   cached(`ev:${symbol}:${from}`, 6 * 3600_000, () => call<Events>({ op: 'events', symbol, from: from.slice(0, 10) }));
+
+// Which live price a holding follows (if any)
+export function liveRefOf(h: { symbol?: string; schemeCode?: string; npsCode?: string; coinId?: string }): LiveRef | null {
+  if (h.symbol) return { kind: 'stock', id: h.symbol };
+  if (h.schemeCode) return { kind: 'fund', id: h.schemeCode };
+  if (h.npsCode) return { kind: 'nps', id: h.npsCode };
+  if (h.coinId) return { kind: 'crypto', id: h.coinId };
+  return null;
+}

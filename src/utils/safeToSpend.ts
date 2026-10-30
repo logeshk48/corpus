@@ -20,6 +20,7 @@ export type SafeToSpendResult =
       plansDue: number;         // jar plans still needed this month
       setAside: number;         // money you told Corpus not to count
       billsDue: number;         // recurring bills not yet paid this month
+      investing: number;        // SIPs gone out this cycle + still due before pay day
       limitedByBudget: boolean; // the monthly budget was the stricter limit
       monthlyBudget?: number;
     };
@@ -30,9 +31,18 @@ type Input = {
   monthlyBudget?: number;
   billsDue?: number; // unpaid recurring bills this month
   setAside?: number; // money you keep aside, never counted as spendable
+  investing?: number; // SIPs this cycle (done + still due) — invested, not spent, but not spendable either
   cycleStartDay?: number; // your month starts on this day (pay day)
   now?: Date;
 };
+
+// Your money month: pay day to pay day
+export function cycleBounds(now = new Date(), cycleStartDay = 1) {
+  const startDay = Math.min(Math.max(1, Math.round(cycleStartDay)), 28);
+  const start = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= startDay ? 0 : -1), startDay);
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, startDay);
+  return { start, end };
+}
 
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -43,6 +53,7 @@ export function computeSafeToSpend({
   monthlyBudget,
   billsDue = 0,
   setAside = 0,
+  investing = 0,
   cycleStartDay = 1,
   now = new Date(),
 }: Input): SafeToSpendResult {
@@ -65,7 +76,8 @@ export function computeSafeToSpend({
 
   // Unpaid bills are reserved in BOTH limits — that money is already promised
   const keep = Math.max(0, setAside);
-  const incomeBased = income > 0 ? income - spent - movedToJars - plansDue - billsDue - keep : null;
+  // SIPs come out of income, not out of your spending budget
+  const incomeBased = income > 0 ? income - spent - movedToJars - plansDue - billsDue - investing - keep : null;
   const budgetBased = monthlyBudget && monthlyBudget > 0 ? monthlyBudget - spent - billsDue - keep : null;
   if (incomeBased === null && budgetBased === null) return { status: 'noData' };
 
@@ -102,6 +114,7 @@ export function computeSafeToSpend({
     movedToJars,
     plansDue,
     billsDue,
+    investing,
     setAside: keep,
     limitedByBudget,
     monthlyBudget,

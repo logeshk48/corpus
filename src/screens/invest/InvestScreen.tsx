@@ -22,6 +22,16 @@ import InvestmentSheet, { type InvSheetMode } from './InvestmentSheet';
 import { m } from './Market.styles';
 import MarketSearchSheet, { type Target } from './MarketSearchSheet';
 import ImportSheet from './ImportSheet';
+import GoalsCard from './GoalsCard';
+import GoalSheet from './GoalSheet';
+import MixCard from './MixCard';
+import SipCards from './SipCards';
+import SipSheet from './SipSheet';
+import { confirmSip, saveSip, skipSip } from '@/services/investments';
+import { saveMix, subscribeMix, type MixSnap } from '@/services/investMix';
+import { holdingXirr, portfolioXirr } from '@/utils/returns';
+import { monthKey, nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
+import type { InvestGoal } from '@/types/settings';
 import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
 import { styles } from './InvestScreen.styles';
@@ -79,6 +89,59 @@ export default function InvestScreen() {
   const dayGain = Object.values(live).reduce((a, l) => (l.kind === 'stock' && l.dayGain != null ? a + l.dayGain : a), 0);
   const hasStockLive = Object.values(live).some((l) => l.kind === 'stock');
   const pf = useMemo(() => portfolio(investments), [investments]);
+  const xirrAll = useMemo(() => portfolioXirr(investments.map((h) => ({ h, value: currentValue(h).value }))), [investments]);
+
+  // SIPs
+  const [sipFor, setSipFor] = useState<Investment | null>(null);
+  const [sipForId, setSipForId] = useState<string | null>(null); // a fund just added for a SIP → open its SIP sheet once it appears
+  useEffect(() => {
+    const h = sipForId && investments.find((x) => x.id === sipForId);
+    if (h) (setSipFor(h), setSipForId(null));
+  }, [sipForId, investments]);
+  const pending = useMemo(() => pendingSips(investments), [investments]);
+  const sipYes = async (p: (typeof pending)[number]) => {
+    try {
+      const e = await confirmSip(p.h, p);
+      showToast({ message: e.units ? `${p.h.name}: +${e.units} units at ${formatPrice(e.price)}` : `${formatINR(p.amount)} added to ${p.h.name}` });
+    } catch {
+      showToast({ message: 'NAV for that day isn’t out yet. Try again tomorrow.' });
+    }
+  };
+  const sipSkip = (p: (typeof pending)[number]) => skipSip(p.h, p).then(() => showToast({ message: 'Marked as skipped' }));
+
+  // Goals
+  const goals = settings.investGoals ?? [];
+  const [goalOpen, setGoalOpen] = useState<{ goal?: InvestGoal } | null>(null);
+  const saveGoal = async (g: InvestGoal, linkIds: string[]) => {
+    await saveSettings({ investGoals: [...goals.filter((x) => x.id !== g.id), g] });
+    await Promise.all(
+      investments.map((h) => {
+        const want = linkIds.includes(h.id);
+        if (want && h.goalId !== g.id) return updateInvestment(h.id, { goalId: g.id });
+        if (!want && h.goalId === g.id) return updateInvestment(h.id, { goalId: undefined });
+        return null;
+      })
+    );
+    setGoalOpen(null);
+    showToast({ message: `${g.name} saved` });
+  };
+  const deleteGoal = async (g: InvestGoal) => {
+    await saveSettings({ investGoals: goals.filter((x) => x.id !== g.id) });
+    await Promise.all(investments.filter((h) => h.goalId === g.id).map((h) => updateInvestment(h.id, { goalId: undefined })));
+    setGoalOpen(null);
+  };
+
+  // Mix history: one snapshot per month (latest value wins)
+  const [mixHistory, setMixHistory] = useState<MixSnap[]>([]);
+  useEffect(() => subscribeMix(setMixHistory), []);
+  const mixKey = `${monthKey(new Date())}:${Math.round(pf.value / 1000)}`;
+  useEffect(() => {
+    if (!investments.length || loading) return;
+    const byCls: Record<string, number> = {};
+    for (const a of pf.allocation) byCls[a.cls] = Math.round(a.value);
+    saveMix({ month: monthKey(new Date()), total: Math.round(pf.value), invested: Math.round(pf.invested), byCls, at: new Date().toISOString() }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mixKey, loading]);
   const stale = investments.filter((h) => isStale(h));
 
   const run = async (fn: () => Promise<unknown>, msg: string) => {
@@ -164,6 +227,11 @@ export default function InvestScreen() {
               <Text style={[styles.heroSub, { color: pf.gain >= 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
                 {pf.gain >= 0 ? '▲' : '▼'} {formatINR(Math.abs(pf.gain))} ({pf.gain >= 0 ? '+' : '−'}{Math.abs(pf.pct).toFixed(1)}%) overall
               </Text>
+              {xirrAll != null && (
+                <Text style={styles.heroSub}>
+                  {xirrAll >= 0 ? '+' : '−'}{Math.abs(xirrAll).toFixed(1)}% a year (XIRR) · counts when each rupee went in
+                </Text>
+              )}
               {divs > 0 && <Text style={[styles.heroSub, { color: Corpus.income }]}>+ {formatINR(divs)} dividends received</Text>}
               {hasStockLive && (
                 <Text style={[styles.heroSub, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>
@@ -175,24 +243,20 @@ export default function InvestScreen() {
               )}
             </View>
 
-            {pf.allocation.length > 1 && (
-              <View style={styles.card}>
-                <Text style={styles.name}>How it's split</Text>
-                <View style={styles.stack}>
-                  {pf.allocation.map((a) => (
-                    <View key={a.cls} style={{ flex: Math.max(a.share, 0.02), backgroundColor: CLASS[a.cls].color }} />
-                  ))}
-                </View>
-                <View style={styles.legend}>
-                  {pf.allocation.map((a) => (
-                    <Text key={a.cls} style={styles.meta}>
-                      <Text style={{ color: CLASS[a.cls].color }}>● </Text>
-                      {CLASS[a.cls].label} {Math.round(a.share * 100)}%
-                    </Text>
-                  ))}
-                </View>
-              </View>
+            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
+
+            {pf.allocation.length > 0 && (
+              <MixCard
+                allocation={pf.allocation}
+                total={pf.value}
+                target={settings.mixTarget?.equity}
+                history={mixHistory}
+                colors={CLASS}
+                onTarget={(t) => saveSettings({ mixTarget: { equity: t } }).catch(() => {})}
+              />
             )}
+
+            <GoalsCard goals={goals} list={investments} onAdd={() => setGoalOpen({})} onOpen={(g) => setGoalOpen({ goal: g })} />
 
             {fySales.length > 0 && (
               <View style={styles.card}>
@@ -262,6 +326,9 @@ export default function InvestScreen() {
                 const meta = investMeta(h.type);
                 const g = gain(h);
                 const cagr = yearlyReturn(h);
+                const xr = holdingXirr(h, g.value);
+                const ns = nextSip(h);
+                const streak = h.sip ? sipStreak(h) : null;
                 const auto = currentValue(h).auto;
                 const linked = isLinked(h);
                 const l = live[h.id];
@@ -294,10 +361,31 @@ export default function InvestScreen() {
                         </Text>
                       </View>
                     </View>
-                    {cagr !== null && <Text style={styles.note}>About {cagr.toFixed(1)}% a year since {new Date(h.startDate).getFullYear()} (rough, ignores SIP timing)</Text>}
-                    {linked ? null : (
+                    {xr != null ? (
+                      <Text style={styles.note}>{xr >= 0 ? '+' : '−'}{Math.abs(xr).toFixed(1)}% a year (XIRR)</Text>
+                    ) : cagr !== null ? (
+                      <Text style={styles.note}>About {cagr.toFixed(1)}% a year since {new Date(h.startDate).getFullYear()}</Text>
+                    ) : null}
+                    {h.sip && (
+                      <Text style={[styles.note, { color: h.sip.active ? Corpus.textMuted : Corpus.textFaint }]}>
+                        ↻ SIP {formatINR(sipAmount(h.sip, new Date()))} on the {h.sip.day === 1 ? '1st' : `${h.sip.day}th`}
+                        {h.sip.active ? (ns ? ` · next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : '') : ' · stopped'}
+                        {streak && streak.streak > 1 ? ` · ${streak.streak} in a row` : ''}
+                        {streak && streak.skipped ? ` · ${streak.skipped} missed this year` : ''}
+                      </Text>
+                    )}
+                    {linked ? (
+                      ['mf', 'stock', 'nps', 'goldbond'].includes(h.type) && (
+                        <View style={styles.actions}>
+                          <Button size="sm" variant="secondary" icon="repeat" label={h.sip ? 'SIP' : 'Set up SIP'} onPress={() => setSipFor(h)} />
+                        </View>
+                      )
+                    ) : (
                     <View style={styles.actions}>
-                      {['mf', 'stock', 'nps', 'crypto', 'goldbond'].includes(h.type) && (
+                      {['mf', 'nps', 'ppf', 'goldbond', 'stock'].includes(h.type) && (
+                        <Button size="sm" variant="secondary" icon="repeat" label="SIP" onPress={() => setSipFor(h)} />
+                      )}
+                      {['mf', 'stock', 'nps', 'crypto', 'goldbond'].includes(h.type) && !liveRefOf(h) && (
                         <Button size="sm" variant="primary" icon="pulse" label="Get live price" onPress={() => { setLinkFor(h); setSearch(searchFor(h)); }} />
                       )}
                       {h.type !== 'fd' && <Button size="sm" variant="secondary" icon="add" label="Add money" onPress={() => setMode({ kind: 'add', h })} />}
@@ -342,6 +430,30 @@ export default function InvestScreen() {
           }}
         />
       )}
+      {sipFor && (
+        <SipSheet
+          h={sipFor}
+          onClose={() => setSipFor(null)}
+          onSave={async (sip) => {
+            try {
+              await saveSip(sipFor, sip);
+              showToast({ message: sip?.active ? `SIP of ${formatINR(sip.amount)} on the ${sip.day === 1 ? '1st' : `${sip.day}th`} saved` : 'SIP stopped' });
+              setSipFor(null);
+            } catch {
+              showToast({ message: 'Could not save. Try again.' });
+            }
+          }}
+        />
+      )}
+      {goalOpen && (
+        <GoalSheet
+          goal={goalOpen.goal}
+          list={investments}
+          onClose={() => setGoalOpen(null)}
+          onSave={saveGoal}
+          onDelete={goalOpen.goal ? () => deleteGoal(goalOpen.goal!) : undefined}
+        />
+      )}
       {importing && (
         <ImportSheet
           onClose={() => setImporting(false)}
@@ -377,6 +489,15 @@ export default function InvestScreen() {
                 await addInvestment(n);
                 showToast({ message: `${n.name} added to your holdings` });
               }
+            } catch {
+              showToast({ message: 'Could not save. Try again.' });
+            }
+          }}
+          onStartSip={async (n) => {
+            try {
+              const id = await addInvestment(n);
+              setTarget(null);
+              setSipForId(id);
             } catch {
               showToast({ message: 'Could not save. Try again.' });
             }

@@ -27,6 +27,7 @@ type Props = {
   onBuy: (h: Investment, units: number, price: number, date: string) => Promise<void>;
   onSell: (h: Investment, units: number, price: number) => Promise<void>;
   onEditHolding: (h: Investment, units: number, invested: number) => Promise<void>;
+  onStartSip?: (h: NewInvestment) => Promise<void>; // new SIP in something you don't own yet
   onClose: () => void;
 };
 // Everything the sheet shows, whatever the source
@@ -80,7 +81,7 @@ function typeFor(t: Target, name: string): InvestType {
   return /gold|sgb/i.test(`${t.id} ${name}`) ? 'goldbond' : 'stock';
 }
 
-export default function QuoteSheet({ target, holding, watched, onToggleWatch, onAddHolding, onBuy, onSell, onEditHolding, onClose }: Props) {
+export default function QuoteSheet({ target, holding, watched, onToggleWatch, onAddHolding, onBuy, onSell, onEditHolding, onStartSip, onClose }: Props) {
   const kind = target.kind;
   const isIndex = kind === 'stock' && target.id.startsWith('^');
   const live = kind === 'stock' || kind === 'crypto';
@@ -305,7 +306,28 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                       <Button variant="ghost" icon="create-outline" label="Fix" onPress={() => setTrade('edit')} />
                     </View>
                   ) : (
-                    <Button icon="add" label="I own this — add to my holdings" onPress={() => setTrade('add')} />
+                    <View style={{ gap: 8 }}>
+                      <Button icon="add" label="I own this — add to my holdings" onPress={() => setTrade('add')} />
+                      {onStartSip && (kind === 'fund' || kind === 'nps' || kind === 'stock') && (
+                        <Button
+                          variant="secondary"
+                          icon="repeat"
+                          label="Starting a SIP in this (no units yet)"
+                          onPress={() =>
+                            onStartSip({
+                              name: name.slice(0, 60),
+                              type: typeFor(target, name),
+                              units: 0,
+                              invested: 0,
+                              value: 0,
+                              valueAt: new Date().toISOString(),
+                              startDate: new Date().toISOString(),
+                              ...(kind === 'stock' ? { symbol: target.id } : kind === 'fund' ? { schemeCode: target.id, fundClass: fundClassOf(info?.category, name) } : { npsCode: target.id }),
+                            })
+                          }
+                        />
+                      )}
+                    </View>
                   )
                 ) : null}
                 <Text style={m.tiny}>{SOURCE[kind]} For tracking only — not investment advice.</Text>
