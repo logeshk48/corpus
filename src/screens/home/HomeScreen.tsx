@@ -11,6 +11,9 @@ import { useAssets } from '@/hooks/useAssets';
 import { useGoldRate } from '@/hooks/useGoldRate';
 import { useInvestments } from '@/hooks/useInvestments';
 import { netWorthItems, netWorthTotals } from '@/utils/netWorth';
+import { scoreInputs } from '@/utils/wealthInputs';
+import { wealthScore } from '@/utils/wealthScore';
+import WealthScoreCard from './components/WealthScoreCard';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -141,7 +144,11 @@ export default function HomeScreen() {
   const accHave = accountTotals(accList).have;
   const { assets } = useAssets();
   const gold = useGoldRate();
-  const nw = netWorthTotals(netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null })).total;
+  const nwItems = netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null });
+  const nwTotals = netWorthTotals(nwItems);
+  const nw = nwTotals.total;
+  // Wealth Builder Score (Day 5)
+  const wscore = wealthScore(scoreInputs({ tx: yearTx, investments, ious, bills, items: nwItems, totals: nwTotals, cardDues: accTotals.cardDues, hasAccounts: accounts.length > 0 }));
   const budgetPct = overall && overall.limit > 0 ? Math.round((overall.spent / overall.limit) * 100) : null;
   const shortcuts: Shortcut[] = [
     {
@@ -205,6 +212,8 @@ export default function HomeScreen() {
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
+
+        <WealthScoreCard s={wscore} onPress={() => router.push('/networth' as Href)} />
 
         <Shortcuts items={shortcuts} />
 
