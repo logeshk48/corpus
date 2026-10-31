@@ -213,7 +213,7 @@ export default function HomeScreen() {
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
-        <WealthScoreCard s={wscore} onPress={() => router.push('/networth' as Href)} />
+        <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />
 
         <Shortcuts items={shortcuts} />
 
