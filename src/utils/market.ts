@@ -283,3 +283,14 @@ export function liveRefOf(h: { symbol?: string; schemeCode?: string; npsCode?: s
 // Full NAV history (funds / NPS) — for working out past SIPs
 export const getNavHistory = (kind: 'fund' | 'nps', id: string) =>
   cached(`hist:${kind}:${id}`, 6 * 3600_000, () => call<{ points: Point[] }>({ op: kind === 'fund' ? 'navchart' : 'npschart', code: id, range: 'max' })).then((r) => r.points);
+
+// A typical liquid fund's last-12-month return (SBI Liquid Direct) — for "idle cash" advice
+export async function liquidFundReturn(): Promise<number | null> {
+  try {
+    const c = await getNavChart('119800', '1y');
+    const p = c.points;
+    return p.length > 200 ? ((p[p.length - 1].c / p[0].c - 1) * 100) : null;
+  } catch {
+    return null;
+  }
+}
