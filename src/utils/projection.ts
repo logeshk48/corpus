@@ -19,6 +19,7 @@ export type ProjectionInput = {
   investAll?: boolean;   // what-if: invest all savings, not just SIPs
   extraSave?: number;    // what-if: save this much more a month
   stepUpPct?: number;    // what-if: raise SIPs by x% each year
+  moveToInvest?: number; // what-if: move this much cash into investments today (idle cash)
   cashRate?: number;
 };
 export type ProjectionPoint = { month: number; netWorth: number; invested: number; cash: number; debt: number };
@@ -29,7 +30,8 @@ export function project(p: ProjectionInput, years: number): ProjectionPoint[] {
   const invValue = p.investments.reduce((a, b) => a + b.value, 0);
   const invRate = invValue > 0 ? p.investments.reduce((a, b) => a + b.value * b.rate, 0) / invValue : 11; // new money: mostly equity SIPs
   const ri = mrate(invRate || 11), rc = mrate(p.cashRate ?? 2.7);
-  let inv = invValue, cash = p.cash;
+  const moved = Math.max(0, Math.min(p.moveToInvest ?? 0, p.cash));
+  let inv = invValue + moved, cash = p.cash - moved;
   let others = p.others.map((o) => ({ ...o }));
   let loans = p.loans.map((l) => ({ ...l }));
   let sip = p.monthlyInvest;

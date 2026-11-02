@@ -14,6 +14,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './WealthScreen.styles';
+import WhatIfCard from './WhatIfCard';
+import { useSettings } from '@/hooks/useSettings';
+import { saveSettings } from '@/services/settings';
 
 const TONE = { good: Corpus.income, ok: Corpus.gold, weak: Corpus.warning };
 const META: Record<PillarId, { icon: keyof typeof Ionicons.glyphMap; go: string; goLabel: string; full: string }> = {
@@ -29,6 +32,16 @@ export default function WealthScreen() {
   const router = useRouter();
   const w = useWealth();
   const { score: s, loading } = w;
+  // remember this month's score (shows the change next month)
+  const { settings } = useSettings();
+  const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const log = settings.scoreLog ?? {};
+  const lastMonth = Object.keys(log).filter((k) => k < monthKey).sort().pop();
+  const delta = lastMonth != null ? s.score - log[lastMonth] : null;
+  useEffect(() => {
+    if (!loading && s.known >= 3 && log[monthKey] !== s.score) saveSettings({ scoreLog: { ...log, [monthKey]: s.score } }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, s.score, s.known]);
   const [how, setHow] = useState(false);
 
   // Savings rate, last 12 months
@@ -78,6 +91,11 @@ export default function WealthScreen() {
                 <Text style={styles.ringOf}>out of 100</Text>
               </View>
               <Text style={[styles.grade, { color: c }]}>{s.grade}</Text>
+              {delta != null && delta !== 0 && (
+                <Text style={[styles.sub, { color: delta > 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
+                  {delta > 0 ? '▲' : '▼'} {Math.abs(delta)} since {new Date(`${lastMonth}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'long' })}
+                </Text>
+              )}
               <Text style={styles.sub}>
                 {s.score >= 80
                   ? 'Your money is working hard. Keep the habits that got you here.'
@@ -209,6 +227,8 @@ export default function WealthScreen() {
                 </Text>
               </View>
             )}
+
+            {(pin.monthlySave > 0 || w.totals.total > 0) && <WhatIfCard base={pin} idle={idle.show ? idle.idle : 0} />}
 
             <SectionLabel right="Weakest first">THE 5 PARTS</SectionLabel>
             {ordered.map((p) => (

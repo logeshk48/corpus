@@ -14,6 +14,7 @@ export type Settings = {
   notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean; sips?: boolean };
   // Gold price: live market rate (default) or your own jeweller's rate
   investGoals?: InvestGoal[];
+  scoreLog?: Record<string, number>; // wealth score by month, YYYY-MM → 0–100
   mixTarget?: { equity: number }; // % of investments you want in equity
   watchlist?: string[]; // stock symbols (RELIANCE.NS) and fund codes (mf:122639)
   gold?: { mode?: 'live' | 'custom'; customRate24k?: number; lastLive?: { rate: number; at: string } };
