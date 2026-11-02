@@ -1,10 +1,12 @@
 import { ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useWealth } from '@/hooks/useWealth';
-import { formatINR } from '@/utils/format';
+import { compactINR, formatINR } from '@/utils/format';
 import { liquidFundReturn } from '@/utils/market';
 import { upcomingBills } from '@/utils/moneyHealth';
 import { idleCash, savingsTrend, SAVINGS_ACCOUNT_RATE } from '@/utils/wealthTrend';
+import { project, real } from '@/utils/projection';
+import { projectionInputs } from '@/utils/projectionInputs';
 import { monthlyFlows, recentAverage, type Pillar, type PillarId } from '@/utils/wealthScore';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
@@ -40,6 +42,22 @@ export default function WealthScreen() {
   const monthlyNeed = (avg?.spend ?? 0) + w.inputs.monthlyEmi;
   const cash = w.items.filter((i) => i.group === 'cash').reduce((a, i) => a + Math.max(0, i.value), 0);
   const idle = idleCash({ cash, monthlyNeed, billsDue30: upcomingBills(w.bills).reduce((a, b) => a + b.amount, 0), cardDues: w.inputs.cardDues, liquidRate: liquidRate ?? 6.4 });
+  // Where you're heading (today's habits)
+  const [todayMoney, setTodayMoney] = useState(true);
+  const pin = useMemo(() => projectionInputs({ items: w.items, investments: w.investments, ious: w.ious, bills: w.bills, score: w.inputs }), [w.items, w.investments, w.ious, w.bills, w.inputs]);
+  const pts = useMemo(() => project(pin, 25), [pin]);
+  const shown = (v: number, m: number) => (todayMoney ? real(v, m) : v);
+  const yearly = pts.filter((p) => p.month % 12 === 0 && p.month <= 240);
+  const peak = Math.max(1, ...yearly.map((p) => shown(p.netWorth, p.month)));
+  const fiTarget = monthlyNeed * 12 * 25;
+  const atMonth = (m: number | null) => (m == null ? null : new Date(new Date().getFullYear(), new Date().getMonth() + m, 1));
+  // milestones are in today's money when the toggle is on (₹1 Cr of today's buying power)
+  const reach = (target: number) => {
+    const hit = pts.find((p) => (todayMoney ? real(p.netWorth, p.month) : p.netWorth) >= target);
+    return hit && hit.month > 0 ? atMonth(hit.month) : null;
+  };
+  const crore = reach(1e7);
+  const fi = fiTarget > 0 ? reach(fiTarget) : null;
   const pct = (r: number | null) => (r == null ? '—' : `${r < 0 ? '−' : ''}${Math.abs(Math.round(r * 100))}%`);
   const maxRate = Math.max(0.4, ...trend.months.map((m) => m.rate ?? 0));
   const c = TONE[s.tone];
@@ -151,6 +169,45 @@ export default function WealthScreen() {
                 </Text>
                 <Text style={styles.note}>Not advice to buy a specific fund. Your bank’s auto-sweep FD is a simpler option.</Text>
               </Pressable>
+            )}
+
+            {(pin.monthlySave > 0 || w.totals.total > 0) && (
+              <View style={styles.card}>
+                <View style={[styles.row, { justifyContent: 'space-between' }]}>
+                  <Text style={styles.name}>Where you’re heading</Text>
+                  <Pressable onPress={() => setTodayMoney(!todayMoney)} hitSlop={8}>
+                    <Text style={[styles.fix, { fontWeight: '600' }]}>{todayMoney ? 'In today’s money ⇄' : 'Future rupees ⇄'}</Text>
+                  </Pressable>
+                </View>
+                <View style={[styles.chart, { height: 90, gap: 2 }]}>
+                  {yearly.map((p) => {
+                    const v = shown(p.netWorth, p.month);
+                    return <View key={p.month} style={[styles.colBar, { flex: 1, height: `${Math.max(2, (Math.max(0, v) / peak) * 100)}%`, backgroundColor: p.month === 0 ? Corpus.textMuted : [60, 120, 240].includes(p.month) ? Corpus.gold : Corpus.goldLine }]} />;
+                  })}
+                </View>
+                <View style={styles.statRow}>
+                  {[0, 60, 120, 240].map((m) => {
+                    const p = pts.find((x) => x.month === m)!;
+                    return (
+                      <View key={m} style={styles.stat}>
+                        <Text style={styles.statLabel}>{m === 0 ? 'NOW' : `${m / 12} YEARS`}</Text>
+                        <Text style={styles.statValue}>{compactINR(shown(p.netWorth, m))}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+                <Text style={styles.why}>
+                  {crore ? `₹1 Cr${todayMoney ? ' (today’s value)' : ''} around ${crore.getFullYear()}. ` : 'Not reaching ₹1 Cr within 25 years at this pace. '}
+                  {fiTarget > 0
+                    ? fi
+                      ? `Financial freedom — 25× your yearly spending (${compactINR(fiTarget)}${todayMoney ? ' in today’s money' : ''}) — around ${fi.getFullYear()}.`
+                      : `Financial freedom (25× yearly spending = ${compactINR(fiTarget)}) is more than 25 years away at this pace.`
+                    : ''}
+                </Text>
+                <Text style={styles.note}>
+                  If today’s habits continue: you save {formatINR(Math.round(pin.monthlySave))} a month, {formatINR(pin.monthlyInvest)} of it in SIPs (the rest stays as cash at ~2.7%). Investments grow at long-run averages for what you hold (equity 12%, debt 7%, gold 8%, PF/PPF 8%); homes +5%, vehicles −12% a year; loans end on schedule and their EMI becomes savings.{todayMoney ? ' “Today’s money” removes 6% inflation a year.' : ''} Markets don’t move in straight lines — treat this as direction, not a promise.
+                </Text>
+              </View>
             )}
 
             <SectionLabel right="Weakest first">THE 5 PARTS</SectionLabel>
