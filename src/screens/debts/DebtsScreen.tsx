@@ -47,6 +47,13 @@ export default function DebtsScreen() {
   const pdebts = useMemo(() => list.map((d) => ({ id: d.id, name: d.name, balance: d.balance, rate: d.rate, minPay: d.monthlyPay })), [list]);
   const plan = useMemo(() => simulatePayoff(pdebts, extra, strategy), [pdebts, extra, strategy]);
   const first = list.find((d) => d.id === plan.firstTarget);
+  // compare with paying only EMIs / minimums
+  const base = useMemo(() => simulatePayoff(pdebts, 0, strategy), [pdebts, strategy]);
+  const ladder = useMemo(() => [0, 2000, 5000, 10000, 20000].map((e) => ({ e, r: simulatePayoff(pdebts, e, strategy) })), [pdebts, strategy]);
+  const span = (m: number) => {
+    const y = Math.floor(m / 12), mo = m % 12;
+    return [y ? `${y} yr${y > 1 ? 's' : ''}` : '', mo ? `${mo} mo` : ''].filter(Boolean).join(' ') || '0 mo';
+  };
   const monthName = (m: number | null) => (m == null ? 'not at this pace' : new Date(new Date().getFullYear(), new Date().getMonth() + m, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }));
 
   return (
@@ -112,6 +119,34 @@ export default function DebtsScreen() {
                 />
               </View>
 
+              <View style={{ alignItems: 'center', gap: 2, paddingVertical: 8 }}>
+                <Text style={styles.tileLabel}>DEBT-FREE BY</Text>
+                <Text style={[styles.heroValue, { color: plan.months == null ? Corpus.danger : Corpus.income }]}>{plan.months == null ? 'Not at this pace' : monthName(plan.months)}</Text>
+                {plan.months != null && <Text style={styles.heroSub}>in {span(plan.months)} · {formatINR(plan.interest)} interest from now</Text>}
+                {extra > 0 && base.months != null && plan.months != null && base.months > plan.months && (
+                  <Text style={[styles.heroSub, { color: Corpus.income, fontWeight: '600' }]}>
+                    {span(base.months - plan.months)} sooner and {formatINR(base.interest - plan.interest)} less interest than paying only EMIs / minimums ({monthName(base.months)})
+                  </Text>
+                )}
+                {extra > 0 && base.months == null && plan.months != null && (
+                  <Text style={[styles.heroSub, { color: Corpus.income, fontWeight: '600' }]}>Paying only minimums you’d never finish — this extra gets you out.</Text>
+                )}
+                <View style={[styles.row, { marginTop: 6 }]}>
+                  <Pressable style={[sheet.chip, { paddingHorizontal: 16 }]} onPress={() => (setCustom(''), choose(strategy, Math.max(0, extra - 1000)))}>
+                    <Text style={sheet.chipText}>− ₹1,000</Text>
+                  </Pressable>
+                  <Text style={[styles.name, { minWidth: 90, textAlign: 'center' }]}>{formatINR(extra)}/mo</Text>
+                  <Pressable style={[sheet.chip, { paddingHorizontal: 16 }]} onPress={() => (setCustom(''), choose(strategy, extra + 1000))}>
+                    <Text style={sheet.chipText}>+ ₹1,000</Text>
+                  </Pressable>
+                </View>
+              </View>
+              {plan.stuck.length > 0 && (
+                <Text style={[styles.meta, { color: Corpus.danger }]}>
+                  {plan.stuck.join(', ')} {plan.stuck.length > 1 ? "don't" : "doesn't"} go down at this pace — you only cover the interest. Add some extra each month to start clearing it.
+                </Text>
+              )}
+
               {first && (
                 <View style={{ backgroundColor: Corpus.goldTint, borderRadius: 12, padding: 12, gap: 4, marginTop: 4 }}>
                   <Text style={[styles.tileLabel, { color: Corpus.gold, fontWeight: '700' }]}>PAY THIS FIRST</Text>
@@ -139,6 +174,18 @@ export default function DebtsScreen() {
                   </View>
                 );
               })}
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.name}>What extra money buys you</Text>
+              {ladder.map(({ e, r }) => (
+                <Pressable key={e} style={[styles.row, { paddingVertical: 4 }]} onPress={() => (setCustom(''), choose(strategy, e))}>
+                  <Text style={[styles.meta, { width: 110, color: e === extra ? Corpus.gold : Corpus.text, fontWeight: e === extra ? '700' : '400' }]}>{e ? `+${formatINR(e)}/mo` : 'Only minimums'}</Text>
+                  <Text style={[styles.meta, { flex: 1 }]}>{r.months == null ? 'never' : `free by ${monthName(r.months)}`}</Text>
+                  <Text style={styles.meta}>{r.months == null ? '—' : `${formatINR(r.interest)} interest`}</Text>
+                </Pressable>
+              ))}
+              <Text style={styles.note}>Tap a row to use it. Interest is what you’d still pay from today until each debt is cleared.</Text>
             </View>
 
             <SectionLabel right="Highest interest first">YOUR DEBTS</SectionLabel>
