@@ -5,8 +5,12 @@ import { allDebts, debtTotals, type DebtKind, type DebtLine } from '@/utils/allD
 import { formatINR, formatINRLong } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
-import { useMemo } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { useSettings } from '@/hooks/useSettings';
+import { saveSettings } from '@/services/settings';
+import { simulatePayoff, type Strategy } from '@/utils/payoff';
+import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
+import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './DebtsScreen.styles';
 
@@ -29,6 +33,21 @@ export default function DebtsScreen() {
   const w = useWealth();
   const list = useMemo(() => allDebts({ ious: w.ious, bills: w.bills, accounts: w.accounts }), [w.ious, w.bills, w.accounts]);
   const t = debtTotals(list);
+
+  // Payoff plan (choices saved)
+  const { settings } = useSettings();
+  const [strategy, setStrategy] = useState<Strategy>(settings.debtPlan?.strategy ?? 'avalanche');
+  const [extra, setExtra] = useState(settings.debtPlan?.extra ?? 0);
+  const [custom, setCustom] = useState('');
+  const choose = (s: Strategy, e: number) => {
+    setStrategy(s);
+    setExtra(e);
+    saveSettings({ debtPlan: { strategy: s, extra: e } }).catch(() => {});
+  };
+  const pdebts = useMemo(() => list.map((d) => ({ id: d.id, name: d.name, balance: d.balance, rate: d.rate, minPay: d.monthlyPay })), [list]);
+  const plan = useMemo(() => simulatePayoff(pdebts, extra, strategy), [pdebts, extra, strategy]);
+  const first = list.find((d) => d.id === plan.firstTarget);
+  const monthName = (m: number | null) => (m == null ? 'not at this pace' : new Date(new Date().getFullYear(), new Date().getMonth() + m, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -58,6 +77,68 @@ export default function DebtsScreen() {
                 <Text style={styles.tileLabel}>Interest a month (approx.)</Text>
                 <Text style={[styles.tileValue, { color: Corpus.danger }]}>{formatINR(t.interest)}</Text>
               </View>
+            </View>
+
+            <SectionLabel>YOUR PAYOFF PLAN</SectionLabel>
+            <View style={styles.card}>
+              <View style={sheet.chips}>
+                {(['avalanche', 'snowball'] as const).map((k) => (
+                  <Pressable key={k} style={[sheet.chip, strategy === k && sheet.chipSuggested]} onPress={() => choose(k, extra)}>
+                    <Text style={[sheet.chipText, strategy === k && sheet.chipTextSuggested]}>{k === 'avalanche' ? 'Highest interest first' : 'Smallest first'}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={styles.meta}>
+                {strategy === 'avalanche' ? 'Saves the most interest — the mathematically best order.' : 'Clears small debts quickly — fewer debts sooner keeps you going.'}
+              </Text>
+              <Text style={[styles.tileLabel, { marginTop: 6 }]}>EXTRA I CAN PAY EACH MONTH (ON TOP OF EMIs / MINIMUMS)</Text>
+              <View style={sheet.chips}>
+                {[0, 2000, 5000, 10000].map((e) => (
+                  <Pressable key={e} style={[sheet.chip, extra === e && sheet.chipSuggested]} onPress={() => (setCustom(''), choose(strategy, e))}>
+                    <Text style={[sheet.chipText, extra === e && sheet.chipTextSuggested]}>{e ? formatINR(e) : 'None'}</Text>
+                  </Pressable>
+                ))}
+                <TextInput
+                  style={[sheet.chip, { minWidth: 90, color: Corpus.text }]}
+                  value={custom}
+                  onChangeText={(v) => {
+                    const n = v.replace(/\D/g, '');
+                    setCustom(n);
+                    if (n) choose(strategy, Number(n));
+                  }}
+                  placeholder="Other ₹"
+                  placeholderTextColor={Corpus.textFaint}
+                  keyboardType="number-pad"
+                />
+              </View>
+
+              {first && (
+                <View style={{ backgroundColor: Corpus.goldTint, borderRadius: 12, padding: 12, gap: 4, marginTop: 4 }}>
+                  <Text style={[styles.tileLabel, { color: Corpus.gold, fontWeight: '700' }]}>PAY THIS FIRST</Text>
+                  <Text style={styles.name}>{first.name} · {formatINR(first.balance)}</Text>
+                  <Text style={styles.meta}>
+                    {extra > 0
+                      ? `Put the extra ${formatINR(extra)} here every month. Keep paying the usual EMI / minimum on everything else.`
+                      : `Any extra money you can find goes here first. Keep paying the usual EMI / minimum on everything else.`}
+                    {first.rate ? ` It charges ${first.rate}% a year — ${first.kind === 'card' ? 'the costliest money there is' : 'your costliest debt'}.` : ''}
+                  </Text>
+                </View>
+              )}
+
+              {plan.order.map((o, i) => {
+                const d = list.find((x) => x.id === o.id)!;
+                return (
+                  <View key={o.id} style={[styles.row, { paddingVertical: 4 }]}>
+                    <Text style={[styles.name, { width: 22, color: i === 0 ? Corpus.gold : Corpus.textMuted }]}>{i + 1}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.meta} numberOfLines={1}>
+                        <Text style={{ color: Corpus.text }}>{d.name}</Text> · {formatINR(d.balance)}{d.rate != null ? ` · ${d.rate}%` : ''}
+                      </Text>
+                    </View>
+                    <Text style={[styles.meta, o.month == null && { color: Corpus.danger }]}>{o.month == null ? 'never at this pace' : `clear by ${monthName(o.month)}`}</Text>
+                  </View>
+                );
+              })}
             </View>
 
             <SectionLabel right="Highest interest first">YOUR DEBTS</SectionLabel>
