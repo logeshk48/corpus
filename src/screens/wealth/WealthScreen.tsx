@@ -22,7 +22,7 @@ const TONE = { good: Corpus.income, ok: Corpus.gold, weak: Corpus.warning };
 const META: Record<PillarId, { icon: keyof typeof Ionicons.glyphMap; go: string; goLabel: string; full: string }> = {
   saving: { icon: 'wallet-outline', go: '/analytics', goLabel: 'See spending', full: '30% of income saved' },
   emergency: { icon: 'shield-checkmark-outline', go: '/accounts', goLabel: 'Update balances', full: '6 months of spending + EMIs in bank, FD or debt funds' },
-  debt: { icon: 'trending-down-outline', go: '/ious', goLabel: 'See debts', full: 'EMIs + interest under 10% of income, no big card balance' },
+  debt: { icon: 'trending-down-outline', go: '/debts', goLabel: 'See all debts', full: 'EMIs + interest under 10% of income, no big card balance' },
   investing: { icon: 'trending-up-outline', go: '/invest', goLabel: 'Open Invest', full: '20% of income invested monthly, SIPs never skipped, a mix of equity and debt' },
   wealth: { icon: 'diamond-outline', go: '/networth', goLabel: 'See net worth', full: 'Net worth = 10 years of spending' },
 };

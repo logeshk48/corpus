@@ -333,6 +333,11 @@ export default function IousScreen() {
             </View>
 
             {debts.total > 0 && (
+              <Pressable onPress={() => router.push('/debts' as Href)} hitSlop={6}>
+                <Text style={[styles.meta, { color: Corpus.gold, fontWeight: '600', textAlign: 'right' }]}>All debts incl. credit cards · payoff plan →</Text>
+              </Pressable>
+            )}
+            {debts.total > 0 && (
               <Pressable style={styles.card} onPress={() => setShowDebts(!showDebts)}>
                 <Text style={styles.tileLabel}>Total debt</Text>
                 <Text style={[styles.debtTotal]}>{formatINR(debts.total)}</Text>
