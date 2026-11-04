@@ -22,13 +22,13 @@ export function payoffOrder(debts: PayoffDebt[], s: Strategy) {
   );
 }
 
-export function simulatePayoff(debts: PayoffDebt[], extra: number, s: Strategy): PayoffResult {
+export function simulatePayoff(debts: PayoffDebt[], extra: number, s: Strategy, extraFrom = 1): PayoffResult {
   const ds = payoffOrder(debts, s).map((d) => ({ ...d, bal: d.balance, done: null as number | null }));
   let interest = 0;
   let m = 0;
   while (ds.some((d) => d.bal > 0.5) && m < MAX) {
     m++;
-    let pool = extra;
+    let pool = m >= extraFrom ? extra : 0; // extraFrom = 2 → this month's extra skipped
     // interest + usual payments
     for (const d of ds) {
       if (d.bal <= 0.5) continue;

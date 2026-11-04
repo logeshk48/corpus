@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 import { saveSettings } from '@/services/settings';
 import { simulatePayoff, type Strategy } from '@/utils/payoff';
+import { planStart } from '@/utils/debtPlan';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -54,7 +55,9 @@ export default function DebtsScreen() {
   const choose = (s: Strategy, e: number) => {
     setStrategy(s);
     setExtra(e);
-    saveSettings({ debtPlan: { strategy: s, extra: e } }).catch(() => {});
+    // keep progress, log and start point; set a start the first time
+    const cur = settings.debtPlan;
+    saveSettings({ debtPlan: { ...(cur ?? {}), ...(cur?.startedAt ? {} : planStart(list)), strategy: s, extra: e } }).catch(() => {});
   };
   const pdebts = useMemo(() => list.map((d) => ({ id: d.id, name: d.name, balance: d.balance, rate: d.rate, minPay: d.monthlyPay })), [list]);
   const plan = useMemo(() => simulatePayoff(pdebts, extra, strategy), [pdebts, extra, strategy]);

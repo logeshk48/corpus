@@ -60,7 +60,7 @@ export default function MoneyNotifier() {
         // SIPs: the day before (9 AM) and "did it go through?" the day after
         if (on('sips')) for (const r of sipReminders(investments)) if (r.when > new Date()) plan.push({ id: r.id, date: r.when, title: r.title, body: r.body });
         // Debt plan: pay day, 10 AM — "Put ₹5,000 extra on SBI Card"
-        if (on('people')) for (const r of debtPlanReminders(debtPlanSummary({ ious, bills, accounts: accountBalances(accounts, []), plan: settings.debtPlan }), settings.cycleStartDay)) if (r.when > new Date()) plan.push({ id: r.id, date: r.when, title: r.title, body: r.body });
+        if (on('people')) for (const r of debtPlanReminders(debtPlanSummary({ ious, bills, accounts: accountBalances(accounts, []), plan: settings.debtPlan, cycleStartDay: settings.cycleStartDay }), settings.cycleStartDay)) if (r.when > new Date()) plan.push({ id: r.id, date: r.when, title: r.title, body: r.body });
         // card bills: also 3 days before
         for (const c of on('cards') ? cards : []) {
           const d = new Date(c.when.getTime() - 3 * 86_400_000);

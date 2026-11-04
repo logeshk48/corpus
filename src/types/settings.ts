@@ -14,7 +14,7 @@ export type Settings = {
   notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean; sips?: boolean };
   // Gold price: live market rate (default) or your own jeweller's rate
   investGoals?: InvestGoal[];
-  debtPlan?: { strategy: 'avalanche' | 'snowball'; extra: number }; // payoff plan choices
+  debtPlan?: DebtPlanSettings; // payoff plan choices + progress
   scoreLog?: Record<string, number>; // wealth score by month, YYYY-MM → 0–100
   mixTarget?: { equity: number }; // % of investments you want in equity
   watchlist?: string[]; // stock symbols (RELIANCE.NS) and fund codes (mf:122639)
@@ -32,3 +32,13 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export type InvestGoal = { id: string; name: string; target: number; by: string; icon?: string };
+
+export type DebtPlanSettings = {
+  strategy: 'avalanche' | 'snowball';
+  extra: number;                                   // extra a month on top of EMIs / minimums
+  startedAt?: string;                              // when the plan started (progress is measured from here)
+  startTotal?: number;
+  startDebts?: { id: string; name: string; balance: number }[];
+  log?: Record<string, 'paid' | 'skipped'>;        // cycle month (YYYY-MM) → did the extra go in?
+  seenCleared?: string[];                          // debts whose "cleared!" card you've already seen
+};

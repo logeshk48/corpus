@@ -15,7 +15,8 @@ import { scoreInputs } from '@/utils/wealthInputs';
 import { wealthScore } from '@/utils/wealthScore';
 import WealthScoreCard from './components/WealthScoreCard';
 import DebtPlanCard from './components/DebtPlanCard';
-import { debtPlanReminders, debtPlanSummary } from '@/utils/debtPlan';
+import { debtPlanSummary, planStart } from '@/utils/debtPlan';
+import { saveSettings } from '@/services/settings';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -37,7 +38,7 @@ import Shortcuts, { type Shortcut } from './components/Shortcuts';
 import { compactINR } from '@/utils/format';
 import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
@@ -53,7 +54,7 @@ import { styles } from './HomeScreen.styles';
 export default function HomeScreen() {
   const router = useRouter();
   const { transactions, loading, error } = useTransactions('month');
-  const { settings } = useSettings();
+  const { settings, loading: settingsLoading } = useSettings();
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
   const { ious } = useIous();
   const { accounts } = useAccounts();
@@ -73,8 +74,20 @@ export default function HomeScreen() {
   const shortAlert = health?.short
     ? [{ id: 'short', iouId: '', when: new Date(), title: `${formatINR(-health.free)} short for bills & card dues`, body: `You have ${formatINR(health.have)}, but ${formatINR(health.billsDue + health.cardDues)} is due in the next 30 days`, urgency: 'overdue' as const }]
     : [];
-  const debtPlan = debtPlanSummary({ ious, bills, accounts: accList, plan: settings.debtPlan });
-  const reminders = actionable([...shortAlert, ...debtPlanReminders(debtPlan, settings.cycleStartDay), ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
+  // Debt plan (Day 6): progress, monthly "did you pay the extra?", cleared celebrations
+  const debtPlan = debtPlanSummary({ ious, bills, accounts: accList, plan: settings.debtPlan, cycleStartDay: settings.cycleStartDay });
+  const dp = settings.debtPlan ?? { strategy: 'avalanche' as const, extra: 0 };
+  useEffect(() => {
+    // start measuring progress the first time you have debts and a plan
+    if (!settingsLoading && debtPlan.list.length && !dp.startedAt) saveSettings({ debtPlan: { ...dp, ...planStart(debtPlan.list) } }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsLoading, debtPlan.list.length, dp.startedAt]);
+  const answerExtra = (a: 'paid' | 'skipped') =>
+    saveSettings({ debtPlan: { ...dp, log: { ...(dp.log ?? {}), [debtPlan.cycleKey]: a } } }).then(() =>
+      showToast({ message: a === 'paid' ? `Nice — ${debtPlan.streak + 1 > 1 ? `${debtPlan.streak + 1} months in a row` : 'plan on track'}` : 'Okay — next month then' })
+    );
+  const seenCleared = (ids: string[]) => saveSettings({ debtPlan: { ...dp, seenCleared: [...(dp.seenCleared ?? []), ...ids] } }).catch(() => {});
+  const reminders = actionable([...shortAlert, ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
   const [showSafe, setShowSafe] = useState(false);
   const { showToast } = useToast();
   const [paying, setPaying] = useState<Bill | null>(null);
@@ -218,7 +231,7 @@ export default function HomeScreen() {
 
         <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />
 
-        {debtPlan && <DebtPlanCard s={debtPlan} onPress={() => router.push('/debts' as Href)} />}
+        <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
 
         <Shortcuts items={shortcuts} />
 
