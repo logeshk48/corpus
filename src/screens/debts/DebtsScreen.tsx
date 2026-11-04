@@ -1,7 +1,8 @@
 import { ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useWealth } from '@/hooks/useWealth';
-import { allDebts, debtTotals, type DebtKind, type DebtLine } from '@/utils/allDebts';
+import { allDebts, debtBurden, debtTotals, minimumTrap, type DebtKind, type DebtLine } from '@/utils/allDebts';
+import { recentAverage } from '@/utils/wealthScore';
 import { formatINR, formatINRLong } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
@@ -33,6 +34,17 @@ export default function DebtsScreen() {
   const w = useWealth();
   const list = useMemo(() => allDebts({ ious: w.ious, bills: w.bills, accounts: w.accounts }), [w.ious, w.bills, w.accounts]);
   const t = debtTotals(list);
+
+  // Debt burden: payments ÷ income (banks call it FOIR)
+  const income = recentAverage(w.inputs.flows)?.income ?? 0;
+  const burden = debtBurden(t.monthly, income);
+  const BAND = {
+    healthy: { c: Corpus.income, t: 'Healthy', say: 'Comfortable — you have room if something goes wrong.' },
+    stretched: { c: Corpus.gold, t: 'Stretched', say: 'Manageable, but avoid any new loan or EMI for now.' },
+    risky: { c: Corpus.warning, t: 'Risky', say: 'A job loss or big bill could make you miss payments. Clear the costliest debt first.' },
+    danger: { c: Corpus.danger, t: 'Too heavy', say: 'More than half your income goes to debt. Most lenders won’t give new loans, and one missed month hurts your credit score.' },
+  };
+  const cards = w.accounts.filter((a) => a.type === 'credit' && !a.archived && a.balance > 0);
 
   // Payoff plan (choices saved)
   const { settings } = useSettings();
@@ -85,6 +97,61 @@ export default function DebtsScreen() {
                 <Text style={[styles.tileValue, { color: Corpus.danger }]}>{formatINR(t.interest)}</Text>
               </View>
             </View>
+
+            {burden ? (
+              <View style={styles.card}>
+                <View style={[styles.row, { justifyContent: 'space-between' }]}>
+                  <Text style={styles.name}>Debt burden</Text>
+                  <Text style={[styles.name, { color: BAND[burden.band].c }]}>{BAND[burden.band].t}</Text>
+                </View>
+                <Text style={styles.meta}>
+                  <Text style={{ color: Corpus.text, fontWeight: '600' }}>{Math.round(burden.pct)}% of your income</Text> ({formatINR(t.monthly)} of {formatINR(Math.round(income))} a month) goes to EMIs, card minimums and interest.
+                </Text>
+                <View style={{ height: 8, borderRadius: 4, backgroundColor: Corpus.cardAlt, overflow: 'hidden', marginTop: 4 }}>
+                  <View style={{ width: `${Math.min(100, (burden.pct / 60) * 100)}%`, height: 8, backgroundColor: BAND[burden.band].c }} />
+                </View>
+                <View style={[styles.row, { justifyContent: 'space-between' }]}>
+                  <Text style={styles.note}>0%</Text>
+                  <Text style={styles.note}>30% safe</Text>
+                  <Text style={styles.note}>50% bank limit</Text>
+                  <Text style={styles.note}>60%</Text>
+                </View>
+                <Text style={styles.meta}>{BAND[burden.band].say}</Text>
+                <Text style={styles.meta}>
+                  {burden.band === 'healthy'
+                    ? `You could take ${formatINR(burden.safeRoom)} more in EMIs and stay under 30%. Lenders usually allow up to ${formatINR(burden.bankRoom)} more — but that’s their limit, not a safe one.`
+                    : `Bring payments down by ${formatINR(burden.toHealthy)} a month to get under 30%. Closing a loan or clearing a card frees its whole payment.`}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.note}>Log your income to see what share of it goes to debt.</Text>
+            )}
+
+            {cards.map((c) => {
+              const trap = minimumTrap(c.balance);
+              const used = c.creditLimit ? Math.round((c.balance / c.creditLimit) * 100) : null;
+              return (
+                <View key={c.id} style={[styles.card, { borderColor: Corpus.dangerLine }]}>
+                  <View style={styles.row}>
+                    <Ionicons name="warning-outline" size={18} color={Corpus.danger} />
+                    <Text style={[styles.name, { flex: 1 }]}>{c.name}: {formatINR(Math.round(c.balance))} on the card</Text>
+                  </View>
+                  <Text style={styles.meta}>
+                    Paying only the minimum due, this takes <Text style={{ color: Corpus.danger, fontWeight: '600' }}>{trap.months >= 600 ? '50+ years' : span(trap.months)}</Text> and costs about{' '}
+                    <Text style={{ color: Corpus.danger, fontWeight: '600' }}>{formatINR(trap.interest)} in interest</Text>.
+                  </Text>
+                  <Text style={styles.meta}>
+                    Pay the full statement amount by the due date{c.dueDay ? ` (the ${c.dueDay}${c.dueDay === 1 ? 'st' : c.dueDay === 2 ? 'nd' : c.dueDay === 3 ? 'rd' : 'th'})` : ''}. Carry any balance and the interest-free period goes, so even new purchases start charging interest from day one.
+                  </Text>
+                  {used != null && (
+                    <Text style={[styles.meta, used > 30 && { color: Corpus.warning }]}>
+                      Using {used}% of your {formatINR(c.creditLimit!)} limit.{used > 30 ? ' Above 30% pulls your credit score down — keep it lower even if you pay in full.' : ' Under 30% — good for your credit score.'}
+                    </Text>
+                  )}
+                  {used == null && <Text style={styles.note}>Add the card’s credit limit in Accounts to see how it affects your credit score.</Text>}
+                </View>
+              );
+            })}
 
             <SectionLabel>YOUR PAYOFF PLAN</SectionLabel>
             <View style={styles.card}>

@@ -14,6 +14,8 @@ import { netWorthItems, netWorthTotals } from '@/utils/netWorth';
 import { scoreInputs } from '@/utils/wealthInputs';
 import { wealthScore } from '@/utils/wealthScore';
 import WealthScoreCard from './components/WealthScoreCard';
+import DebtPlanCard from './components/DebtPlanCard';
+import { debtPlanReminders, debtPlanSummary } from '@/utils/debtPlan';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -71,7 +73,8 @@ export default function HomeScreen() {
   const shortAlert = health?.short
     ? [{ id: 'short', iouId: '', when: new Date(), title: `${formatINR(-health.free)} short for bills & card dues`, body: `You have ${formatINR(health.have)}, but ${formatINR(health.billsDue + health.cardDues)} is due in the next 30 days`, urgency: 'overdue' as const }]
     : [];
-  const reminders = actionable([...shortAlert, ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
+  const debtPlan = debtPlanSummary({ ious, bills, accounts: accList, plan: settings.debtPlan });
+  const reminders = actionable([...shortAlert, ...debtPlanReminders(debtPlan, settings.cycleStartDay), ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
   const [showSafe, setShowSafe] = useState(false);
   const { showToast } = useToast();
   const [paying, setPaying] = useState<Bill | null>(null);
@@ -214,6 +217,8 @@ export default function HomeScreen() {
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
         <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />
+
+        {debtPlan && <DebtPlanCard s={debtPlan} onPress={() => router.push('/debts' as Href)} />}
 
         <Shortcuts items={shortcuts} />
 

@@ -9,7 +9,7 @@ Pace: ~2 sessions/day. Each day ends with: tests pass · you check on phone/lapt
 | 3 | **Investments I** — Invest tab: MF, stocks, gold/silver, crypto, PF/EPF/NPS, FD; invested vs current value (marked *manual*), gains/losses | Your holdings entered with gain % |
 | 4 ✅ | **Investments II** — allocation chart, long vs short term, SIP contributions, monthly value updates, feeds net worth | Invest tab + net worth agree |
 | 5 ✅ | **Wealth building** — Wealth Builder Score, savings-rate trend, emergency readiness, debt pressure, idle cash, future net worth projection, what-if (save/invest/prepay more) | Score explained line by line |
-| 6 | **Loans & debt extras** — all debts in one list, highest-interest-first payoff plan, debt-free date, EMI ÷ income burden, card dues in Total debt | One clear "pay this first" plan |
+| 6 ✅ | **Loans & debt extras** — all debts in one list, highest-interest-first payoff plan, debt-free date, EMI ÷ income burden, card dues in Total debt | One clear "pay this first" plan |
 | 7 | **Smart detection** — recurring expense → "make it a bill?", duplicate warning, unusual spending, unused subscriptions, business vs personal tag, month-end spend prediction | Corpus spots things before you do |
 | 8 | **Notifications centre** — daily Safe-to-Spend, budget/overspend, bills & EMIs, low balance, weekly review; on/off + frequency settings, no duplicates (test in Expo Go) | You control every alert |
 | 9 | **Reports** — weekly totals, income vs expense, savings-rate / debt / investment / net worth trends, yearly report | Reports = same numbers as dashboard |

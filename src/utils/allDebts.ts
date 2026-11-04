@@ -68,3 +68,31 @@ export function debtTotals(list: DebtLine[]) {
     unknownRates: list.filter((d) => d.rate == null).length,
   };
 }
+
+// ─── How heavy is your debt? (what banks call FOIR: fixed obligations ÷ income) ───
+// < 30% healthy · 30–40% stretched · 40–50% risky · > 50% most lenders say no to new loans
+export function debtBurden(monthlyPay: number, income: number) {
+  if (income <= 0) return null;
+  const pct = (monthlyPay / income) * 100;
+  const band = pct < 30 ? 'healthy' : pct < 40 ? 'stretched' : pct < 50 ? 'risky' : 'danger';
+  return {
+    pct,
+    band: band as 'healthy' | 'stretched' | 'risky' | 'danger',
+    safeRoom: Math.max(0, Math.round(0.3 * income - monthlyPay)),  // stays healthy
+    bankRoom: Math.max(0, Math.round(0.5 * income - monthlyPay)),  // what lenders usually allow
+    toHealthy: Math.max(0, Math.round(monthlyPay - 0.3 * income)), // cut this much to get under 30%
+  };
+}
+
+// Paying only the card's minimum due: how long and how much interest (minimum ≈ 5% of what's left, at least ₹200)
+export function minimumTrap(balance: number, rate = CARD_RATE) {
+  let b = balance, months = 0, interest = 0;
+  while (b > 1 && months < 600) {
+    const i = (b * rate) / 1200;
+    interest += i;
+    b += i;
+    b -= Math.min(b, Math.max(200, b * CARD_MIN_DUE));
+    months++;
+  }
+  return { months, interest: Math.round(interest) };
+}

@@ -1,6 +1,8 @@
 import { useIous } from '@/hooks/useIous';
 import { useInvestments } from '@/hooks/useInvestments';
 import { sipReminders } from '@/utils/sip';
+import { useBills } from '@/hooks/useBills';
+import { debtPlanReminders, debtPlanSummary } from '@/utils/debtPlan';
 import { needsCheckup } from '@/utils/investments';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -36,6 +38,7 @@ export default function MoneyNotifier() {
   const { settings } = useSettings();
   const { transactions } = useTransactions('month');
   const { investments } = useInvestments();
+  const { bills } = useBills();
   const on = (k: 'people' | 'cards' | 'checkin' | 'budget' | 'sips') => settings.notify?.[k] !== false;
   const asked = useRef(false);
 
@@ -56,6 +59,8 @@ export default function MoneyNotifier() {
         const plan = notificationsToSchedule([...(on('people') ? moneyReminders(ious) : []), ...(on('cards') ? cards : [])]);
         // SIPs: the day before (9 AM) and "did it go through?" the day after
         if (on('sips')) for (const r of sipReminders(investments)) if (r.when > new Date()) plan.push({ id: r.id, date: r.when, title: r.title, body: r.body });
+        // Debt plan: pay day, 10 AM — "Put ₹5,000 extra on SBI Card"
+        if (on('people')) for (const r of debtPlanReminders(debtPlanSummary({ ious, bills, accounts: accountBalances(accounts, []), plan: settings.debtPlan }), settings.cycleStartDay)) if (r.when > new Date()) plan.push({ id: r.id, date: r.when, title: r.title, body: r.body });
         // card bills: also 3 days before
         for (const c of on('cards') ? cards : []) {
           const d = new Date(c.when.getTime() - 3 * 86_400_000);
@@ -113,7 +118,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
+  }, [ious, accounts, bills, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
 
   return null;
 }
