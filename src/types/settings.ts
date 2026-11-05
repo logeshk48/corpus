@@ -15,6 +15,7 @@ export type Settings = {
   // Gold price: live market rate (default) or your own jeweller's rate
   investGoals?: InvestGoal[];
   debtPlan?: DebtPlanSettings; // payoff plan choices + progress
+  dismissedInsights?: string[]; // smart-detection findings you said no to
   scoreLog?: Record<string, number>; // wealth score by month, YYYY-MM → 0–100
   mixTarget?: { equity: number }; // % of investments you want in equity
   watchlist?: string[]; // stock symbols (RELIANCE.NS) and fund codes (mf:122639)

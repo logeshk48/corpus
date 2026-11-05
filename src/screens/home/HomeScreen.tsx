@@ -24,7 +24,9 @@ import MoneyReminders from './components/MoneyReminders';
 import UpcomingBills from './components/UpcomingBills';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
-import { logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
+import { addBill, deleteBill, logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
+import InsightsCard, { type Insight } from './components/InsightsCard';
+import { findings } from '@/utils/insights';
 import { useToast } from '@/context/ToastContext';
 import type { Bill } from '@/types/bill';
 import { overallBudget } from '@/utils/budgets';
@@ -115,6 +117,37 @@ export default function HomeScreen() {
 
   // The heart of Corpus: how much can I safely spend today?
   const { transactions: yearTx } = useTransactions('last12Months');
+
+  // Smart detection (Day 7): things Corpus noticed, each with a one-tap action
+  const dismissed = settings.dismissedInsights ?? [];
+  const dismiss = (key: string) => saveSettings({ dismissedInsights: [...dismissed, key] }).catch(() => {});
+  const thisYm = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const insights: Insight[] = findings({ tx: yearTx, bills, dismissed }).map((f) => {
+    const r = f.r;
+    const nth = r.day === 1 || r.day === 21 || r.day === 31 ? 'st' : r.day === 2 || r.day === 22 ? 'nd' : r.day === 3 || r.day === 23 ? 'rd' : 'th';
+    return {
+      key: r.key,
+      icon: 'repeat-outline',
+      tone: r.increase ? 'warn' : 'gold',
+      title: `${r.name} · ${r.variable ? 'about ' : ''}${formatINR(r.amount)} every month`,
+      body:
+        `Paid ${r.months} months in a row, around the ${r.day}${nth}. That’s ${formatINR(r.yearly)} a year.` +
+        (r.increase ? ` It went up by ${formatINR(r.increase)} recently — still worth it?` : '') +
+        ' Make it a bill and Corpus logs it for you, keeps the money aside in safe-to-spend, and reminds you before it’s due.',
+      yes: {
+        label: 'Make it a bill',
+        run: async () => {
+          const id = await addBill({
+            name: r.name, amount: r.amount, category: r.category, dayOfMonth: Math.min(31, Math.max(1, r.day)), active: true,
+            startMonth: thisYm, frequency: 'monthly', ...(r.variable ? { variable: true } : {}),
+            ...(r.paidThisMonth ? { lastLoggedMonth: thisYm } : {}), // already paid this month → don't log it again
+          });
+          showToast({ message: `${r.name} is now a bill`, actionLabel: 'Undo', onAction: () => deleteBill(id) });
+        },
+      },
+      no: { label: r.increase ? 'Keep, not a bill' : 'Not a bill', run: async () => dismiss(r.key) },
+    };
+  });
   const picks = frequentPicks(yearTx, 'expense', new Date(), 4);
   const behind = catchUp(yearTx);
 
@@ -225,6 +258,8 @@ export default function HomeScreen() {
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
 
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
+        <InsightsCard items={insights} />
+
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
