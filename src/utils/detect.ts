@@ -90,3 +90,37 @@ export function repeatingPayments(tx: Transaction[], bills: Bill[], now = new Da
   }
   return out.sort((a, b) => b.yearly - a.yearly);
 }
+
+// ─── 2) The same thing logged twice ───
+// • a double tap / logged on two phones: same type, amount, category and note within 15 minutes
+// • a bill Corpus auto-logged AND you logged it yourself: same amount & category within 3 days
+export type Duplicate = { key: string; keep: Transaction; drop: Transaction; reason: 'twice' | 'bill' ; minutes: number };
+
+export function duplicates(tx: Transaction[], now = new Date()): Duplicate[] {
+  const since = now.getTime() - 30 * DAY;
+  const recent = tx.filter((t) => new Date(t.date).getTime() >= since).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const out: Duplicate[] = [];
+  const used = new Set<string>();
+  for (let i = 0; i < recent.length; i++) {
+    const a = recent[i];
+    if (used.has(a.id)) continue;
+    for (let j = i + 1; j < recent.length; j++) {
+      const b = recent[j];
+      if (used.has(b.id)) continue;
+      const gap = (new Date(b.date).getTime() - new Date(a.date).getTime()) / 60_000;
+      if (gap > 3 * 24 * 60) break;
+      if (a.type !== b.type || a.amount !== b.amount || a.category !== b.category) continue;
+      const billPair = !!a.recurringId !== !!b.recurringId; // one auto-logged, one by hand
+      const sameNote = noteKey(a.note) === noteKey(b.note);
+      if ((gap <= 15 && sameNote && !a.recurringId && !b.recurringId) || billPair) {
+        // keep the auto-logged bill (it's tied to the bill) or the first one
+        const keep = billPair ? (a.recurringId ? a : b) : a;
+        const drop = keep === a ? b : a;
+        out.push({ key: `dup:${[a.id, b.id].sort().join(':')}`, keep, drop, reason: billPair ? 'bill' : 'twice', minutes: Math.round(gap) });
+        used.add(a.id).add(b.id);
+        break;
+      }
+    }
+  }
+  return out.reverse(); // newest first
+}

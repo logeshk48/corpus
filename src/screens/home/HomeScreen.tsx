@@ -26,6 +26,7 @@ import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
 import { addBill, deleteBill, logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
 import InsightsCard, { type Insight } from './components/InsightsCard';
+import { findCategory } from '@/constants/categories';
 import { findings } from '@/utils/insights';
 import { useToast } from '@/context/ToastContext';
 import type { Bill } from '@/types/bill';
@@ -34,7 +35,7 @@ import { computeSafeToSpend, cycleBounds } from '@/utils/safeToSpend';
 import { nextSip, sipInvested, sipsDueBefore, sipReminders } from '@/utils/sip';
 import { catchUp } from '@/utils/catchUp';
 import { frequentPicks, type QuickPick } from '@/utils/quickAdd';
-import { addTransactionNow, deleteTransaction } from '@/services/transactions';
+import { addTransactionNow, deleteTransaction, restoreTransaction } from '@/services/transactions';
 import QuickAdd from './components/QuickAdd';
 import Shortcuts, { type Shortcut } from './components/Shortcuts';
 import { compactINR } from '@/utils/format';
@@ -122,7 +123,31 @@ export default function HomeScreen() {
   const dismissed = settings.dismissedInsights ?? [];
   const dismiss = (key: string) => saveSettings({ dismissedInsights: [...dismissed, key] }).catch(() => {});
   const thisYm = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-  const insights: Insight[] = findings({ tx: yearTx, bills, dismissed }).map((f) => {
+  const insights: Insight[] = findings({ tx: yearTx, bills, dismissed }).map((f): Insight => {
+    if (f.kind === 'duplicate') {
+      const { keep, drop } = f.d;
+      const when = new Date(drop.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const label = findCategory(drop.type, drop.category)?.label ?? 'Entry';
+      return {
+        key: f.d.key,
+        icon: 'copy-outline',
+        tone: 'danger',
+        title: `${formatINR(drop.amount)} ${drop.note || label} logged twice?`,
+        body:
+          f.d.reason === 'bill'
+            ? `Corpus already logged your “${keep.note || label}” bill on ${new Date(keep.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, and you added it again on ${when}. Counting it twice makes your spending look ${formatINR(drop.amount)} higher.`
+            : `Two identical ${drop.type === 'income' ? 'incomes' : 'expenses'} on ${when}, ${f.d.minutes <= 1 ? 'within a minute' : `${f.d.minutes} minutes apart`} — usually a double tap.`,
+        yes: {
+          label: 'Delete the extra one',
+          run: async () => {
+            const { id, ...rest } = drop;
+            await deleteTransaction(id);
+            showToast({ message: 'Extra entry deleted', actionLabel: 'Undo', onAction: () => restoreTransaction(id, rest) });
+          },
+        },
+        no: { label: 'Both are real', run: async () => dismiss(f.d.key) },
+      };
+    }
     const r = f.r;
     const nth = r.day === 1 || r.day === 21 || r.day === 31 ? 'st' : r.day === 2 || r.day === 22 ? 'nd' : r.day === 3 || r.day === 23 ? 'rd' : 'th';
     return {
