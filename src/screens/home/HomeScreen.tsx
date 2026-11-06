@@ -16,7 +16,7 @@ import { wealthScore } from '@/utils/wealthScore';
 import WealthScoreCard from './components/WealthScoreCard';
 import DebtPlanCard from './components/DebtPlanCard';
 import { debtPlanSummary, planStart } from '@/utils/debtPlan';
-import { saveSettings } from '@/services/settings';
+import { saveCategoryBudgets, saveSettings } from '@/services/settings';
 import { byPerson, totals } from '@/utils/iou';
 import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
@@ -35,7 +35,7 @@ import { computeSafeToSpend, cycleBounds } from '@/utils/safeToSpend';
 import { nextSip, sipInvested, sipsDueBefore, sipReminders } from '@/utils/sip';
 import { catchUp } from '@/utils/catchUp';
 import { frequentPicks, type QuickPick } from '@/utils/quickAdd';
-import { addTransactionNow, deleteTransaction, restoreTransaction } from '@/services/transactions';
+import { addTransactionNow, deleteTransaction, restoreTransaction, updateTransaction } from '@/services/transactions';
 import QuickAdd from './components/QuickAdd';
 import Shortcuts, { type Shortcut } from './components/Shortcuts';
 import { compactINR } from '@/utils/format';
@@ -123,7 +123,57 @@ export default function HomeScreen() {
   const dismissed = settings.dismissedInsights ?? [];
   const dismiss = (key: string) => saveSettings({ dismissedInsights: [...dismissed, key] }).catch(() => {});
   const thisYm = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-  const insights: Insight[] = findings({ tx: yearTx, bills, dismissed }).map((f): Insight => {
+  const insights: Insight[] = findings({ tx: yearTx, bills, dismissed, budgets: settings.categoryBudgets, cycleStartDay: settings.cycleStartDay }).map((f): Insight => {
+    if (f.kind === 'big') {
+      const { t, usual, times, typo } = f.b;
+      const label = findCategory('expense', t.category)?.label ?? 'Expense';
+      const when = new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      return {
+        key: f.b.key,
+        icon: typo ? 'alert-circle-outline' : 'trending-up-outline',
+        tone: 'warn',
+        title: typo ? `${formatINR(t.amount)} ${t.note || label} — extra zero?` : `${formatINR(t.amount)} on ${t.note || label}`,
+        body: typo
+          ? `On ${when}. You usually spend about ${formatINR(usual)} on ${label.toLowerCase()} — did you mean ${formatINR(typo)}? A wrong amount throws off your budget and safe-to-spend.`
+          : `On ${when}, about ${times}× your usual ${label.toLowerCase()} spend of ${formatINR(usual)}. Big one-offs are fine — just make sure the amount is right.`,
+        yes: typo
+          ? {
+              label: `Change to ${formatINR(typo)}`,
+              run: async () => {
+                await updateTransaction(t.id, { amount: typo });
+                showToast({ message: `Changed to ${formatINR(typo)}`, actionLabel: 'Undo', onAction: () => updateTransaction(t.id, { amount: t.amount }) });
+              },
+            }
+          : { label: 'Edit it', run: async () => router.push(`/edit/${t.id}` as Href) },
+        no: { label: 'It’s right', run: async () => dismiss(f.b.key) },
+      };
+    }
+    if (f.kind === 'hot') {
+      const h = f.h;
+      const label = findCategory('expense', h.category)?.label ?? h.category;
+      const limit = Math.max(500, Math.round(h.usual / 100) * 100);
+      return {
+        key: h.key,
+        icon: 'flame-outline',
+        tone: 'warn',
+        title: `${label} is running high this month`,
+        body:
+          `${formatINR(h.spent)} so far — usually about ${formatINR(h.usualByNow)} by now. At this pace it ends near ${formatINR(h.projected)}, ${formatINR(h.projected - h.usual)} above your usual ${formatINR(h.usual)}.` +
+          (h.spent >= h.usual
+            ? ` You’ve already spent a usual month’s ${label.toLowerCase()} — keep it minimal for the last ${h.daysLeft} days.`
+            : ` ${h.daysLeft} days left: about ${formatINR(Math.round((h.usual - h.spent) / h.daysLeft))} a day keeps it at your usual.`),
+        yes: h.budget
+          ? { label: `See ${label}`, run: async () => router.push(`/category/${h.category}` as Href) }
+          : {
+              label: `Set a ${formatINR(limit)} limit`,
+              run: async () => {
+                await saveCategoryBudgets({ ...(settings.categoryBudgets ?? {}), [h.category]: limit });
+                showToast({ message: `${label} limit set to ${formatINR(limit)} a month` });
+              },
+            },
+        no: { label: 'Fine this month', run: async () => dismiss(h.key) },
+      };
+    }
     if (f.kind === 'duplicate') {
       const { keep, drop } = f.d;
       const when = new Date(drop.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });

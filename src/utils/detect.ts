@@ -3,6 +3,7 @@
 import type { Bill } from '@/types/bill';
 import type { Transaction } from '@/types/transaction';
 import { findCategory } from '@/constants/categories';
+import { cycleBounds } from './safeToSpend';
 
 const DAY = 86_400_000;
 const median = (xs: number[]) => {
@@ -123,4 +124,69 @@ export function duplicates(tx: Transaction[], now = new Date()): Duplicate[] {
     }
   }
   return out.reverse(); // newest first
+}
+
+// ─── 3) Unusual spending ───
+// a) a category running well above your usual pace this month
+export type HotCategory = { key: string; category: string; spent: number; usualByNow: number; usual: number; projected: number; daysLeft: number; budget: number | null };
+
+export function hotCategories(tx: Transaction[], budgets: Record<string, number>, cycleStartDay = 1, now = new Date()): HotCategory[] {
+  const cur = cycleBounds(now, cycleStartDay);
+  const cycles = [1, 2, 3].map((k) => {
+    const start = new Date(cur.start.getFullYear(), cur.start.getMonth() - k, cur.start.getDate());
+    const end = new Date(cur.start.getFullYear(), cur.start.getMonth() - k + 1, cur.start.getDate());
+    return { start, end };
+  });
+  const sum = (from: Date, to: Date) => {
+    const m = new Map<string, number>();
+    for (const t of tx) {
+      const d = new Date(t.date);
+      if (t.type !== 'expense' || d < from || d >= to) continue;
+      m.set(t.category, (m.get(t.category) ?? 0) + t.amount);
+    }
+    return m;
+  };
+  const past = cycles.map((c) => sum(c.start, c.end)).filter((m) => m.size > 0); // only months you actually logged
+  if (past.length < 2) return [];
+  const now$ = sum(cur.start, now);
+  const total = (cur.end.getTime() - cur.start.getTime()) / DAY;
+  const elapsed = (now.getTime() - cur.start.getTime()) / DAY;
+  const frac = elapsed / total;
+  if (frac < 0.2) return []; // too early in the month to judge
+  const out: HotCategory[] = [];
+  for (const [cat, spent] of now$) {
+    const usual = past.reduce((a, m) => a + (m.get(cat) ?? 0), 0) / past.length;
+    const usualByNow = usual * frac;
+    const projected = spent / frac;
+    const budget = budgets[cat] ?? null;
+    if (spent < 1000 || spent < usualByNow * 1.3 || projected - usual < 1000) continue;
+    if (budget != null && projected <= budget) continue; // within the limit you set
+    out.push({
+      key: `hot:${cat}:${ym(cur.start)}`, category: cat, spent: Math.round(spent), usualByNow: Math.round(usualByNow), usual: Math.round(usual),
+      projected: Math.round(projected), daysLeft: Math.max(1, Math.round(total - elapsed)), budget,
+    });
+  }
+  return out.sort((a, b) => b.projected - b.usual - (a.projected - a.usual));
+}
+
+// b) one expense far bigger than usual for its category — often a typo (₹25,000 instead of ₹2,500)
+export type BigOne = { key: string; t: Transaction; usual: number; times: number; typo: number | null };
+
+export function bigOneOffs(tx: Transaction[], now = new Date()): BigOne[] {
+  const out: BigOne[] = [];
+  const weekAgo = now.getTime() - 7 * DAY;
+  const qAgo = now.getTime() - 90 * DAY;
+  for (const t of tx) {
+    const when = new Date(t.date).getTime();
+    if (t.type !== 'expense' || t.recurringId || when < weekAgo || t.amount < 2000) continue;
+    const same = tx.filter((x) => x.type === 'expense' && x.category === t.category && x.id !== t.id && !x.recurringId && new Date(x.date).getTime() >= qAgo);
+    if (same.length < 5) continue;
+    const usual = median(same.map((x) => x.amount));
+    const times = t.amount / Math.max(1, usual);
+    if (times < 4) continue;
+    // an extra zero? (amount ÷ 10 is close to what you usually spend)
+    const typo = Math.abs(t.amount / 10 - usual) / usual < 0.35 ? t.amount / 10 : null;
+    out.push({ key: `big:${t.id}`, t, usual: Math.round(usual), times: Math.round(times), typo });
+  }
+  return out.sort((a, b) => b.t.amount - a.t.amount);
 }
