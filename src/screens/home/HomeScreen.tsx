@@ -124,6 +124,45 @@ export default function HomeScreen() {
   const dismiss = (key: string) => saveSettings({ dismissedInsights: [...dismissed, key] }).catch(() => {});
   const thisYm = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const insights: Insight[] = findings({ tx: yearTx, bills, dismissed, budgets: settings.categoryBudgets, cycleStartDay: settings.cycleStartDay }).map((f): Insight => {
+    if (f.kind === 'payday') {
+      const { s: sal, suggest } = f;
+      const th = (d: number) => `${d}${d === 1 || d === 21 ? 'st' : d === 2 || d === 22 ? 'nd' : d === 3 || d === 23 ? 'rd' : 'th'}`;
+      return {
+        key: `pay:${suggest}`,
+        icon: 'calendar-outline',
+        tone: 'gold',
+        title: `Your salary comes around the ${th(sal.day)}`,
+        body: `${formatINR(sal.amount)} on about the ${th(sal.day)}, ${sal.months} months running. Your money month starts on the ${th(settings.cycleStartDay ?? 1)} now, so safe-to-spend splits your salary across two months. Start it on pay day${sal.day >= 29 ? ' (the 1st, since your pay lands at month end)' : ''} and your daily amount matches the money you actually have.`,
+        yes: {
+          label: `Start my month on the ${th(suggest)}`,
+          run: async () => {
+            const before = settings.cycleStartDay;
+            await saveSettings({ cycleStartDay: suggest });
+            showToast({ message: `Your month now starts on the ${th(suggest)}`, actionLabel: 'Undo', onAction: () => saveSettings({ cycleStartDay: before ?? 1 }) });
+          },
+        },
+        no: { label: 'Keep as is', run: async () => dismiss(`pay:${suggest}`) },
+      };
+    }
+    if (f.kind === 'late') {
+      const { s: sal } = f;
+      const key = `late:${new Date().getFullYear()}-${new Date().getMonth() + 1}`;
+      return {
+        key,
+        icon: 'cash-outline',
+        tone: 'warn',
+        title: `Salary not logged yet this month`,
+        body: `It usually comes around the ${sal.day}${sal.day === 1 ? 'st' : sal.day === 2 ? 'nd' : sal.day === 3 ? 'rd' : 'th'} (${formatINR(sal.amount)}) — that was ${sal.lateBy} days ago. If it’s in, log it so safe-to-spend and your budget are right. If it’s late, safe-to-spend stays cautious until it arrives.`,
+        yes: {
+          label: `Log ${formatINR(sal.amount)} salary`,
+          run: async () => {
+            const id = addTransactionNow({ type: 'income', amount: sal.amount, category: sal.category, ...(sal.streamId ? { streamId: sal.streamId } : {}), note: sal.note || 'Salary', date: new Date().toISOString() });
+            showToast({ message: `${formatINR(sal.amount)} salary logged`, actionLabel: 'Undo', onAction: () => deleteTransaction(id) });
+          },
+        },
+        no: { label: 'Not yet', run: async () => dismiss(key) },
+      };
+    }
     if (f.kind === 'big') {
       const { t, usual, times, typo } = f.b;
       const label = findCategory('expense', t.category)?.label ?? 'Expense';

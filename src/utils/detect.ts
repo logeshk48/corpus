@@ -190,3 +190,36 @@ export function bigOneOffs(tx: Transaction[], now = new Date()): BigOne[] {
   }
   return out.sort((a, b) => b.t.amount - a.t.amount);
 }
+
+// ─── 4) Salary day ───
+// Your biggest income each month, if it lands on about the same day, is your pay day.
+export type Salary = { day: number; amount: number; months: number; category: string; streamId?: string; note?: string; receivedThisMonth: boolean; lateBy: number };
+
+export function salaryPattern(tx: Transaction[], now = new Date()): Salary | null {
+  const from = new Date(now.getFullYear(), now.getMonth() - 6, 1).getTime();
+  const best = new Map<string, Transaction>(); // month → biggest income
+  for (const t of tx) {
+    if (t.type !== 'income' || new Date(t.date).getTime() < from) continue;
+    const k = ym(new Date(t.date));
+    if (!best.has(k) || t.amount > best.get(k)!.amount) best.set(k, t);
+  }
+  const thisMonth = ym(now);
+  const past = [...best.entries()].filter(([k]) => k !== thisMonth).map(([, t]) => t);
+  if (past.length < 2) return null;
+  const amounts = past.map((t) => t.amount);
+  const typical = median(amounts);
+  // the same kind of money: within ±30% of the usual amount
+  const steady = past.filter((t) => Math.abs(t.amount - typical) / typical <= 0.3);
+  if (steady.length < 2) return null;
+  const days = steady.map((t) => new Date(t.date).getDate());
+  const day = Math.round(median(days));
+  // the day must be steady too (a salary on the 1st one month and the 20th the next isn't a pattern)
+  if (days.some((d) => Math.min(Math.abs(d - day), 31 - Math.abs(d - day)) > 4)) return null;
+  const last = steady.sort((a, b) => (a.date < b.date ? -1 : 1))[steady.length - 1];
+  const cur = best.get(thisMonth);
+  const receivedThisMonth = !!cur && Math.abs(cur.amount - typical) / typical <= 0.3;
+  return {
+    day, amount: Math.round(typical), months: steady.length, category: last.category, streamId: last.streamId, note: last.note,
+    receivedThisMonth, lateBy: receivedThisMonth ? 0 : Math.max(0, now.getDate() - day),
+  };
+}
