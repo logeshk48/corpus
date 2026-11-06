@@ -28,6 +28,9 @@ import { addBill, deleteBill, logBillForThisMonth, skipBillThisMonth, restoreBil
 import InsightsCard, { type Insight } from './components/InsightsCard';
 import { findCategory } from '@/constants/categories';
 import { findings } from '@/utils/insights';
+import { addVault, deleteVault } from '@/services/vaults';
+import { VAULT_COLORS, VAULT_ICONS } from '@/types/vault';
+import { futureValue } from '@/utils/returns';
 import { useToast } from '@/context/ToastContext';
 import type { Bill } from '@/types/bill';
 import { overallBudget } from '@/utils/budgets';
@@ -124,6 +127,30 @@ export default function HomeScreen() {
   const dismiss = (key: string) => saveSettings({ dismissedInsights: [...dismissed, key] }).catch(() => {});
   const thisYm = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const insights: Insight[] = findings({ tx: yearTx, bills, dismissed, budgets: settings.categoryBudgets, cycleStartDay: settings.cycleStartDay }).map((f): Insight => {
+    if (f.kind === 'leak') {
+      const l = f.l;
+      const half = Math.round(l.monthly / 2);
+      const grows = Math.round(futureValue(0, half, 12, 120) / 1000) * 1000;
+      return {
+        key: l.key,
+        icon: 'water-outline',
+        tone: 'gold',
+        title: `${l.name}: ${formatINR(l.yearly)} a year`,
+        body: `About ${formatINR(l.avg)} each, ${l.perWeek} times a week — ${formatINR(l.monthly)} a month. Not wrong, just worth seeing. Halving it saves ${formatINR(half * 12)} a year; invested instead, that’s about ${formatINR(grows)} in 10 years.`,
+        yes: {
+          label: `Save ${formatINR(half)}/month in a jar`,
+          run: async () => {
+            const by = new Date(new Date().getFullYear() + 1, new Date().getMonth(), 1);
+            const id = await addVault({
+              name: `Saved on ${l.name}`, icon: VAULT_ICONS.includes('leaf') ? 'leaf' : VAULT_ICONS[0], color: VAULT_COLORS[2] ?? VAULT_COLORS[0], kind: 'savings',
+              goal: half * 12, targetDate: `${by.getFullYear()}-${String(by.getMonth() + 1).padStart(2, '0')}`,
+            });
+            showToast({ message: `Jar “Saved on ${l.name}” · ${formatINR(half)} a month`, actionLabel: 'Undo', onAction: () => deleteVault(id) });
+          },
+        },
+        no: { label: 'Worth it', run: async () => dismiss(l.key) },
+      };
+    }
     if (f.kind === 'payday') {
       const { s: sal, suggest } = f;
       const th = (d: number) => `${d}${d === 1 || d === 21 ? 'st' : d === 2 || d === 22 ? 'nd' : d === 3 || d === 23 ? 'rd' : 'th'}`;

@@ -223,3 +223,33 @@ export function salaryPattern(tx: Transaction[], now = new Date()): Salary | nul
     receivedThisMonth, lateBy: receivedThisMonth ? 0 : Math.max(0, now.getDate() - day),
   };
 }
+
+// ─── 5) Small leaks: little things, very often ───
+// ₹20 tea 58 times in 2 months = ₹580 a month = ₹7,000 a year. Not wrong — just worth seeing.
+export type Leak = { key: string; name: string; category: string; count: number; avg: number; monthly: number; yearly: number; perWeek: number };
+
+export function smallLeaks(tx: Transaction[], now = new Date()): Leak[] {
+  const from = now.getTime() - 60 * DAY;
+  const g = new Map<string, Transaction[]>();
+  for (const t of tx) {
+    if (t.type !== 'expense' || t.recurringId || t.amount > 300 || new Date(t.date).getTime() < from) continue;
+    const k = noteKey(t.note);
+    if (k.length < 2) continue; // needs a note to know what it is
+    const l = g.get(k) ?? [];
+    l.push(t);
+    g.set(k, l);
+  }
+  const out: Leak[] = [];
+  for (const [k, l] of g) {
+    const first = Math.min(...l.map((t) => new Date(t.date).getTime()));
+    const span = Math.max(21, (now.getTime() - first) / DAY); // judge over at least 3 weeks
+    const perWeek = (l.length / span) * 7;
+    const monthly = (l.reduce((a, t) => a + t.amount, 0) / span) * 30;
+    if (l.length < 8 || perWeek < 2 || monthly < 300) continue;
+    out.push({
+      key: `leak:${k}`, name: title(k), category: l[0].category, count: l.length,
+      avg: Math.round(l.reduce((a, t) => a + t.amount, 0) / l.length), monthly: Math.round(monthly), yearly: Math.round(monthly * 12), perWeek: Math.round(perWeek * 10) / 10,
+    });
+  }
+  return out.sort((a, b) => b.yearly - a.yearly);
+}
