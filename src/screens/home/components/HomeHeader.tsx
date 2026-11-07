@@ -2,7 +2,9 @@ import { Corpus } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { useInbox } from '@/hooks/useInbox';
+import { useRouter, type Href } from 'expo-router';
 import { styles } from './HomeHeader.styles';
 
 function getGreeting() {
@@ -24,6 +26,8 @@ export default function HomeHeader() {
   const { user } = useAuth();
   const { settings } = useSettings();
   const name = displayNameFor(settings.displayName, user?.email);
+  const router = useRouter();
+  const { attention } = useInbox();
 
   return (
     <View style={styles.container}>
@@ -32,7 +36,14 @@ export default function HomeHeader() {
         <Text style={styles.name}>{name}</Text>
       </View>
       <View style={styles.actions}>
-        <Ionicons name="notifications-outline" size={20} color={Corpus.textMuted} />
+        <Pressable onPress={() => router.push('/inbox' as Href)} hitSlop={10} accessibilityLabel={`Reminders${attention ? `, ${attention} need attention` : ''}`}>
+          <Ionicons name={attention ? 'notifications' : 'notifications-outline'} size={20} color={attention ? Corpus.gold : Corpus.textMuted} />
+          {attention > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{attention > 9 ? '9+' : attention}</Text>
+            </View>
+          )}
+        </Pressable>
         <Ionicons name="lock-closed-outline" size={20} color={Corpus.textMuted} />
       </View>
     </View>

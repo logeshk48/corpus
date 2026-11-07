@@ -21,4 +21,6 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Space.md,
   },
+  badge: { position: 'absolute', top: -6, right: -8, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: Corpus.danger, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  badgeText: { fontSize: Type.micro, fontWeight: '700', color: Corpus.text },
 });
