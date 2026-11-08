@@ -3,7 +3,7 @@
 import type { Bill } from '@/types/bill';
 import type { Investment } from '@/types/investment';
 import type { Iou } from '@/types/iou';
-import type { Settings } from '@/types/settings';
+import type { InboxMark, Settings } from '@/types/settings';
 import type { Transaction } from '@/types/transaction';
 import { cardReminders, verifiedAgo, type AccountBalance } from './accounts';
 import { overallBudget } from './budgets';
@@ -15,7 +15,7 @@ import { sipReminders } from './sip';
 
 export type InboxKind = 'people' | 'card' | 'bill' | 'sip' | 'debt' | 'budget' | 'checkin';
 export type InboxGroup = 'overdue' | 'today' | 'week' | 'later';
-export type InboxItem = { id: string; kind: InboxKind; when: Date; title: string; body: string; href: string; group: InboxGroup };
+export type InboxItem = { id: string; kind: InboxKind; when: Date; title: string; body: string; href: string; group: InboxGroup; billId?: string; amount?: number };
 
 const DAY = 86_400_000;
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -50,7 +50,7 @@ export function buildInbox(p: {
       id: `bill:${u.bill.id}:${u.due.toISOString().slice(0, 10)}`, kind: 'bill', when: u.due,
       title: `${u.bill.name} ${u.bill.variable ? `(about ${formatINR(u.amount)})` : formatINR(u.amount)}`,
       body: days < 0 ? `Was due ${-days} day${days === -1 ? '' : 's'} ago — paid it? Mark it in Bills` : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due ${u.due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
-      href: `/bill/${u.bill.id}`, group: groupFor(u.due, now),
+      href: `/bill/${u.bill.id}`, group: groupFor(u.due, now), billId: u.bill.id, amount: u.amount,
     });
   }
   // SIPs
@@ -81,3 +81,38 @@ export function buildInbox(p: {
 }
 
 export const needsAttention = (items: InboxItem[]) => items.filter((i) => i.group === 'overdue' || i.group === 'today').length;
+
+// ─── Done & snooze ───
+// A reminder id is one occurrence (this month's rent, this card statement), so "done" never hides next month's.
+
+export function applyMarks(items: InboxItem[], marks: Record<string, InboxMark> = {}, now = new Date()) {
+  const shown: InboxItem[] = [], snoozed: (InboxItem & { until: Date })[] = [];
+  for (const i of items) {
+    const m = marks[baseId(i.id)];
+    if (m?.done) continue;
+    if (m?.snooze && new Date(m.snooze) > now) {
+      snoozed.push({ ...i, until: new Date(m.snooze) });
+      continue;
+    }
+    shown.push(i);
+  }
+  return { shown, snoozed };
+}
+// notification ids add ":eve" / ":3d" for the day-before copies — they belong to the same reminder
+export const baseId = (id: string) => id.replace(/:(eve|3d)$/, '');
+
+export const snoozeOptions = (now = new Date()) => {
+  const at9 = (days: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, 9);
+  const monday = (8 - now.getDay()) % 7 || 7;
+  return [
+    { label: 'Tomorrow', until: at9(1) },
+    { label: 'In 3 days', until: at9(3) },
+    { label: 'Next week', until: at9(monday) },
+  ];
+};
+
+// keep the saved marks small: drop ones older than 60 days
+export function pruneMarks(marks: Record<string, InboxMark>, now = new Date()) {
+  const cut = now.getTime() - 60 * DAY;
+  return Object.fromEntries(Object.entries(marks).filter(([, m]) => new Date(m.done ?? m.snooze ?? 0).getTime() > cut));
+}

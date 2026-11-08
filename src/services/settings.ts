@@ -38,3 +38,8 @@ export async function saveCategoryBudgets(budgets: Record<string, number>) {
     { mergeFields: ['categoryBudgets'] }
   );
 }
+
+// Reminder done / snooze marks — saved as a whole map (so old marks can be dropped)
+export async function saveInboxMarks(marks: Record<string, import('@/types/settings').InboxMark>) {
+  await setDoc(settingsDoc(), { inbox: marks }, { mergeFields: ['inbox'] });
+}

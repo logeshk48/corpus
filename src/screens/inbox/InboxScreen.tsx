@@ -1,7 +1,14 @@
 import { ScreenHeader, SectionLabel } from '@/components/ui';
 import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { useInbox } from '@/hooks/useInbox';
-import type { InboxGroup, InboxItem, InboxKind } from '@/utils/inbox';
+import { useSettings } from '@/hooks/useSettings';
+import { useToast } from '@/context/ToastContext';
+import { logBillForThisMonth, undoBillPayment } from '@/services/bills';
+import { saveInboxMarks } from '@/services/settings';
+import type { InboxMark } from '@/types/settings';
+import { formatINR } from '@/utils/format';
+import { baseId, pruneMarks, snoozeOptions, type InboxGroup, type InboxItem, type InboxKind } from '@/utils/inbox';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -20,7 +27,39 @@ const GROUP: Record<InboxGroup, string> = { overdue: 'OVERDUE', today: 'TODAY', 
 
 export default function InboxScreen() {
   const router = useRouter();
-  const { items } = useInbox();
+  const { items, snoozed, bills } = useInbox();
+  const { settings } = useSettings();
+  const { showToast } = useToast();
+  const [open, setOpen] = useState<string | null>(null);
+  const [showSnoozed, setShowSnoozed] = useState(false);
+  const marks = settings.inbox ?? {};
+  const mark = async (i: InboxItem, m: InboxMark | null, msg: string) => {
+    const id = baseId(i.id);
+    const before = marks[id];
+    const next = { ...marks };
+    if (m) next[id] = m;
+    else delete next[id];
+    await saveInboxMarks(pruneMarks(next));
+    setOpen(null);
+    showToast({
+      message: msg,
+      actionLabel: 'Undo',
+      onAction: () => {
+        const back = { ...(settings.inbox ?? {}) };
+        if (before) back[id] = before;
+        else delete back[id];
+        saveInboxMarks(back);
+      },
+    });
+  };
+  const thisMonth = (d: Date) => d.getFullYear() === new Date().getFullYear() && d.getMonth() === new Date().getMonth();
+  const paid = async (i: InboxItem) => {
+    const bill = bills.find((b) => b.id === i.billId);
+    if (!bill) return;
+    await logBillForThisMonth(bill, i.amount ?? bill.amount);
+    setOpen(null);
+    showToast({ message: `${bill.name} ${formatINR(i.amount ?? bill.amount)} recorded as paid`, actionLabel: 'Undo', onAction: () => undoBillPayment(bill) });
+  };
   const groups = (['overdue', 'today', 'week', 'later'] as InboxGroup[]).map((g) => ({ g, list: items.filter((i) => i.group === g) })).filter((x) => x.list.length);
 
   return (
@@ -38,24 +77,68 @@ export default function InboxScreen() {
             <View key={g} style={{ gap: Space.sm }}>
               <SectionLabel right={`${list.length}`}>{GROUP[g]}</SectionLabel>
               {list.map((i: InboxItem) => (
-                <Pressable key={i.id} style={[st.row, g === 'overdue' && { borderColor: Corpus.dangerLine }]} onPress={() => router.push(i.href as Href)}>
-                  <View style={st.icon}>
-                    <Ionicons name={KIND[i.kind].icon} size={17} color={g === 'overdue' ? Corpus.danger : KIND[i.kind].color} />
-                  </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={st.title}>{i.title}</Text>
-                    <Text style={[st.meta, g === 'overdue' && { color: Corpus.danger }]}>{i.body}</Text>
-                  </View>
-                  {g !== 'today' && g !== 'overdue' && (
-                    <Text style={st.when}>{i.when.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+                <View key={i.id} style={[st.row, g === 'overdue' && { borderColor: Corpus.dangerLine }]}>
+                  <Pressable style={st.main} onPress={() => router.push(i.href as Href)}>
+                    <View style={st.icon}>
+                      <Ionicons name={KIND[i.kind].icon} size={17} color={g === 'overdue' ? Corpus.danger : KIND[i.kind].color} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={st.title}>{i.title}</Text>
+                      <Text style={[st.meta, g === 'overdue' && { color: Corpus.danger }]}>{i.body}</Text>
+                    </View>
+                    {g !== 'today' && g !== 'overdue' && <Text style={st.when}>{i.when.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>}
+                    <Pressable hitSlop={10} onPress={() => setOpen(open === i.id ? null : i.id)} style={st.more}>
+                      <Ionicons name={open === i.id ? 'close' : 'ellipsis-horizontal'} size={18} color={Corpus.textMuted} />
+                    </Pressable>
+                  </Pressable>
+                  {open === i.id && (
+                    <View style={st.actions}>
+                      {i.kind === 'bill' && i.billId && thisMonth(i.when) ? (
+                        <Pressable style={[st.chip, st.chipMain]} onPress={() => paid(i)}>
+                          <Text style={st.chipMainText}>✓ Paid {i.amount ? formatINR(i.amount) : ''}</Text>
+                        </Pressable>
+                      ) : (
+                        <Pressable style={[st.chip, st.chipMain]} onPress={() => mark(i, { done: new Date().toISOString() }, 'Marked done')}>
+                          <Text style={st.chipMainText}>✓ Done</Text>
+                        </Pressable>
+                      )}
+                      {snoozeOptions().map((o) => (
+                        <Pressable key={o.label} style={st.chip} onPress={() => mark(i, { snooze: o.until.toISOString() }, `Snoozed until ${o.until.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}`)}>
+                          <Text style={st.chipText}>{o.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
                   )}
-                  <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
-                </Pressable>
+                </View>
               ))}
             </View>
           ))
         )}
-        <Text style={st.note}>On your phone these also come as notifications (Settings → Notifications). On the web, this is where you see them.</Text>
+        {snoozed.length > 0 && (
+          <View style={{ gap: Space.sm }}>
+            <Pressable onPress={() => setShowSnoozed(!showSnoozed)}>
+              <SectionLabel right={showSnoozed ? 'Hide' : `${snoozed.length}`}>SNOOZED</SectionLabel>
+            </Pressable>
+            {showSnoozed &&
+              snoozed.map((i) => (
+                <View key={i.id} style={[st.row, { opacity: 0.75 }]}>
+                  <View style={st.main}>
+                    <View style={st.icon}>
+                      <Ionicons name="moon-outline" size={16} color={Corpus.textMuted} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={st.title}>{i.title}</Text>
+                      <Text style={st.meta}>Back on {i.until.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
+                    </View>
+                    <Pressable style={st.chip} onPress={() => mark(i, null, 'Back in your list')}>
+                      <Text style={st.chipText}>Wake</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+          </View>
+        )}
+        <Text style={st.note}>Tap ⋯ to mark done (or paid) or snooze. Done only hides this one — next month’s comes back. On your phone these also come as notifications (Settings → Notifications). On the web, this is where you see them.</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -64,7 +147,14 @@ export default function InboxScreen() {
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md },
+  row: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
+  main: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  more: { padding: 4 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingLeft: 46 },
+  chip: { borderRadius: Radius.sm, borderWidth: 0.5, borderColor: Corpus.border, backgroundColor: Corpus.cardAlt, paddingHorizontal: 12, paddingVertical: 7 },
+  chipText: { fontSize: Type.small, color: Corpus.text, fontWeight: '600' },
+  chipMain: { backgroundColor: Corpus.gold, borderColor: Corpus.gold },
+  chipMainText: { fontSize: Type.small, color: Corpus.onGold, fontWeight: '700' },
   icon: { width: 34, height: 34, borderRadius: 17, backgroundColor: Corpus.cardAlt, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
   meta: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },

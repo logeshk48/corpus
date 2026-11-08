@@ -106,7 +106,19 @@ export default function MoneyNotifier() {
           if (!req.granted) return;
         }
         await cancelOurs();
-        for (const n of plan.slice(0, 50)) {
+        // respect "done" and "snooze" from the Reminders screen
+        const marks = settings.inbox ?? {};
+        const final: typeof plan = [];
+        for (const n of plan) {
+          const m = marks[n.id.replace(/:(eve|3d)$/, '')];
+          if (m?.done) continue;
+          if (m?.snooze && new Date(m.snooze) > n.date) {
+            if (!final.some((x) => x.id === n.id.replace(/:(eve|3d)$/, '') + ':snz')) final.push({ ...n, id: n.id.replace(/:(eve|3d)$/, '') + ':snz', date: new Date(m.snooze) });
+            continue;
+          }
+          final.push(n);
+        }
+        for (const n of final.slice(0, 50)) {
           await Notifications.scheduleNotificationAsync({
             identifier: n.id,
             content: { title: n.title, body: n.body, data: { kind: KIND, url: '/ious' } },
@@ -118,7 +130,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, bills, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
+  }, [ious, accounts, bills, settings.inbox, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
 
   return null;
 }

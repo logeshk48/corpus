@@ -15,6 +15,7 @@ export type Settings = {
   // Gold price: live market rate (default) or your own jeweller's rate
   investGoals?: InvestGoal[];
   debtPlan?: DebtPlanSettings; // payoff plan choices + progress
+  inbox?: Record<string, InboxMark>; // reminder id → done / snoozed
   dismissedInsights?: string[]; // smart-detection findings you said no to
   scoreLog?: Record<string, number>; // wealth score by month, YYYY-MM → 0–100
   mixTarget?: { equity: number }; // % of investments you want in equity
@@ -43,3 +44,5 @@ export type DebtPlanSettings = {
   log?: Record<string, 'paid' | 'skipped'>;        // cycle month (YYYY-MM) → did the extra go in?
   seenCleared?: string[];                          // debts whose "cleared!" card you've already seen
 };
+
+export type InboxMark = { done?: string; snooze?: string }; // ISO times: when marked done / snoozed until

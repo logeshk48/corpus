@@ -5,7 +5,7 @@ import { useIous } from '@/hooks/useIous';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { accountBalances } from '@/utils/accounts';
-import { buildInbox, needsAttention } from '@/utils/inbox';
+import { applyMarks, buildInbox, needsAttention } from '@/utils/inbox';
 import { useMemo } from 'react';
 
 // Every reminder in the app, for the bell and the notifications centre
@@ -17,7 +17,8 @@ export function useInbox() {
   const { settings } = useSettings();
   const { transactions } = useTransactions('month');
   return useMemo(() => {
-    const items = buildInbox({ ious, accounts: accountBalances(accounts, transactions), bills, investments, settings, monthTx: transactions });
-    return { items, attention: needsAttention(items) };
+    const all = buildInbox({ ious, accounts: accountBalances(accounts, transactions), bills, investments, settings, monthTx: transactions });
+    const { shown, snoozed } = applyMarks(all, settings.inbox);
+    return { items: shown, snoozed, bills, attention: needsAttention(shown) };
   }, [ious, accounts, bills, investments, settings, transactions]);
 }
