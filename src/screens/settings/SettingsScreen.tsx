@@ -216,6 +216,7 @@ export default function SettingsScreen() {
             <View style={styles.group}>
               {(
                 [
+                  { k: 'daily', icon: 'sunny-outline', label: 'Morning briefing', hint: '9 AM: what you can spend today and what’s due' },
                   { k: 'people', icon: 'people-outline', label: 'Money with people', hint: 'Due dates, interest, instalments, “repay Arun”' },
                   { k: 'cards', icon: 'card-outline', label: 'Card bills', hint: '3 days before, the day before, and on the day' },
                   { k: 'sips', icon: 'repeat-outline', label: 'SIP reminders', hint: 'Day before the debit, and “did it go through?” after' },

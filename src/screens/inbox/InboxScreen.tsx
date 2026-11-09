@@ -7,7 +7,8 @@ import { logBillForThisMonth, undoBillPayment } from '@/services/bills';
 import { saveInboxMarks } from '@/services/settings';
 import type { InboxMark } from '@/types/settings';
 import { formatINR } from '@/utils/format';
-import { baseId, pruneMarks, snoozeOptions, type InboxGroup, type InboxItem, type InboxKind } from '@/utils/inbox';
+import { useSafeToday } from '@/hooks/useSafeToday';
+import { baseId, briefing, pruneMarks, snoozeOptions, type InboxGroup, type InboxItem, type InboxKind } from '@/utils/inbox';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
@@ -32,6 +33,8 @@ export default function InboxScreen() {
   const { showToast } = useToast();
   const [open, setOpen] = useState<string | null>(null);
   const [showSnoozed, setShowSnoozed] = useState(false);
+  const safe = useSafeToday();
+  const brief = briefing(items, safe ? safe.safeToday : null, new Date());
   const marks = settings.inbox ?? {};
   const mark = async (i: InboxItem, m: InboxMark | null, msg: string) => {
     const id = baseId(i.id);
@@ -66,6 +69,22 @@ export default function InboxScreen() {
     <SafeAreaView style={st.safe} edges={['top']}>
       <ScrollView contentContainerStyle={st.content} showsVerticalScrollIndicator={false}>
         <ScreenHeader title="Reminders" onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <View style={st.brief}>
+          <Text style={st.briefLabel}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
+          {safe && (
+            <Text style={st.briefBig}>
+              {safe.safeToday > 0 ? formatINR(safe.safeToday) : '₹0'}
+              <Text style={st.briefSmall}> to spend today</Text>
+            </Text>
+          )}
+          <Text style={st.meta}>
+            {brief.dueToday.length ? `Due today: ${brief.dueToday.map((i) => i.title).join(', ')}. ` : 'Nothing due today. '}
+            {brief.dueTomorrow.length ? `Tomorrow: ${brief.dueTomorrow.map((i) => i.title).slice(0, 2).join(', ')}.` : ''}
+            {brief.overdue ? ` ${brief.overdue} overdue below.` : ''}
+          </Text>
+          {settings.notify?.daily !== false && <Text style={st.when}>On your phone this comes every morning at {settings.briefingHour ?? 9}:00.</Text>}
+        </View>
+
         {items.length === 0 ? (
           <View style={st.empty}>
             <Ionicons name="checkmark-done-circle-outline" size={44} color={Corpus.income} />
@@ -147,6 +166,10 @@ export default function InboxScreen() {
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
+  brief: { backgroundColor: Corpus.goldTint, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.goldLine, padding: Space.md, gap: 4 },
+  briefLabel: { fontSize: Type.caption, color: Corpus.gold, fontWeight: '700', letterSpacing: 0.6 },
+  briefBig: { fontSize: Type.h2, fontWeight: '700', color: Corpus.text },
+  briefSmall: { fontSize: Type.body, fontWeight: '500', color: Corpus.textMuted },
   row: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
   main: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   more: { padding: 4 },

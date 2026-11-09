@@ -11,7 +11,8 @@ export type Settings = {
   setAside?: number;        // money in your account that is NOT for spending this month
   cycleStartDay?: number;   // 1–28: your month starts on pay day, not the 1st
   // Phone notification types — missing means ON
-  notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean; sips?: boolean };
+  notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean; sips?: boolean; daily?: boolean };
+  briefingHour?: number; // morning briefing time (24h), default 9
   // Gold price: live market rate (default) or your own jeweller's rate
   investGoals?: InvestGoal[];
   debtPlan?: DebtPlanSettings; // payoff plan choices + progress

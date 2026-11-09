@@ -4,6 +4,9 @@ import { sipReminders } from '@/utils/sip';
 import { useBills } from '@/hooks/useBills';
 import { debtPlanReminders, debtPlanSummary } from '@/utils/debtPlan';
 import { needsCheckup } from '@/utils/investments';
+import { useInbox } from '@/hooks/useInbox';
+import { useSafeToday } from '@/hooks/useSafeToday';
+import { briefing } from '@/utils/inbox';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { overallBudget } from '@/utils/budgets';
@@ -39,7 +42,9 @@ export default function MoneyNotifier() {
   const { transactions } = useTransactions('month');
   const { investments } = useInvestments();
   const { bills } = useBills();
-  const on = (k: 'people' | 'cards' | 'checkin' | 'budget' | 'sips') => settings.notify?.[k] !== false;
+  const inbox = useInbox();
+  const safe = useSafeToday();
+  const on = (k: 'people' | 'cards' | 'checkin' | 'budget' | 'sips' | 'daily') => settings.notify?.[k] !== false;
   const asked = useRef(false);
 
   useEffect(() => {
@@ -80,6 +85,16 @@ export default function MoneyNotifier() {
           const first = new Date(now.getFullYear(), now.getMonth() + 1, 1, 10);
           const due = investments.filter((h) => needsCheckup(h)).length;
           plan.push({ id: `invest:checkup:${first.toISOString().slice(0, 7)}`, date: first, title: 'Monthly investment check-up', body: `${manual.length} investment${manual.length > 1 ? 's' : ''} without a live price${due ? `, ${due} out of date` : ''}. 1 minute to update.` });
+        }
+        // Morning briefing: the next morning at your briefing hour (today if it's still before then)
+        if (on('daily')) {
+          const now = new Date();
+          const h = settings.briefingHour ?? 9;
+          let at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h);
+          if (at <= now) at = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, h);
+          const sameDay = at.getDate() === now.getDate();
+          const b = briefing(inbox.items, sameDay && safe ? safe.safeToday : safe ? Math.max(0, safe.tomorrowAllowance) : null, at);
+          plan.push({ id: `brief:${at.toISOString().slice(0, 10)}`, date: at, title: b.title, body: b.body });
         }
         if (plan.length === 0) {
           await cancelOurs();
@@ -130,7 +145,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, bills, settings.inbox, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
+  }, [ious, accounts, bills, settings.inbox, settings.briefingHour, inbox.items.length, safe?.safeToday, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
 
   return null;
 }

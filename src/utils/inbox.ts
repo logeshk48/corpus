@@ -116,3 +116,25 @@ export function pruneMarks(marks: Record<string, InboxMark>, now = new Date()) {
   const cut = now.getTime() - 60 * DAY;
   return Object.fromEntries(Object.entries(marks).filter(([, m]) => new Date(m.done ?? m.snooze ?? 0).getTime() > cut));
 }
+
+// ─── Morning briefing: one notification instead of many ───
+// "₹230 to spend today · Rent ₹15,000 due today · SIP ₹200 tomorrow · 1 overdue"
+export function briefing(items: InboxItem[], safeToday: number | null, on: Date) {
+  const day = startOfDay(on).getTime();
+  const sameDay = (d: Date) => startOfDay(d).getTime() === day;
+  const nextDay = (d: Date) => startOfDay(d).getTime() === day + DAY;
+  const dueToday = items.filter((i) => i.group !== 'overdue' && sameDay(i.when));
+  const dueTomorrow = items.filter((i) => nextDay(i.when));
+  const overdue = items.filter((i) => i.group === 'overdue').length;
+  const parts: string[] = [];
+  if (safeToday != null) parts.push(safeToday > 0 ? `${formatINR(safeToday)} to spend today` : 'Spend nothing extra today — you’re over');
+  for (const i of dueToday.slice(0, 2)) parts.push(`${i.title} today`);
+  if (dueToday.length > 2) parts.push(`+${dueToday.length - 2} more today`);
+  for (const i of dueTomorrow.slice(0, 1)) parts.push(`${i.title} tomorrow`);
+  if (overdue) parts.push(`${overdue} overdue`);
+  return {
+    title: dueToday.length || overdue ? `Today: ${dueToday.length + overdue} thing${dueToday.length + overdue > 1 ? 's' : ''} to sort` : 'Good morning',
+    body: parts.join(' · ') || 'Nothing due today. Log what you spend and you’re done.',
+    dueToday, dueTomorrow, overdue,
+  };
+}
