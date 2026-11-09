@@ -7,6 +7,7 @@ import { needsCheckup } from '@/utils/investments';
 import { useInbox } from '@/hooks/useInbox';
 import { useSafeToday } from '@/hooks/useSafeToday';
 import { briefing } from '@/utils/inbox';
+import { weekReview, weekSummaryText } from '@/utils/weekReview';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { overallBudget } from '@/utils/budgets';
@@ -40,11 +41,12 @@ export default function MoneyNotifier() {
   const { accounts } = useAccounts();
   const { settings } = useSettings();
   const { transactions } = useTransactions('month');
+  const { transactions: weekTx } = useTransactions('last12Months');
   const { investments } = useInvestments();
   const { bills } = useBills();
   const inbox = useInbox();
   const safe = useSafeToday();
-  const on = (k: 'people' | 'cards' | 'checkin' | 'budget' | 'sips' | 'daily') => settings.notify?.[k] !== false;
+  const on = (k: 'people' | 'cards' | 'checkin' | 'budget' | 'sips' | 'daily' | 'weekly') => settings.notify?.[k] !== false;
   const asked = useRef(false);
 
   useEffect(() => {
@@ -71,12 +73,18 @@ export default function MoneyNotifier() {
           const d = new Date(c.when.getTime() - 3 * 86_400_000);
           if (d > new Date()) plan.push({ id: `${c.id}:3d`, date: d, title: c.title, body: c.body.replace(/^Due in \d+ days/, 'Due in 3 days') });
         }
-        // weekly balance check-in: next Sunday 7 PM, only if something is 7+ days old
-        if (on('checkin') && accounts.some((a) => verifiedAgo(a).stale || verifiedAgo(a).days >= 6)) {
+        // Weekly review: Sunday 7 PM — the week's numbers, plus "update balances" if they're old
+        {
           const now = new Date();
           const sun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + ((7 - now.getDay()) % 7), 19);
           if (sun <= now) sun.setDate(sun.getDate() + 7);
-          plan.push({ id: 'checkin:weekly', date: sun, title: 'Update your balances', body: 'Open your bank & card apps, 30 seconds keeps your net worth right' });
+          const staleBal = on('checkin') && accounts.some((a) => verifiedAgo(a).stale || verifiedAgo(a).days >= 6);
+          if (on('weekly')) {
+            const r = weekReview(weekTx, sun);
+            plan.push({ id: `week:${sun.toISOString().slice(0, 10)}`, date: sun, title: 'Your week in money', body: weekSummaryText(r) + (staleBal ? ' · update your balances' : '') });
+          } else if (staleBal) {
+            plan.push({ id: 'checkin:weekly', date: sun, title: 'Update your balances', body: 'Open your bank & card apps, 30 seconds keeps your net worth right' });
+          }
         }
         // Monthly investment check-up: 1st of next month, 10 AM, if any value has no live price
         const manual = investments.filter((h) => !h.units || !(h.symbol || h.schemeCode || h.npsCode || h.coinId)).filter((h) => !['fd', 'epf', 'ppf'].includes(h.type));
@@ -145,7 +153,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, bills, settings.inbox, settings.briefingHour, inbox.items.length, safe?.safeToday, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
+  }, [ious, accounts, bills, weekTx.length, settings.inbox, settings.briefingHour, inbox.items.length, safe?.safeToday, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
 
   return null;
 }

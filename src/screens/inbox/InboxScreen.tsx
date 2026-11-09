@@ -8,6 +8,8 @@ import { saveInboxMarks } from '@/services/settings';
 import type { InboxMark } from '@/types/settings';
 import { formatINR } from '@/utils/format';
 import { useSafeToday } from '@/hooks/useSafeToday';
+import { useTransactions } from '@/hooks/useTransactions';
+import { weekReview } from '@/utils/weekReview';
 import { baseId, briefing, pruneMarks, snoozeOptions, type InboxGroup, type InboxItem, type InboxKind } from '@/utils/inbox';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,6 +37,10 @@ export default function InboxScreen() {
   const [showSnoozed, setShowSnoozed] = useState(false);
   const safe = useSafeToday();
   const brief = briefing(items, safe ? safe.safeToday : null, new Date());
+  // Week so far — on Mondays, last week (one day isn't a week)
+  const { transactions: yearTx } = useTransactions('last12Months');
+  const isMonday = new Date().getDay() === 1;
+  const wk = weekReview(yearTx, isMonday ? new Date(Date.now() - 86_400_000) : new Date());
   const marks = settings.inbox ?? {};
   const mark = async (i: InboxItem, m: InboxMark | null, msg: string) => {
     const id = baseId(i.id);
@@ -84,6 +90,37 @@ export default function InboxScreen() {
           </Text>
           {settings.notify?.daily !== false && <Text style={st.when}>On your phone this comes every morning at {settings.briefingHour ?? 9}:00.</Text>}
         </View>
+
+        {wk.count > 0 && (
+          <View style={st.week}>
+            <Text style={st.briefLabel}>{isMonday ? 'LAST WEEK' : 'THIS WEEK SO FAR'} · {wk.start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}–{new Date(wk.end.getTime() - 86_400_000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+            <View style={st.weekRow}>
+              <View style={st.weekCell}>
+                <Text style={st.weekNum}>{formatINR(wk.spent)}</Text>
+                <Text style={st.when}>spent</Text>
+              </View>
+              <View style={st.weekCell}>
+                <Text style={[st.weekNum, wk.change != null && { color: wk.change > 0 ? Corpus.danger : Corpus.income }]}>
+                  {wk.change == null ? '—' : `${wk.change > 0 ? '+' : '−'}${Math.round(Math.abs(wk.change) * 100)}%`}
+                </Text>
+                <Text style={st.when}>vs week before</Text>
+              </View>
+              <View style={st.weekCell}>
+                <Text style={st.weekNum}>{wk.noSpendDays}</Text>
+                <Text style={st.when}>no-spend days</Text>
+              </View>
+            </View>
+            {wk.top && (
+              <Text style={st.meta}>
+                Most on <Text style={{ color: Corpus.text, fontWeight: '600' }}>{wk.top.label}</Text>: {formatINR(wk.top.amount)} ({Math.round(wk.top.share * 100)}%).
+                {wk.biggest ? ` Biggest: ${formatINR(wk.biggest.amount)}${wk.biggest.note ? ` on ${wk.biggest.note}` : ''}.` : ''}
+              </Text>
+            )}
+            <Text style={[st.meta, wk.loggedDays < wk.daysSoFar && { color: Corpus.warning }]}>
+              Logged on {wk.loggedDays} of {wk.daysSoFar} days{wk.loggedDays < wk.daysSoFar ? ' — missing days make every number lower than it really is.' : ' ✓'}
+            </Text>
+          </View>
+        )}
 
         {items.length === 0 ? (
           <View style={st.empty}>
@@ -170,6 +207,10 @@ const st = StyleSheet.create({
   briefLabel: { fontSize: Type.caption, color: Corpus.gold, fontWeight: '700', letterSpacing: 0.6 },
   briefBig: { fontSize: Type.h2, fontWeight: '700', color: Corpus.text },
   briefSmall: { fontSize: Type.body, fontWeight: '500', color: Corpus.textMuted },
+  week: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 8 },
+  weekRow: { flexDirection: 'row', gap: 8 },
+  weekCell: { flex: 1, gap: 2 },
+  weekNum: { fontSize: Type.title, fontWeight: '700', color: Corpus.text },
   row: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
   main: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   more: { padding: 4 },
