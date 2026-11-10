@@ -25,6 +25,7 @@ const KIND: Record<InboxKind, { icon: keyof typeof Ionicons.glyphMap; color: str
   debt: { icon: 'flag-outline', color: Corpus.danger },
   budget: { icon: 'pie-chart-outline', color: Corpus.warning },
   checkin: { icon: 'refresh-outline', color: Corpus.textMuted },
+  low: { icon: 'alert-circle-outline', color: Corpus.danger },
 };
 const GROUP: Record<InboxGroup, string> = { overdue: 'OVERDUE', today: 'TODAY', week: 'THIS WEEK', later: 'LATER THIS MONTH' };
 

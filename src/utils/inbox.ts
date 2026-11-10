@@ -11,9 +11,10 @@ import { debtPlanReminders, debtPlanSummary } from './debtPlan';
 import { moneyReminders, type MoneyReminder } from './debtReminders';
 import { formatINR } from './format';
 import { upcomingBills } from './moneyHealth';
+import { minBalanceRisk } from './payday';
 import { sipReminders } from './sip';
 
-export type InboxKind = 'people' | 'card' | 'bill' | 'sip' | 'debt' | 'budget' | 'checkin';
+export type InboxKind = 'people' | 'card' | 'bill' | 'sip' | 'debt' | 'budget' | 'checkin' | 'low';
 export type InboxGroup = 'overdue' | 'today' | 'week' | 'later';
 export type InboxItem = { id: string; kind: InboxKind; when: Date; title: string; body: string; href: string; group: InboxGroup; billId?: string; amount?: number };
 
@@ -76,6 +77,9 @@ export function buildInbox(p: {
   if (stale.length)
     out.push({ id: `checkin:${now.toISOString().slice(0, 10)}`, kind: 'checkin', when: now, title: 'Update your balances', body: `${stale.map((a) => a.name).slice(0, 3).join(', ')} — 30 seconds keeps safe-to-spend and net worth right`, href: '/accounts', group: 'today' });
 
+  // low balance: the next 7 days of bills & card dues vs the money in your bank/cash
+  out.push(...lowBalanceItems(p.accounts, p.bills, now));
+
   const order: Record<InboxGroup, number> = { overdue: 0, today: 1, week: 2, later: 3 };
   return out.sort((a, b) => order[a.group] - order[b.group] || a.when.getTime() - b.when.getTime());
 }
@@ -136,5 +140,48 @@ export function briefing(items: InboxItem[], safeToday: number | null, on: Date)
     title: dueToday.length || overdue ? `Today: ${dueToday.length + overdue} thing${dueToday.length + overdue > 1 ? 's' : ''} to sort` : 'Good morning',
     body: parts.join(' · ') || 'Nothing due today. Log what you spend and you’re done.',
     dueToday, dueTomorrow, overdue,
+  };
+}
+
+// ─── Low balance ───
+export function lowBalanceItems(accounts: AccountBalance[], bills: Bill[], now = new Date()): InboxItem[] {
+  const live = accounts.filter((a) => !a.archived);
+  if (!live.some((a) => a.type !== 'credit')) return []; // no bank balances entered
+  const out: InboxItem[] = [];
+  const have = live.filter((a) => a.type !== 'credit').reduce((s, a) => s + Math.max(0, a.balance), 0);
+  const week = now.getTime() + 7 * DAY;
+  const billsWeek = upcomingBills(bills, now, 7).reduce((s, u) => s + u.amount, 0);
+  const cardsWeek = cardReminders(live, now).filter((c) => c.when.getTime() <= week).reduce((s, c) => {
+    const a = live.find((x) => x.id === c.iouId);
+    return s + Math.max(0, a?.balance ?? 0);
+  }, 0);
+  const due = billsWeek + cardsWeek;
+  const spare = have - due;
+  const today = now.toISOString().slice(0, 10);
+  if (due > 0 && spare < Math.max(1000, due * 0.1))
+    out.push({
+      id: `low:week:${today}`, kind: 'low', when: now, href: '/accounts', group: spare < 0 ? 'overdue' : 'today',
+      title: spare < 0 ? `${formatINR(-spare)} short for the next 7 days` : `Only ${formatINR(spare)} spare this week`,
+      body: `${formatINR(due)} of bills${cardsWeek ? ' & card dues' : ''} due by ${new Date(week).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, and you have ${formatINR(have)} in bank & cash.${spare < 0 ? ' Move money in before then to avoid a bounce or late fee.' : ''}`,
+    });
+  for (const a of live) {
+    const r = minBalanceRisk(a);
+    if (!r || !(r.below || r.close)) continue;
+    out.push({
+      id: `low:min:${a.id}:${today}`, kind: 'low', when: now, href: '/accounts', group: r.below ? 'overdue' : 'today',
+      title: r.below ? `${a.name} is below its minimum balance` : `${a.name} is close to its minimum balance`,
+      body: `${formatINR(Math.round(a.balance))} now, the bank needs ${formatINR(a.minBalance!)}.${r.below ? ` Add ${formatINR(-r.room)} — banks charge a fee every month you’re below.` : ` Only ${formatINR(r.room)} above it.`}`,
+    });
+  }
+  return out;
+}
+
+// ─── Overspent today (8 PM nudge) ───
+export function overspentToday(safe: { safeToday: number; spentToday: number; dailyAllowance: number; tomorrowAllowance: number } | null, now = new Date()) {
+  if (!safe || safe.spentToday <= 0 || safe.safeToday >= 0 || safe.spentToday <= safe.dailyAllowance) return null;
+  return {
+    id: `over:${now.toISOString().slice(0, 10)}`,
+    title: `${formatINR(safe.spentToday)} spent today — ${formatINR(safe.dailyAllowance)} was your amount`,
+    body: `${formatINR(safe.spentToday - safe.dailyAllowance)} over. Tomorrow’s amount drops to about ${formatINR(Math.max(0, safe.tomorrowAllowance))} a day to stay on track.`,
   };
 }

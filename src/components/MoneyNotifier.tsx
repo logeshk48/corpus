@@ -9,6 +9,15 @@ import { useSafeToday } from '@/hooks/useSafeToday';
 import { briefing } from '@/utils/inbox';
 import { weekReview, weekSummaryText } from '@/utils/weekReview';
 import { finalizePlan } from '@/utils/notifyPlan';
+import { CATEGORIES, categoryFor, hrefFor } from '@/utils/notifyMeta';
+import { lowBalanceItems, overspentToday } from '@/utils/inbox';
+import { upcomingBills } from '@/utils/moneyHealth';
+import { useToast } from '@/context/ToastContext';
+import { logBillForThisMonth } from '@/services/bills';
+import { saveInboxMarks } from '@/services/settings';
+import { confirmSip, skipSip } from '@/services/investments';
+import { pendingSips } from '@/utils/sip';
+import { useRouter, type Href } from 'expo-router';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { overallBudget } from '@/utils/budgets';
@@ -49,6 +58,65 @@ export default function MoneyNotifier() {
   const safe = useSafeToday();
   const on = (k: 'people' | 'cards' | 'checkin' | 'budget' | 'sips' | 'daily' | 'weekly') => settings.notify?.[k] !== false;
   const asked = useRef(false);
+  const router = useRouter();
+  const { showToast } = useToast();
+  // latest data for notification buttons (they can fire long after scheduling)
+  const latest = useRef({ bills, investments, settings });
+  latest.current = { bills, investments, settings };
+
+  // Tapping a notification opens the right screen; its buttons do the job right there
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const handle = async (resp: Notifications.NotificationResponse) => {
+      const data = (resp.notification.request.content.data ?? {}) as { url?: string; ref?: string; kind?: string };
+      if (data.kind !== KIND) return;
+      const ref = data.ref ?? '';
+      const act = resp.actionIdentifier;
+      const L = latest.current;
+      try {
+        if (act === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+          if (data.url) router.push(data.url as Href);
+          return;
+        }
+        if (act === 'paid') {
+          const bill = L.bills.find((b) => b.id === ref.split(':')[1]);
+          if (bill) {
+            await logBillForThisMonth(bill, bill.amount);
+            showToast({ message: `${bill.name} ${formatINR(bill.amount)} recorded as paid` });
+          }
+        } else if (act === 'snooze' || act === 'done') {
+          const t = new Date();
+          const mark = act === 'done' ? { done: t.toISOString() } : { snooze: new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1, 9).toISOString() };
+          await saveInboxMarks({ ...(L.settings.inbox ?? {}), [ref]: mark });
+          showToast({ message: act === 'done' ? 'Marked done' : 'Okay — tomorrow at 9 AM' });
+        } else if (act === 'sip-yes' || act === 'sip-skip') {
+          const [, hid, month] = ref.split(':');
+          const p = pendingSips(L.investments).find((x) => x.h.id === hid && x.month === month);
+          if (p) {
+            if (act === 'sip-yes') {
+              const e = await confirmSip(p.h, p);
+              showToast({ message: e.units ? `${p.h.name}: +${e.units} units added` : `${formatINR(p.amount)} added to ${p.h.name}` });
+            } else {
+              await skipSip(p.h, p);
+              showToast({ message: 'SIP marked as skipped' });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Notification action failed', e);
+        showToast({ message: 'Couldn’t do that — open Reminders to try again' });
+      }
+    };
+    const sub = Notifications.addNotificationResponseReceivedListener(handle);
+    // opened the app by tapping a notification while it was closed
+    Notifications.getLastNotificationResponseAsync()
+      .then((r) => {
+        if (r && r.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) handle(r);
+      })
+      .catch(() => {});
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web' || loading) return;
@@ -62,9 +130,32 @@ export default function MoneyNotifier() {
               importance: Notifications.AndroidImportance.DEFAULT,
             });
           }
+          // buttons on notifications: Paid / Remind tomorrow / Done / SIP yes-skipped
+          for (const c of CATEGORIES)
+            await Notifications.setNotificationCategoryAsync(c.id, c.actions.map((a) => ({ identifier: a.id, buttonTitle: a.title, options: { opensAppToForeground: true } }))).catch(() => {});
         }
         const cards = cardReminders(accountBalances(accounts, []));
         const plan = notificationsToSchedule([...(on('people') ? moneyReminders(ious) : []), ...(on('cards') ? cards : [])]);
+        // Bills & EMIs: the day before and on the day, 9 AM (with a ✓ Paid button)
+        if (on('cards'))
+          for (const u of upcomingBills(bills, new Date(), 14)) {
+            const id = `bill:${u.bill.id}:${u.due.toISOString().slice(0, 10)}`;
+            const day = new Date(u.due.getFullYear(), u.due.getMonth(), u.due.getDate(), 9);
+            const amt = u.bill.variable ? `about ${formatINR(u.amount)}` : formatINR(u.amount);
+            plan.push({ id: `${id}:eve`, date: new Date(day.getTime() - 86_400_000), title: `${u.bill.name} ${amt} due tomorrow`, body: 'Keep it in your bank · tap ✓ Paid when it’s done' });
+            plan.push({ id, date: day, title: `${u.bill.name} ${amt} due today`, body: u.bill.variable ? 'Amount changes — open to enter this month’s' : 'Tap ✓ Paid once it’s done' });
+          }
+        // Low balance: next 10 AM (today if it's still before 10)
+        {
+          const now = new Date();
+          let at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10);
+          if (at <= now) at = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 10);
+          for (const l of lowBalanceItems(accountBalances(accounts, transactions), bills)) plan.push({ id: l.id.replace(/:\d{4}-\d{2}-\d{2}$/, `:${at.toISOString().slice(0, 10)}`), date: at, title: l.title, body: l.body });
+          // Overspent today: 8 PM
+          const over = overspentToday(safe);
+          const eight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20);
+          if (over && on('budget') && eight > now) plan.push({ id: over.id, date: eight, title: over.title, body: over.body });
+        }
         // SIPs: the day before (9 AM) and "did it go through?" the day after
         if (on('sips')) for (const r of sipReminders(investments)) if (r.when > new Date()) plan.push({ id: r.id, date: r.when, title: r.title, body: r.body });
         // Debt plan: pay day, 10 AM — "Put ₹5,000 extra on SBI Card"
@@ -147,7 +238,12 @@ export default function MoneyNotifier() {
         for (const n of ready.slice(0, 50)) {
           await Notifications.scheduleNotificationAsync({
             identifier: n.id,
-            content: { title: n.title, body: n.body, data: { kind: KIND, url: '/ious' } },
+            content: {
+              title: n.title,
+              body: n.body,
+              data: { kind: KIND, url: hrefFor(n.id), ref: n.id.replace(/:(eve|3d|snz)$/, '') },
+              ...(categoryFor(n.id) ? { categoryIdentifier: categoryFor(n.id)! } : {}),
+            },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: n.date, channelId: 'money' },
           });
         }
@@ -156,7 +252,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, bills, weekTx.length, settings.inbox, settings.notifyMode, settings.quietHours, settings.briefingHour, inbox.items.length, safe?.safeToday, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
+  }, [ious, accounts, bills, weekTx.length, safe?.spentToday, settings.inbox, settings.notifyMode, settings.quietHours, settings.briefingHour, inbox.items.length, safe?.safeToday, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
 
   return null;
 }
