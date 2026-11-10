@@ -13,6 +13,8 @@ export type Settings = {
   // Phone notification types — missing means ON
   notify?: { people?: boolean; cards?: boolean; checkin?: boolean; budget?: boolean; sips?: boolean; daily?: boolean; weekly?: boolean };
   briefingHour?: number; // morning briefing time (24h), default 9
+  notifyMode?: 'all' | 'digest' | 'urgent'; // how often phone notifications come
+  quietHours?: { from: number; to: number } | null; // no notifications between these hours (default 22–8); null = off
   // Gold price: live market rate (default) or your own jeweller's rate
   investGoals?: InvestGoal[];
   debtPlan?: DebtPlanSettings; // payoff plan choices + progress

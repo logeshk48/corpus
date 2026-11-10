@@ -12,6 +12,15 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './SettingsScreen.styles';
+import { Radius, Type } from '@/constants/theme';
+import { StyleSheet } from 'react-native';
+
+const chip = StyleSheet.create({
+  base: { borderRadius: Radius.sm, borderWidth: 0.5, borderColor: Corpus.border, backgroundColor: Corpus.cardAlt, paddingHorizontal: 12, paddingVertical: 7 },
+  on: { backgroundColor: Corpus.goldTint, borderColor: Corpus.gold },
+  text: { fontSize: Type.small, color: Corpus.textMuted, fontWeight: '600' },
+  textOn: { color: Corpus.gold },
+});
 
 export default function SettingsScreen() {
   const { user } = useAuth();
@@ -246,6 +255,63 @@ export default function SettingsScreen() {
               })}
             </View>
             <Text style={styles.rowHint}>Notifications show on your phone app. On the web, the same reminders appear on Home.</Text>
+
+            {/* HOW OFTEN · QUIET HOURS · BRIEFING TIME */}
+            <View style={[styles.group, { padding: Space.md, gap: 10 }]}>
+              <Text style={styles.rowLabel}>How often</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {([
+                  { k: 'all', label: 'Everything' },
+                  { k: 'digest', label: 'Briefing + weekly only' },
+                  { k: 'urgent', label: 'Only urgent' },
+                ] as const).map((o) => {
+                  const on = (settings.notifyMode ?? 'all') === o.k;
+                  return (
+                    <Pressable key={o.k} onPress={() => saveSettings({ notifyMode: o.k })} style={[chip.base, on && chip.on]}>
+                      <Text style={[chip.text, on && chip.textOn]}>{o.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.rowHint}>
+                {(settings.notifyMode ?? 'all') === 'all'
+                  ? 'Each reminder on its own, plus the morning briefing. Never more than 3 a day besides the briefing.'
+                  : settings.notifyMode === 'digest'
+                    ? 'Just the morning briefing and the Sunday review — everything else is inside the briefing.'
+                    : 'Only things due today or overdue, plus the briefing. No early heads-ups.'}
+              </Text>
+
+              <Text style={[styles.rowLabel, { marginTop: 6 }]}>Quiet hours</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {([
+                  { k: 'off', label: 'Off', v: null },
+                  { k: '22-7', label: '10 PM – 7 AM', v: { from: 22, to: 7 } },
+                  { k: '22-8', label: '10 PM – 8 AM', v: { from: 22, to: 8 } },
+                  { k: '23-7', label: '11 PM – 7 AM', v: { from: 23, to: 7 } },
+                ] as const).map((o) => {
+                  const cur = settings.quietHours === undefined ? { from: 22, to: 8 } : settings.quietHours;
+                  const on = o.v === null ? cur === null : !!cur && cur.from === o.v.from && cur.to === o.v.to;
+                  return (
+                    <Pressable key={o.k} onPress={() => saveSettings({ quietHours: o.v ? { ...o.v } : null })} style={[chip.base, on && chip.on]}>
+                      <Text style={[chip.text, on && chip.textOn]}>{o.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.rowHint}>Anything that would land at night waits until the morning.</Text>
+
+              <Text style={[styles.rowLabel, { marginTop: 6 }]}>Morning briefing at</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {[7, 8, 9, 10].map((h) => {
+                  const on = (settings.briefingHour ?? 9) === h;
+                  return (
+                    <Pressable key={h} onPress={() => saveSettings({ briefingHour: h })} style={[chip.base, on && chip.on]}>
+                      <Text style={[chip.text, on && chip.textOn]}>{h}:00 AM</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
 
             {/* PREFERENCES */}
             <SectionLabel>PREFERENCES</SectionLabel>

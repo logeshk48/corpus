@@ -8,6 +8,7 @@ import { useInbox } from '@/hooks/useInbox';
 import { useSafeToday } from '@/hooks/useSafeToday';
 import { briefing } from '@/utils/inbox';
 import { weekReview, weekSummaryText } from '@/utils/weekReview';
+import { finalizePlan } from '@/utils/notifyPlan';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { overallBudget } from '@/utils/budgets';
@@ -141,7 +142,9 @@ export default function MoneyNotifier() {
           }
           final.push(n);
         }
-        for (const n of final.slice(0, 50)) {
+        // quiet hours, how often, no duplicates (max 3 a day besides the briefing)
+        const ready = finalizePlan(final, { mode: settings.notifyMode, quiet: settings.quietHours, briefingHour: settings.briefingHour, briefingOn: on('daily') });
+        for (const n of ready.slice(0, 50)) {
           await Notifications.scheduleNotificationAsync({
             identifier: n.id,
             content: { title: n.title, body: n.body, data: { kind: KIND, url: '/ious' } },
@@ -153,7 +156,7 @@ export default function MoneyNotifier() {
       }
     }, 1500); // wait for edits to settle
     return () => clearTimeout(timer);
-  }, [ious, accounts, bills, weekTx.length, settings.inbox, settings.briefingHour, inbox.items.length, safe?.safeToday, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
+  }, [ious, accounts, bills, weekTx.length, settings.inbox, settings.notifyMode, settings.quietHours, settings.briefingHour, inbox.items.length, safe?.safeToday, settings.debtPlan, settings.cycleStartDay, loading, settings.notify, settings.monthlyBudget, transactions, investments.map((h) => `${h.id}${h.sip?.day}${h.sip?.active}${h.sipLog?.length}`).join()]);
 
   return null;
 }
