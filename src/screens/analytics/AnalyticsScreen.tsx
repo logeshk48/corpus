@@ -1,4 +1,4 @@
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useSettings } from '@/hooks/useSettings';
@@ -78,7 +78,13 @@ export default function AnalyticsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.heading}>Analytics</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.heading}>Analytics</Text>
+          <Pressable onPress={() => router.push('/reports' as Href)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="document-text-outline" size={16} color={Corpus.gold} />
+            <Text style={{ color: Corpus.gold, fontWeight: '600', fontSize: Type.small }}>Year report</Text>
+          </Pressable>
+        </View>
 
         {/* Month filter */}
         <View style={styles.stepper}>
