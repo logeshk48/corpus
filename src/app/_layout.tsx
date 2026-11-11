@@ -29,6 +29,7 @@ export default function RootLayout() {
             <Stack.Screen name="debts" />
             <Stack.Screen name="inbox" />
             <Stack.Screen name="reports" />
+            <Stack.Screen name="tax" />
           </Stack>
         </AuthGate>
       </ToastProvider>
