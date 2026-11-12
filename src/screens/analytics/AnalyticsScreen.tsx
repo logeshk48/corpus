@@ -4,7 +4,7 @@ import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useSettings } from '@/hooks/useSettings';
 import { useVaults } from '@/hooks/useVaults';
 import TransactionRow from '@/screens/home/components/TransactionRow';
-import { useRouter, type Href } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import {
   byCategory,
   cashFlow,
@@ -23,7 +23,7 @@ import {
 } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CalendarHeatmap from './components/CalendarHeatmap';
@@ -45,7 +45,11 @@ export default function AnalyticsScreen() {
   const { settings } = useSettings();
   const [dailyView, setDailyView] = useState<'bars' | 'calendar'>('bars');
   const current = ym(new Date());
-  const [month, setMonth] = useState(current);
+  const params = useLocalSearchParams<{ month?: string }>();
+  const [month, setMonth] = useState(params.month && /^\d{4}-\d{2}$/.test(params.month) ? params.month : current);
+  useEffect(() => {
+    if (params.month && /^\d{4}-\d{2}$/.test(params.month)) setMonth(params.month);
+  }, [params.month]);
   const oldest = shiftMonth(current, -MONTHS_BACK);
 
   const isCurrent = month === current;

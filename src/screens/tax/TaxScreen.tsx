@@ -15,6 +15,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from '../reports/ReportsScreen.styles';
+import { useToast } from '@/context/ToastContext';
+import { saveCsv } from '@/utils/csv';
+import { capitalGainsCsv } from '@/utils/exports';
 
 const sign = (n: number) => `${n < 0 ? '−' : ''}${formatINR(Math.abs(Math.round(n)))}`;
 function Line({ label, value, strong, color, note }: { label: string; value: string; strong?: boolean; color?: string; note?: string }) {
@@ -49,6 +52,7 @@ export default function TaxScreen() {
   }, [year]);
   const r = useMemo(() => (tx ? taxYearReport({ start, end, realized, investments, bills, tx }) : null), [tx, realized, investments, bills, start, end]);
   const isNow = year === currentYear('fy');
+  const { showToast } = useToast();
   const dueBy = `31 Jul ${year + 1}`;
 
   return (
@@ -91,6 +95,17 @@ export default function TaxScreen() {
                   {r.slabGains !== 0 && <Line label="Debt funds & short-term gold (your slab rate)" value={sign(r.slabGains)} />}
                   {r.crypto !== 0 && <Line label="Crypto (flat 30%, separate schedule)" value={sign(r.crypto)} />}
                   <Text style={styles.note}>
+                    <Text
+                      style={{ color: Corpus.gold, fontWeight: '600' }}
+                      onPress={() =>
+                        saveCsv(`corpus-capital-gains-${year}-${String((year + 1) % 100).padStart(2, '0')}.csv`, capitalGainsCsv(r.sales))
+                          .then((h) => showToast({ message: h === 'downloaded' ? 'Capital gains CSV downloaded' : 'Choose where to send it' }))
+                          .catch(() => showToast({ message: 'Couldn’t export. Try again.' }))
+                      }
+                    >
+                      ⬇ Download for your CA
+                    </Text>
+                    {'  '}
                     {r.sales.length} sale{r.sales.length > 1 ? 's' : ''}. Your broker’s “capital gains statement” (Zerodha Console, Groww, CAMS for funds) has the exact figures — use those in the ITR. You need ITR-2 (or ITR-3 with business income) when you have capital gains.
                   </Text>
                 </>

@@ -226,7 +226,7 @@ export default function SettingsScreen() {
               {(
                 [
                   { k: 'daily', icon: 'sunny-outline', label: 'Morning briefing', hint: '9 AM: what you can spend today and what’s due' },
-                  { k: 'weekly', icon: 'stats-chart-outline', label: 'Weekly review', hint: 'Sunday 7 PM: spent vs last week, top category, no-spend days' },
+                  { k: 'weekly', icon: 'stats-chart-outline', label: 'Weekly & monthly review', hint: 'Sunday 7 PM: your week · the 1st, 10 AM: last month’s report' },
                   { k: 'people', icon: 'people-outline', label: 'Money with people', hint: 'Due dates, interest, instalments, “repay Arun”' },
                   { k: 'cards', icon: 'card-outline', label: 'Bills, EMIs & card dues', hint: 'The day before and on the day (cards also 3 days before), with a ✓ Paid button' },
                   { k: 'sips', icon: 'repeat-outline', label: 'SIP reminders', hint: 'Day before the debit, and “did it go through?” after' },

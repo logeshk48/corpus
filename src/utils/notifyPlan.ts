@@ -8,7 +8,7 @@ export type NotifyMode = 'all' | 'digest' | 'urgent';
 export type NotifyPrefs = { mode?: NotifyMode; quiet?: { from: number; to: number } | null; briefingHour?: number; briefingOn?: boolean };
 
 const isBrief = (p: Planned) => p.id.startsWith('brief:');
-const isWeek = (p: Planned) => p.id.startsWith('week:');
+const isWeek = (p: Planned) => p.id.startsWith('week:') || p.id.startsWith('month:');
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
 export function inQuiet(d: Date, q: { from: number; to: number }) {

@@ -14,6 +14,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './ReportsScreen.styles';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useBills } from '@/hooks/useBills';
+import { useRealized } from '@/hooks/useRealized';
+import { useToast } from '@/context/ToastContext';
+import { saveCsv } from '@/utils/csv';
+import { capitalGainsCsv, holdingsCsv, transactionsCsv } from '@/utils/exports';
 
 const pct = (r: number | null) => (r == null ? '—' : `${r < 0 ? '−' : ''}${Math.abs(Math.round(r * 100))}%`);
 
@@ -25,6 +31,20 @@ export default function ReportsScreen() {
   const [tx, setTx] = useState<Transaction[] | null>(null);
   const { investments } = useInvestments();
   const { snapshots } = useAssets();
+  const { all: allAccounts } = useAccounts();
+  const { bills } = useBills();
+  const realized = useRealized();
+  const { showToast } = useToast();
+  const file = (what: string) => `corpus-${what}-${yearLabel(kind, year).replace(/\s+/g, '').toLowerCase()}.csv`;
+  const exportIt = async (name: string, csv: string, rows: number) => {
+    if (!rows) return showToast({ message: 'Nothing to export for this year' });
+    try {
+      const how = await saveCsv(name, csv);
+      showToast({ message: how === 'downloaded' ? `${name} downloaded — opens in Excel / Sheets` : 'Choose where to send it' });
+    } catch {
+      showToast({ message: 'Couldn’t export. Try again.' });
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -196,6 +216,29 @@ export default function ReportsScreen() {
                 </View>
               </>
             )}
+            <SectionLabel right="CSV · Excel / Sheets">EXPORT</SectionLabel>
+            <View style={styles.card}>
+              {(() => {
+                const sales = realized.filter((x) => new Date(x.date) >= r.start && new Date(x.date) < r.end);
+                const items = [
+                  { icon: 'list-outline' as const, label: `All entries · ${yearLabel(kind, year)}`, sub: `${r.count} income & expenses with category, note, account`, run: () => exportIt(file('entries'), transactionsCsv(tx ?? [], allAccounts, bills), r.count) },
+                  { icon: 'trending-up-outline' as const, label: 'Capital gains for your CA', sub: `${sales.length} sale${sales.length === 1 ? '' : 's'} · short & long-term gain, FIFO cost`, run: () => exportIt(file('capital-gains'), capitalGainsCsv(sales), sales.length) },
+                  { icon: 'pie-chart-outline' as const, label: 'Holdings today', sub: `${investments.length} investment${investments.length === 1 ? '' : 's'} · invested, value, gain, XIRR`, run: () => exportIt(`corpus-holdings-${new Date().toISOString().slice(0, 10)}.csv`, holdingsCsv(investments), investments.length) },
+                ];
+                return items.map((it) => (
+                  <Pressable key={it.label} style={[styles.row, { paddingVertical: 8 }]} onPress={it.run}>
+                    <Ionicons name={it.icon} size={18} color={Corpus.gold} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.name}>{it.label}</Text>
+                      <Text style={styles.meta}>{it.sub}</Text>
+                    </View>
+                    <Ionicons name="download-outline" size={18} color={Corpus.textMuted} />
+                  </Pressable>
+                ));
+              })()}
+              <Text style={styles.note}>On the web it downloads a .csv file. On your phone it opens the share sheet (WhatsApp, Gmail, Drive).</Text>
+            </View>
+
             <Text style={styles.note}>
               Same rules as Home and Analytics: saved = earned − spent; SIPs and other purchases count as invested. Entries on {r.loggedDays} days this {kind === 'fy' ? 'financial ' : ''}year
               {isNow ? ' so far' : ''} — days you didn’t log make spending look lower.

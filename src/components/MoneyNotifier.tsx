@@ -178,6 +178,13 @@ export default function MoneyNotifier() {
             plan.push({ id: 'checkin:weekly', date: sun, title: 'Update your balances', body: 'Open your bank & card apps, 30 seconds keeps your net worth right' });
           }
         }
+        // Monthly report: the 1st at 10 AM
+        if (on('weekly')) {
+          const now = new Date();
+          const first = new Date(now.getFullYear(), now.getMonth() + 1, 1, 10);
+          const name = now.toLocaleDateString('en-IN', { month: 'long' });
+          plan.push({ id: `month:${first.toISOString().slice(0, 7)}`, date: first, title: `Your ${name} report is ready`, body: 'What you earned, spent and saved — and what changed. Tap to see it.' });
+        }
         // Monthly investment check-up: 1st of next month, 10 AM, if any value has no live price
         const manual = investments.filter((h) => !h.units || !(h.symbol || h.schemeCode || h.npsCode || h.coinId)).filter((h) => !['fd', 'epf', 'ppf'].includes(h.type));
         if (on('checkin') && manual.length) {

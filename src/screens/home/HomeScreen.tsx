@@ -26,6 +26,8 @@ import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
 import { addBill, deleteBill, logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
 import InsightsCard, { type Insight } from './components/InsightsCard';
+import MonthReportCard from './components/MonthReportCard';
+import { lastMonthKey, monthReport } from '@/utils/monthReport';
 import { findCategory } from '@/constants/categories';
 import { findings } from '@/utils/insights';
 import { addVault, deleteVault } from '@/services/vaults';
@@ -332,7 +334,11 @@ export default function HomeScreen() {
   const recent = transactions.slice(0, 5);
 
   const accHave = accountTotals(accList).have;
-  const { assets } = useAssets();
+  const { assets, snapshots: nwSnaps } = useAssets();
+  // First week of the month: last month's report (until you close it)
+  const lmKey = lastMonthKey();
+  const mReport = monthReport({ tx: yearTx, investments, month: lmKey, budget: settings.monthlyBudget, netWorth: nwSnaps, scoreLog: settings.scoreLog });
+  const showMonth = new Date().getDate() <= 7 && mReport.hasData && !(settings.dismissedInsights ?? []).includes(`mreport:${lmKey}`);
   const gold = useGoldRate();
   const nwItems = netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null });
   const nwTotals = netWorthTotals(nwItems);
@@ -399,6 +405,15 @@ export default function HomeScreen() {
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
 
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
+        {showMonth && (
+          <MonthReportCard
+            r={mReport}
+            onOpen={() => router.push(`/analytics?month=${lmKey}` as Href)}
+            onYear={() => router.push('/reports' as Href)}
+            onClose={() => saveSettings({ dismissedInsights: [...(settings.dismissedInsights ?? []), `mreport:${lmKey}`] }).catch(() => {})}
+          />
+        )}
+
         <InsightsCard items={insights} />
 
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
