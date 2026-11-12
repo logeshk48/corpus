@@ -12,7 +12,7 @@ Pace: ~2 sessions/day. Each day ends with: tests pass · you check on phone/lapt
 | 6 ✅ | **Loans & debt extras** — all debts in one list, highest-interest-first payoff plan, debt-free date, EMI ÷ income burden, card dues in Total debt | One clear "pay this first" plan |
 | 7 ✅ | **Smart detection** — recurring expense → "make it a bill?", duplicate warning, unusual spending, unused subscriptions, business vs personal tag, month-end spend prediction | Corpus spots things before you do |
 | 8 ✅ | **Notifications centre** — daily Safe-to-Spend, budget/overspend, bills & EMIs, low balance, weekly review; on/off + frequency settings, no duplicates (test in Expo Go) | You control every alert |
-| 9 | **Reports** — weekly totals, income vs expense, savings-rate / debt / investment / net worth trends, yearly report | Reports = same numbers as dashboard |
+| 9 ✅ | **Reports** — weekly totals, income vs expense, savings-rate / debt / investment / net worth trends, yearly report | Reports = same numbers as dashboard |
 | 10 | **Full check + release** — every screen, refresh persistence, empty/error states, phone layout, data isolation; bug fixes; deploy. Decide AI setup (Firebase Blaze + API key) | Stable build live on Vercel |
 
 After day 10: **AI layer** (monthly/weekly review, Ask Corpus, "can I afford this?", receipt & SMS import) ~3–4 days, then **final UI redesign** ~3–5 days.

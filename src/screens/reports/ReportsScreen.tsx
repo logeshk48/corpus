@@ -20,6 +20,10 @@ import { useRealized } from '@/hooks/useRealized';
 import { useToast } from '@/context/ToastContext';
 import { saveCsv } from '@/utils/csv';
 import { capitalGainsCsv, holdingsCsv, transactionsCsv } from '@/utils/exports';
+import DataHealthCard from '@/components/DataHealthCard';
+import { dataHealth } from '@/utils/dataHealth';
+import { accountBalances } from '@/utils/accounts';
+import { useTransactions } from '@/hooks/useTransactions';
 
 const pct = (r: number | null) => (r == null ? '—' : `${r < 0 ? '−' : ''}${Math.abs(Math.round(r * 100))}%`);
 
@@ -35,6 +39,12 @@ export default function ReportsScreen() {
   const { bills } = useBills();
   const realized = useRealized();
   const { showToast } = useToast();
+  const { accounts } = useAccounts();
+  const { transactions: last12 } = useTransactions('last12Months');
+  const health = useMemo(
+    () => dataHealth({ tx: last12, accounts: accountBalances(accounts, last12), investments, dismissed: settings.dismissedInsights ?? [] }),
+    [last12, accounts, investments, settings.dismissedInsights]
+  );
   const file = (what: string) => `corpus-${what}-${yearLabel(kind, year).replace(/\s+/g, '').toLowerCase()}.csv`;
   const exportIt = async (name: string, csv: string, rows: number) => {
     if (!rows) return showToast({ message: 'Nothing to export for this year' });
@@ -96,6 +106,8 @@ export default function ReportsScreen() {
             <Ionicons name="chevron-forward" size={18} color={isNow ? Corpus.textFaint : Corpus.text} />
           </Pressable>
         </View>
+
+        <DataHealthCard h={health} />
 
         {kind === 'fy' && (
           <Pressable style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 10, borderColor: Corpus.goldLine }]} onPress={() => router.push(`/tax?year=${year}` as Href)}>
