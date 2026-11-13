@@ -169,11 +169,11 @@ export default function ReportsScreen() {
             <SectionLabel right="earned · spent">MONTH BY MONTH</SectionLabel>
             <View style={styles.card}>
               <View style={styles.row}>
-                <Text style={[styles.head, { width: 34, textAlign: 'left' }]}>MONTH</Text>
+                <Text style={[styles.head, { width: 34, textAlign: 'left' }]} numberOfLines={1}> </Text>
                 <Text style={[styles.head, { flex: 1 }]} />
-                <Text style={[styles.head, { width: 70 }]}>SPENT</Text>
-                <Text style={[styles.head, { width: 70 }]}>SAVED</Text>
-                <Text style={[styles.head, { width: 40 }]}>RATE</Text>
+                <Text style={[styles.head, { width: 64 }]} numberOfLines={1}>SPENT</Text>
+                <Text style={[styles.head, { width: 64 }]} numberOfLines={1}>SAVED</Text>
+                <Text style={[styles.head, { width: 40 }]} numberOfLines={1}>RATE</Text>
               </View>
               {r.months.map((m) => (
                 <Pressable key={m.key} style={[styles.row, m.future && { opacity: 0.35 }]} onPress={() => router.push('/analytics' as Href)} disabled={m.future}>
@@ -186,8 +186,8 @@ export default function ReportsScreen() {
                       <View style={[styles.barFill, { width: `${(m.spent / maxSpent) * 100}%` }]} />
                     </View>
                   </View>
-                  <Text style={[styles.col, { width: 70 }]}>{m.spent ? compactINR(m.spent) : '—'}</Text>
-                  <Text style={[styles.col, { width: 70, color: m.saved < 0 ? Corpus.danger : Corpus.text }]}>{m.income || m.spent ? compactINR(m.saved) : '—'}</Text>
+                  <Text style={[styles.col, { width: 64 }]} numberOfLines={1}>{m.spent ? compactINR(m.spent) : '—'}</Text>
+                  <Text style={[styles.col, { width: 64, color: m.saved < 0 ? Corpus.danger : Corpus.text }]} numberOfLines={1}>{m.income || m.spent ? compactINR(m.saved) : '—'}</Text>
                   <Text style={[styles.col, { width: 40, color: Corpus.textMuted }]}>{pct(m.rate)}</Text>
                 </Pressable>
               ))}

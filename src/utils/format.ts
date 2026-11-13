@@ -9,9 +9,10 @@ export function formatINR(amount: number): string {
 export function compactINR(amount: number): string {
   const n = Math.abs(amount);
   const sign = amount < 0 ? '−' : '';
-  if (n >= 1_00_00_000) return `${sign}₹${trim(n / 1_00_00_000)} Cr`;
-  if (n >= 1_00_000) return `${sign}₹${trim(n / 1_00_000)} L`;
-  if (n >= 1_000) return `${sign}₹${trim(n / 1_000)}K`;
+  // compare after rounding, so ₹99,999 reads "₹1 L" (not "₹100K") and ₹99.99 L reads "₹1 Cr"
+  if (n >= 99_95_000) return `${sign}₹${trim(n / 1_00_00_000)} Cr`;
+  if (n >= 99_950) return `${sign}₹${trim(n / 1_00_000)} L`;
+  if (n >= 999.5) return `${sign}₹${trim(n / 1_000)}K`;
   return `${sign}₹${Math.round(n)}`;
 }
 
