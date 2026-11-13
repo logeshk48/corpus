@@ -122,7 +122,7 @@ export default function HomeScreen() {
   };
 
   // The heart of Corpus: how much can I safely spend today?
-  const { transactions: yearTx } = useTransactions('last12Months');
+  const { transactions: yearTx, loading: yearLoading } = useTransactions('last12Months');
 
   // Smart detection (Day 7): things Corpus noticed, each with a one-tap action
   const dismissed = settings.dismissedInsights ?? [];
@@ -420,7 +420,7 @@ export default function HomeScreen() {
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
-        <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />
+        {!loading && !yearLoading && <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />}
 
         <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
 

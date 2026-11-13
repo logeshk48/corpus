@@ -97,7 +97,9 @@ export default function WealthScreen() {
                 </Text>
               )}
               <Text style={styles.sub}>
-                {s.score >= 80
+                {s.known < 2
+                  ? 'Log your income and a few weeks of spending, and add your bank balance — the score needs at least two parts to mean anything.'
+                  : s.score >= 80
                   ? 'Your money is working hard. Keep the habits that got you here.'
                   : s.score >= 65
                     ? 'Solid foundations. A couple of fixes would make you very secure.'

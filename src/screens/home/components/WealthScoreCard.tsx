@@ -7,7 +7,8 @@ const TONE = { good: Corpus.income, ok: Corpus.gold, weak: Corpus.warning };
 
 // "Wealth score 66 · Strong" + five little bars + the biggest fix
 export default function WealthScoreCard({ s, onPress }: { s: WealthScore; onPress: () => void }) {
-  if (s.known === 0) return null;
+  // one part alone (e.g. only "no debt") would read as 100 — wait for at least two
+  if (s.known < 2) return null;
   const c = TONE[s.tone];
   return (
     <Pressable style={st.card} onPress={onPress}>

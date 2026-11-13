@@ -161,8 +161,8 @@ export function wealthScore(d: ScoreInput): WealthScore {
 
   const known = P.filter((p) => p.known);
   const raw = known.reduce((a, p) => a + p.score, 0);
-  const score = known.length ? r((raw / (known.length * 20)) * 100) : 0;
-  const grade = score >= 80 ? 'Excellent' : score >= 65 ? 'Strong' : score >= 50 ? 'Building' : score >= 35 ? 'Fragile' : 'At risk';
+  const score = known.length >= 2 ? r((raw / (known.length * 20)) * 100) : 0; // one part alone isn't a score
+  const grade = known.length < 2 ? 'Not enough data yet' : score >= 80 ? 'Excellent' : score >= 65 ? 'Strong' : score >= 50 ? 'Building' : score >= 35 ? 'Fragile' : 'At risk';
   const topFix = known.filter((p) => p.fix).sort((a, b) => b.gain - a.gain)[0] ?? null;
-  return { score, grade, tone: score >= 65 ? 'good' : score >= 45 ? 'ok' : 'weak', pillars: P.map((p) => ({ ...p, score: Math.round(p.score * 10) / 10 })), topFix, known: known.length };
+  return { score, grade, tone: known.length < 2 ? 'ok' : score >= 65 ? 'good' : score >= 45 ? 'ok' : 'weak', pillars: P.map((p) => ({ ...p, score: Math.round(p.score * 10) / 10 })), topFix, known: known.length };
 }
