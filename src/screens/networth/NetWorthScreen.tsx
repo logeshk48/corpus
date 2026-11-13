@@ -269,6 +269,8 @@ export default function NetWorthScreen() {
             )}
 
             {/* Health numbers */}
+            {totals.assets + totals.liabilities > 0 && (
+            <>
             <View style={styles.views}>
               <View style={styles.view}>
                 <Text style={styles.viewLabel}>Debt vs assets</Text>
@@ -292,6 +294,8 @@ export default function NetWorthScreen() {
             <Text style={styles.note}>
               Debt vs assets under 30% is comfortable. "Cash covers" = months your cash and bank pay your usual spending. "Worth in income" = your net worth in months of income.
             </Text>
+            </>
+            )}
 
             {/* Composition */}
             {(['asset', 'liability'] as const).map((side) => {

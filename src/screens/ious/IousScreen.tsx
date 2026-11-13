@@ -303,7 +303,7 @@ export default function IousScreen() {
             <Text style={{ fontSize: Type.hero }}>🤝</Text>
             <Text style={styles.emptyTitle}>Nobody owes anybody</Text>
             <Text style={styles.emptyText}>
-              Paid for a friend’s dinner? Borrowed from a flatmate? Note it here so nothing is forgotten, and send a polite reminder in one tap.
+              Paid for a friend’s dinner? Borrowed from a flatmate? Note it here so nothing is forgotten — Corpus reminds you when it’s due.
             </Text>
             <Button label="Add the first one" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch', marginTop: 12 }} />
           </View>

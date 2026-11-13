@@ -87,7 +87,7 @@ export default function WealthScreen() {
           <>
             <View style={styles.hero}>
               <View style={[styles.ring, { borderColor: c }]}>
-                <Text style={[styles.ringNum, { color: c }]}>{s.score}</Text>
+                <Text style={[styles.ringNum, { color: c }]}>{s.known < 2 ? '—' : s.score}</Text>
                 <Text style={styles.ringOf}>out of 100</Text>
               </View>
               <Text style={[styles.grade, { color: c }]}>{s.grade}</Text>
