@@ -1,6 +1,6 @@
-import { Button } from '@/components/ui';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { Button, IconChip } from '@/components/ui';
+import { Chip, Corpus, Font, Space, Type } from '@/constants/theme';
+import type { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -13,7 +13,7 @@ export type Insight = {
   yes: { label: string; run: () => Promise<void> };
   no?: { label: string; run: () => Promise<void> };
 };
-const C = { gold: Corpus.gold, warn: Corpus.warning, danger: Corpus.danger, good: Corpus.income };
+const C = { gold: Chip.blue, warn: Chip.orange, danger: Chip.red, good: Chip.green };
 
 // "Found for you" — things Corpus noticed, each with a one-tap action
 export default function InsightsCard({ items }: { items: Insight[] }) {
@@ -30,10 +30,9 @@ export default function InsightsCard({ items }: { items: Insight[] }) {
     }
   };
   return (
-    <View style={st.card}>
+    <View style={{ gap: 8 }}>
       <View style={st.head}>
-        <Ionicons name="sparkles-outline" size={16} color={Corpus.gold} />
-        <Text style={st.headText}>Found for you</Text>
+        <Text style={st.headText} accessibilityRole="header">For you</Text>
         {items.length > 2 && (
           <Text style={st.more} onPress={() => setAll(!all)}>
             {all ? 'Show less' : `+${items.length - 2} more`}
@@ -41,9 +40,9 @@ export default function InsightsCard({ items }: { items: Insight[] }) {
         )}
       </View>
       {show.map((i) => (
-        <View key={i.key} style={st.item}>
+        <View key={i.key} style={st.card}>
           <View style={st.row}>
-            <Ionicons name={i.icon} size={16} color={C[i.tone]} />
+            <IconChip icon={String(i.icon).replace(/-outline$/, '')} color={C[i.tone]} />
             <Text style={st.title}>{i.title}</Text>
           </View>
           <Text style={st.body}>{i.body}</Text>
@@ -58,12 +57,11 @@ export default function InsightsCard({ items }: { items: Insight[] }) {
 }
 
 const st = StyleSheet.create({
-  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.goldLine, padding: Space.md, gap: 12 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headText: { flex: 1, fontSize: Type.label, fontWeight: '600', color: Corpus.text },
-  more: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600' },
-  item: { gap: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { flex: 1, fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
-  body: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
+  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: 10 },
+  head: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 4 },
+  headText: { flex: 1, fontSize: Type.h3, fontFamily: Font.display, fontWeight: '700', color: Corpus.text },
+  more: { fontSize: Type.input, color: Corpus.gold },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  title: { flex: 1, fontSize: Type.input, fontWeight: '600', color: Corpus.text },
+  body: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 19 },
 });

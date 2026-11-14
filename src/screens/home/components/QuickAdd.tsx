@@ -1,5 +1,6 @@
 import { findCategory } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { IconChip } from '@/components/ui';
+import { CategoryChip, Chip, Corpus } from '@/constants/theme';
 import type { QuickPick } from '@/utils/quickAdd';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,8 +30,7 @@ export default function QuickAdd({ picks, onLog, onMore }: Props) {
   return (
     <View style={styles.wrap}>
       <View style={styles.head}>
-        <Ionicons name="flash" size={13} color={Corpus.gold} />
-        <Text style={styles.headText}>ONE TAP TO LOG</Text>
+        <Text style={styles.headText} accessibilityRole="header">Your usuals</Text>
         <Pressable onPress={onMore} hitSlop={8}>
           <Text style={styles.more}>Something else</Text>
         </Pressable>
@@ -40,11 +40,11 @@ export default function QuickAdd({ picks, onLog, onMore }: Props) {
           const key = `${p.note}|${p.amount}`;
           const cat = findCategory('expense', p.category);
           return (
-            <Pressable key={key} style={[styles.chip, busy === key && styles.chipBusy]} onPress={() => tap(p)} disabled={!!busy}>
+            <Pressable key={key} style={({ pressed }) => [styles.chip, busy === key && styles.chipBusy, pressed && { transform: [{ scale: 0.96 }] }]} onPress={() => tap(p)} disabled={!!busy} accessibilityLabel={`Log ${p.note || cat?.label} ${formatINR(p.amount)}`}>
               {busy === key ? (
                 <ActivityIndicator size="small" color={Corpus.gold} />
               ) : (
-                <Ionicons name={(cat?.icon ?? 'ellipsis-horizontal') as keyof typeof Ionicons.glyphMap} size={15} color={Corpus.textMuted} />
+                <IconChip icon={cat?.icon ?? 'ellipsis-horizontal'} color={CategoryChip[p.category] ?? Chip.gray} size={26} />
               )}
               <Text style={styles.name}>{p.note || cat?.label || p.category}</Text>
               <Text style={styles.amount}>{formatINR(p.amount)}</Text>

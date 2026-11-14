@@ -48,7 +48,8 @@ import Shortcuts, { type Shortcut } from './components/Shortcuts';
 import { compactINR } from '@/utils/format';
 import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import WeekCard from './components/WeekCard';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import AffordSheet from './components/AffordSheet';
 import { monthlyFlow } from '@/utils/afford';
@@ -56,14 +57,16 @@ import { upcomingBills } from '@/utils/moneyHealth';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Animated, Platform, Pressable, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Link, useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { pendingSms } from '@/services/bankSms';
 import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
 import TransactionRow from './components/TransactionRow';
 import { styles } from './HomeScreen.styles';
+
+const compactBlur = Platform.OS === 'web' ? ({ backdropFilter: 'blur(20px) saturate(180%)' } as object) : null;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -104,6 +107,8 @@ export default function HomeScreen() {
   const reminders = actionable([...shortAlert, ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
   const [showSafe, setShowSafe] = useState(false);
   const [showAfford, setShowAfford] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
   // Bank SMS waiting to be logged (Android)
   const [smsWaiting, setSmsWaiting] = useState(0);
   useFocusEffect(useCallback(() => { setSmsWaiting(pendingSms().length); }, []));
@@ -413,10 +418,12 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
+    <SafeAreaView style={styles.safe} edges={[]}>
+      <Animated.ScrollView
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
         showsVerticalScrollIndicator={false}
       >
         <HomeHeader />
@@ -433,7 +440,7 @@ export default function HomeScreen() {
             { label: 'Scan receipt', icon: 'scan', color: Chip.blue, go: () => router.push('/add?paste=1' as Href) },
             { label: 'Can I afford?', icon: 'cart', color: Chip.purple, go: () => setShowAfford(true) },
           ].map((t) => (
-            <Pressable key={t.label} style={({ pressed }) => [styles.tile, pressed && { opacity: 0.7 }]} onPress={t.go} accessibilityRole="button">
+            <Pressable key={t.label} style={({ pressed }) => [styles.tile, pressed && { transform: [{ scale: 0.95 }] }]} onPress={t.go} accessibilityRole="button">
               <IconChip icon={t.icon} color={t.color} size={36} />
               <Text style={styles.tileText} numberOfLines={1}>{t.label}</Text>
             </Pressable>
@@ -472,6 +479,8 @@ export default function HomeScreen() {
 
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
 
+        {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
+
         {!loading && !yearLoading && <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />}
 
         <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
@@ -506,7 +515,11 @@ export default function HomeScreen() {
             ))}
           </Group>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+      {/* iOS-style compact title: fades in once the big "Today" scrolls away */}
+      <Animated.View pointerEvents="none" style={[styles.compact, compactBlur, { height: insets.top + 48, paddingTop: insets.top, opacity: scrollY.interpolate({ inputRange: [44, 76], outputRange: [0, 1], extrapolate: 'clamp' }) }]}>
+        <Text style={styles.compactText}>Today</Text>
+      </Animated.View>
       <SafeToSpendSheet visible={showSafe} result={safe} onClose={() => setShowSafe(false)} />
       <AffordSheet
         visible={showAfford} onClose={() => setShowAfford(false)} safe={safe}

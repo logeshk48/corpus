@@ -5,7 +5,7 @@ import { Corpus, Font, Space, Type } from '@/constants/theme';
 export const styles = StyleSheet.create({
   card: { backgroundColor: Corpus.card, borderRadius: 26, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
   cardCol: { flexDirection: 'column', alignItems: 'stretch', gap: 2 },
-  pressed: { opacity: 0.85 },
+  pressed: { transform: [{ scale: 0.98 }] },
   top: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   left: { flex: 1, gap: 2 },
   label: { fontSize: Type.label, fontWeight: '500', color: Corpus.textMuted },
@@ -23,6 +23,8 @@ export const styles = StyleSheet.create({
   how: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: Space.sm + 2 },
   emptyText: { fontSize: Type.label, color: Corpus.textMuted, marginTop: 6, lineHeight: 21 },
   // older keys some code still passes
-  labelRow: { flexDirection: 'row', alignItems: 'center' },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  pill: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  pillText: { fontSize: Type.small, fontWeight: '700' },
   dot: { width: 8, height: 8, borderRadius: 4 },
 });

@@ -84,7 +84,7 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
 }
 
 const st = StyleSheet.create({
-  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.goldLine, padding: Space.md, gap: 8 },
+  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: 8 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   title: { flex: 1, fontSize: Type.label, fontWeight: '600', color: Corpus.text },
   nums: { flexDirection: 'row', gap: 8 },
@@ -97,7 +97,7 @@ const st = StyleSheet.create({
   item: { flexDirection: 'row', gap: 10 },
   n: { width: 20, height: 20, borderRadius: 10, backgroundColor: Corpus.goldActive, color: Corpus.gold, fontSize: Type.caption, fontWeight: '700', textAlign: 'center', lineHeight: 20 },
   itemTitle: { fontSize: Type.body, fontWeight: '600', color: Corpus.text },
-  cta: { alignSelf: 'flex-start', marginTop: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Corpus.goldLine, backgroundColor: Corpus.goldTint },
+  cta: { alignSelf: 'flex-start', marginTop: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 22, backgroundColor: Corpus.goldTint },
   ctaDone: { borderColor: Corpus.incomeLine, backgroundColor: Corpus.incomeTint },
   ctaText: { fontSize: Type.small, fontWeight: '600', color: Corpus.gold },
   link: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600' },

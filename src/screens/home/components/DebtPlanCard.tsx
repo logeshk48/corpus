@@ -104,7 +104,7 @@ export default function DebtPlanCard({ s, onOpen, onAnswer, onSeenCleared }: Pro
 }
 
 const st = StyleSheet.create({
-  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 8 },
+  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   icon: { width: 32, height: 32, borderRadius: 16, backgroundColor: Corpus.dangerTint, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },

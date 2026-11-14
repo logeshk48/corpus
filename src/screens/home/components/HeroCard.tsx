@@ -1,5 +1,6 @@
 import { ActivityRing } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
+import { useEntrance } from '@/hooks/useEntrance';
+import { Corpus, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { SafeToSpendResult } from '@/utils/safeToSpend';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,15 @@ function Rings({ used, through }: { used: number; through: number }) {
   );
 }
 
+// The amount sits beside the rings, so a long range ("₹1,230–1,510") gets a smaller size instead of being cut off
+const amountSize = (a: string) => (a.length <= 7 ? Type.entry : a.length <= 9 ? Type.amount : Type.h1);
+
+const PILL = {
+  ok: { text: 'On track', bg: Corpus.goldTint, fg: Corpus.gold },
+  tight: { text: 'Go easy', bg: Corpus.warningTint, fg: Corpus.warning },
+  over: { text: 'Over today', bg: Corpus.dangerTint, fg: Corpus.danger },
+};
+
 type HeroCardProps = {
   result: SafeToSpendResult;
   loading?: boolean;
@@ -31,6 +41,7 @@ type HeroCardProps = {
 };
 
 export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
+  const t = useEntrance(900, loading ? 0 : 1);
   if (loading) {
     return (
       <View style={styles.card}>
@@ -50,7 +61,7 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
             <Text style={styles.label}>Safe to spend today</Text>
             <Text style={[styles.amount, { color: Corpus.textFaint }]}>₹ —</Text>
           </View>
-          <Rings used={0} through={new Date().getDate() / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} />
+          <Rings used={0} through={(t * new Date().getDate()) / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} />
         </View>
         <Text style={styles.emptyText}>
           Add this month's income (or set a monthly budget in Settings) and Corpus will tell you
@@ -67,11 +78,11 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   const color = STATUS_COLOR[result.status];
   const over = result.safeToday < 0;
   // A single precise figure reads as a spending target, so show a comfortable range
-  const low = Math.max(0, Math.floor((result.safeToday * 0.9) / 10) * 10);
-  const high = Math.ceil((result.safeToday * 1.1) / 10) * 10;
+  const low = Math.max(0, Math.floor((result.safeToday * 0.9 * t) / 10) * 10);
+  const high = Math.ceil((result.safeToday * 1.1 * t) / 10) * 10;
   const asRange = !over && result.safeToday >= 50;
   const label = over ? "Over today's limit by" : asRange ? 'Today you can spend about' : 'Safe to spend today';
-  const amount = asRange ? `${formatINR(low)}–${formatINR(high).replace('₹', '')}` : formatINR(Math.abs(result.safeToday));
+  const amount = asRange ? `${formatINR(low)}–${formatINR(high).replace('₹', '')}` : formatINR(Math.round(Math.abs(result.safeToday) * t));
 
   let context = `${formatINR(result.dailyAllowance)}/day for the next ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'}`;
   if (result.available < 0) context = `You've used ${formatINR(-result.available)} more than this month allows`;
@@ -85,11 +96,16 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, styles.cardCol, pressed && styles.pressed]}>
       <View style={styles.top}>
         <View style={styles.left}>
-          <Text style={styles.label}>{label}</Text>
-          <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text }]} numberOfLines={1} adjustsFontSizeToFit>{amount}</Text>
+          <View style={styles.labelRow}>
+            <Text style={styles.label}>{label}</Text>
+            <View style={[styles.pill, { backgroundColor: PILL[result.status].bg }]}>
+              <Text style={[styles.pillText, { color: PILL[result.status].fg }]}>{PILL[result.status].text}</Text>
+            </View>
+          </View>
+          <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text, fontSize: amountSize(amount) }]} numberOfLines={1} adjustsFontSizeToFit>{amount}</Text>
           <Text style={[styles.context, { color: result.status === 'ok' ? Corpus.textMuted : color }]}>{context}</Text>
         </View>
-        <Rings used={used} through={through} />
+        <Rings used={used * t} through={through * t} />
       </View>
 
       {(result.spentToday > 0 || result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0) && (

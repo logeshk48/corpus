@@ -1,4 +1,5 @@
-import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
+import { ActivityRing } from '@/components/ui';
+import { Corpus, Font, Space, Type } from '@/constants/theme';
 import type { WealthScore } from '@/utils/wealthScore';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -11,9 +12,10 @@ export default function WealthScoreCard({ s, onPress }: { s: WealthScore; onPres
   if (s.known < 2) return null;
   const c = TONE[s.tone];
   return (
-    <Pressable style={st.card} onPress={onPress}>
+    <Pressable style={({ pressed }) => [st.card, pressed && { transform: [{ scale: 0.98 }] }]} onPress={onPress} accessibilityRole="button">
       <View style={st.top}>
-        <View style={[st.ring, { borderColor: c }]}>
+        <View style={st.ring}>
+          <ActivityRing size={56} thickness={8} progress={s.score / 100} color={c} track={Corpus.cardAlt} />
           <Text style={[st.num, { color: c }]}>{s.score}</Text>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
@@ -41,11 +43,11 @@ export default function WealthScoreCard({ s, onPress }: { s: WealthScore; onPres
 }
 
 const st = StyleSheet.create({
-  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
+  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  ring: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
-  num: { fontSize: Type.h3, fontFamily: Font.display, fontWeight: '600' },
-  title: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
+  ring: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
+  num: { position: 'absolute', fontSize: Type.title, fontFamily: Font.display, fontWeight: '700' },
+  title: { fontSize: Type.input, fontWeight: '600', color: Corpus.text },
   bars: { flexDirection: 'row', gap: 4 },
   barBg: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },
   barFill: { height: 5, borderRadius: 3 },

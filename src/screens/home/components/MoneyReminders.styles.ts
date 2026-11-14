@@ -2,7 +2,7 @@ import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
+  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headText: { flex: 1, fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
   more: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600' },

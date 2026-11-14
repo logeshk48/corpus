@@ -1,8 +1,8 @@
 import { findCategory } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { IconChip } from '@/components/ui';
+import { CategoryChip, Chip as Palette } from '@/constants/theme';
 import type { TxType } from '@/types/transaction';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, Text } from 'react-native';
 import { styles } from './QuickChips.styles';
 
@@ -19,7 +19,7 @@ export default function QuickChips({ items, type, onPick }: Props) {
         const cat = findCategory(type, c.category);
         return (
           <Pressable key={`${c.note}|${c.category}|${c.amount}`} style={styles.chip} onPress={() => onPick(c)}>
-            <Ionicons name={(cat?.icon ?? 'ellipsis-horizontal') as keyof typeof Ionicons.glyphMap} size={13} color={Corpus.textMuted} />
+            <IconChip icon={cat?.icon ?? 'ellipsis-horizontal'} color={CategoryChip[c.category] ?? Palette.gray} size={28} />
             <Text style={styles.text}>{c.note || cat?.label || c.category}</Text>
             {c.amount ? <Text style={styles.amount}>{formatINR(c.amount)}</Text> : null}
           </Pressable>
