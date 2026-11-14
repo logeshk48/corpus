@@ -36,6 +36,7 @@ function notify(title: string, message: string) {
 }
 
 import PasteSheet from './components/PasteSheet';
+import { canScan } from '@/services/scan';
 import type { ParsedMoney } from '@/utils/receipt';
 
 export default function AddScreen() {
@@ -167,8 +168,8 @@ export default function AddScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text style={styles.heading}>Add transaction</Text>
           <Pressable onPress={() => setShowPaste(true)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} accessibilityRole="button">
-            <Ionicons name="clipboard-outline" size={16} color={Corpus.gold} />
-            <Text style={{ color: Corpus.gold, fontWeight: '600', fontSize: Type.small }}>Paste SMS</Text>
+            <Ionicons name={canScan ? "scan-outline" : "clipboard-outline"} size={16} color={Corpus.gold} />
+            <Text style={{ color: Corpus.gold, fontWeight: '600', fontSize: Type.small }}>{canScan ? 'Scan / paste' : 'Paste SMS'}</Text>
           </Pressable>
         </View>
 

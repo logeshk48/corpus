@@ -8,7 +8,8 @@
     "scheme": "corpus",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.logesh.corpus"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +18,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.logesh.corpus"
     },
     "web": {
       "output": "static",
@@ -32,11 +34,26 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Corpus uses the camera to read receipts. The photo stays on your phone.",
+          "photosPermission": "Corpus reads receipt photos you pick. They stay on your phone.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1d9b160b-a1da-49d9-88b6-1c5ab2731e59"
+      }
+    },
+    "owner": "logesh48"
   }
 }

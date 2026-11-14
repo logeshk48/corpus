@@ -4,9 +4,10 @@ import { styles as f } from '@/screens/ious/components/IouSheet.styles';
 import type { Transaction } from '@/types/transaction';
 import { formatINR } from '@/utils/format';
 import { parseMoneyText, type ParsedMoney } from '@/utils/receipt';
+import { canScan, scanReceipt } from '@/services/scan';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 type Props = { visible: boolean; onClose: () => void; history: Transaction[]; onFill: (p: ParsedMoney) => void };
 
@@ -14,10 +15,25 @@ const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 export default function PasteSheet({ visible, onClose, history, onFill }: Props) {
   const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
   if (!visible) return null;
+  const scan = async (from: 'camera' | 'library') => {
+    setBusy(true); setMsg('');
+    try {
+      const r = await scanReceipt(from);
+      if (r.ok) setText(r.text);
+      else if (r.reason === 'denied') setMsg(from === 'camera' ? 'Camera permission is off — allow it in your phone settings.' : 'Photo permission is off — allow it in your phone settings.');
+      else if (r.reason === 'empty') setMsg('No text found. Try again in good light, with the whole receipt flat in the frame.');
+    } catch {
+      setMsg('Couldn’t read that photo. Try again, or paste the text instead.');
+    } finally {
+      setBusy(false);
+    }
+  };
   const p = parseMoneyText(text);
   const dup = p?.amount ? history.find((t) => t.type === p.type && t.amount === p.amount && sameDay(new Date(t.date), p.date ?? new Date())) : undefined;
-  const close = () => { setText(''); onClose(); };
+  const close = () => { setText(''); setMsg(''); onClose(); };
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={close}>
@@ -30,7 +46,7 @@ export default function PasteSheet({ visible, onClose, history, onFill }: Props)
               <Ionicons name="clipboard-outline" size={18} color={Corpus.gold} />
             </View>
             <View style={sheet.titleBlock}>
-              <Text style={sheet.title}>Paste an SMS or receipt</Text>
+              <Text style={sheet.title}>{canScan ? 'Scan or paste a receipt' : 'Paste an SMS or receipt'}</Text>
               <Text style={sheet.subtitle}>Read on your phone — nothing is sent anywhere</Text>
             </View>
             <Pressable style={sheet.closeButton} onPress={close} hitSlop={8} accessibilityLabel="Close">
@@ -38,6 +54,20 @@ export default function PasteSheet({ visible, onClose, history, onFill }: Props)
             </Pressable>
           </View>
           <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
+            {canScan ? (
+              <View style={s.row}>
+                {(['camera', 'library'] as const).map((k) => (
+                  <Pressable key={k} style={s.scanBtn} onPress={() => scan(k)} disabled={busy} accessibilityRole="button">
+                    <Ionicons name={k === 'camera' ? 'camera-outline' : 'image-outline'} size={18} color={Corpus.gold} />
+                    <Text style={s.scanText}>{k === 'camera' ? 'Take photo' : 'Pick photo'}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : (
+              <Text style={sheet.hint}>Receipt photos can be scanned in the Corpus phone app. Here, paste the text.</Text>
+            )}
+            {busy && <ActivityIndicator color={Corpus.gold} />}
+            {!!msg && <Text style={[sheet.hint, { color: Corpus.warning }]}>{msg}</Text>}
             <TextInput
               style={[f.input, s.box]} value={text} onChangeText={setText} multiline autoFocus textAlignVertical="top"
               placeholder={'e.g. Rs.450.00 debited from A/c XX1234 on 13-11-26 to VPA swiggy@icici…\n\nLong-press here and tap Paste.'}
@@ -72,6 +102,9 @@ export default function PasteSheet({ visible, onClose, history, onFill }: Props)
 }
 
 const s = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 8 },
+  scanBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Corpus.goldLine, backgroundColor: Corpus.goldTint },
+  scanText: { fontSize: Type.body, fontWeight: '600', color: Corpus.gold },
   box: { minHeight: 120, fontSize: Type.body },
   card: { backgroundColor: Corpus.cardAlt, borderRadius: Radius.md, padding: Space.md, gap: 6 },
   label: { fontSize: Type.caption, color: Corpus.textFaint, letterSpacing: 0.4 },

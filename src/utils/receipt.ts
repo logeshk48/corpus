@@ -92,19 +92,37 @@ function parseReceipt(text: string, now: Date): ParsedMoney | null {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   if (lines.length === 0) return null;
   let best: { amount: number; score: number } | null = null;
+  const PURE = /^[₹rs.:\s]*([\d,]+(?:\.\d{1,2})?)\s*$/i;
+  const isNum = (l: string) => PURE.test(l);
+  // Camera text can list labels and prices in separate columns: the k-th label lines up with the k-th price
+  const columnPrice = (i: number) => {
+    let s = i;
+    while (s > 0 && !isNum(lines[s - 1])) s--;
+    const k = i - s;
+    let j = i + 1;
+    while (j < lines.length && !isNum(lines[j])) j++;
+    const run: string[] = [];
+    while (j < lines.length && isNum(lines[j])) run.push(lines[j++]);
+    const pick = run.length > k ? run[k] : run.length === 1 ? run[0] : undefined;
+    return pick ? pick.match(PURE)![1] : undefined;
+  };
   lines.forEach((l, i) => {
     if (SKIP_TOTAL.test(l)) return;
     const w = TOTAL_WORDS.find(([re]) => re.test(l));
     if (!w) return;
-    // the number may sit on the same line or the next one
-    const m = l.match(NUM_IN_LINE) ?? lines[i + 1]?.match(/^[₹rs.\s]*([\d,]+(?:\.\d{2})?)\s*$/i);
-    if (!m) return;
-    const amount = num(m[1]);
-    if (amount > 0 && (!best || w[1] > best.score || (w[1] === best.score && i > 0))) best = { amount, score: w[1] };
+    const inline = l.match(NUM_IN_LINE)?.[1];
+    const raw = inline ?? (isNum(lines[i + 1] ?? '') && !isNum(lines[i + 2] ?? '') ? lines[i + 1].match(PURE)![1] : columnPrice(i));
+    if (!raw) return;
+    const amount = num(raw);
+    if (amount > 0 && (!best || w[1] >= best.score)) best = { amount, score: w[1] };
   });
   let amount = (best as { amount: number } | null)?.amount ?? null;
   if (amount == null) {
-    const all = [...text.matchAll(MONEY)].map((m) => num(m[1])).filter((x) => x > 0);
+    // Camera text often splits labels and prices into separate columns: the total is then the biggest price
+    const kept = lines.filter((l) => !/tender|change|cash\s*paid|balance|round/i.test(l)).join('\n');
+    const money = [...kept.matchAll(MONEY)].map((m) => num(m[1]));
+    const prices = [...kept.matchAll(/(?<![\d.])(\d{1,3}(?:,\d{2,3})*|\d+)\.\d{2}(?![\d])/g)].map((m) => num(m[0]));
+    const all = [...money, ...prices].filter((x) => x > 0 && x < 10_000_000);
     amount = all.length ? Math.max(...all) : null;
   }
   if (amount == null) return null;
