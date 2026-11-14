@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   card: {
@@ -21,8 +21,7 @@ export const styles = StyleSheet.create({
     color: Corpus.text,
   },
   big: {
-    fontSize: Type.h2,
-    fontWeight: '600',
+    fontSize: Type.h2, fontFamily: Font.display,
   },
   line: {
     fontSize: Type.small,

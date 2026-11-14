@@ -11,6 +11,25 @@ const STATUS_COLOR = {
   over: Corpus.danger,
 };
 
+// One mark per day of your money month: gone · today · still to come
+function CycleBar({ total, left, color }: { total: number; left: number; color: string }) {
+  const n = Math.min(Math.max(total, 1), 31);
+  const today = Math.min(n, Math.max(1, n - left + 1));
+  return (
+    <View style={styles.cycle} accessibilityLabel={`Day ${today} of ${n} in your money month`}>
+      <View style={styles.ticks}>
+        {Array.from({ length: n }, (_, i) => (
+          <View
+            key={i}
+            style={[styles.tick, i + 1 < today && styles.tickGone, i + 1 === today && { backgroundColor: color, height: 12 }]}
+          />
+        ))}
+      </View>
+      <Text style={styles.cycleText}>Day {today} of {n} · {left === 1 ? 'pay day tomorrow' : `${left - 1} days to pay day`}</Text>
+    </View>
+  );
+}
+
 type HeroCardProps = {
   result: SafeToSpendResult;
   loading?: boolean;
@@ -61,11 +80,12 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={styles.labelRow}>
-        <View style={[styles.dot, { backgroundColor: color }]} />
         <Text style={styles.label}>{label}</Text>
+        <View style={[styles.dot, { backgroundColor: color }]} />
       </View>
-      <Text style={[styles.amount, { color }]}>{amount}</Text>
+      <Text style={[styles.amount, { color }]} numberOfLines={1} adjustsFontSizeToFit>{amount}</Text>
       <Text style={styles.context}>{context}</Text>
+      <CycleBar total={result.cycleDays} left={result.daysLeft} color={color} />
 
       <View style={styles.chips}>
         {result.spentToday > 0 && (

@@ -47,7 +47,7 @@ import Shortcuts, { type Shortcut } from './components/Shortcuts';
 import { compactINR } from '@/utils/format';
 import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import AffordSheet from './components/AffordSheet';
 import { monthlyFlow } from '@/utils/afford';
@@ -57,7 +57,8 @@ import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { Link, useFocusEffect, useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { pendingSms } from '@/services/bankSms';
 import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
 import TransactionRow from './components/TransactionRow';
@@ -102,6 +103,9 @@ export default function HomeScreen() {
   const reminders = actionable([...shortAlert, ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
   const [showSafe, setShowSafe] = useState(false);
   const [showAfford, setShowAfford] = useState(false);
+  // Bank SMS waiting to be logged (Android)
+  const [smsWaiting, setSmsWaiting] = useState(0);
+  useFocusEffect(useCallback(() => { setSmsWaiting(pendingSms().length); }, []));
   const { showToast } = useToast();
   const [paying, setPaying] = useState<Bill | null>(null);
 
@@ -432,6 +436,17 @@ export default function HomeScreen() {
             <Text style={styles.linkText} numberOfLines={1}>Ask Corpus</Text>
           </Pressable>
         </View>
+
+        {smsWaiting > 0 && (
+          <Pressable style={[styles.linkCard, { borderColor: Corpus.goldLine }]} onPress={() => router.push('/sms-review' as Href)} accessibilityRole="button">
+            <View style={[styles.linkIcon, styles.linkIconGold]}>
+              <Ionicons name="chatbox-ellipses-outline" size={16} color={Corpus.gold} />
+            </View>
+            <Text style={styles.linkText}>{smsWaiting} bank payment{smsWaiting > 1 ? 's' : ''} to log</Text>
+            <Text style={styles.linkValue}>Review</Text>
+            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+          </Pressable>
+        )}
 
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
 

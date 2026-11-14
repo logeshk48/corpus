@@ -13,6 +13,7 @@ export type SafeToSpendResult =
       tomorrowAllowance: number;// per-day amount from tomorrow if you stop spending now
       available: number;        // money left for the rest of the month
       daysLeft: number;         // including today
+      cycleDays: number;        // length of your money month (pay day to pay day)
       income: number;
       spent: number;
       spentToday: number;
@@ -108,6 +109,7 @@ export function computeSafeToSpend({
     tomorrowAllowance: Math.floor(tomorrowAllowance),
     available: Math.floor(available),
     daysLeft,
+    cycleDays: Math.round((cycleEnd.getTime() - cycleStart.getTime()) / 86_400_000),
     income,
     spent,
     spentToday,

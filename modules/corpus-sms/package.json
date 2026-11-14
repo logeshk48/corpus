@@ -1,0 +1,6 @@
+{
+  "name": "corpus-sms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Corpus: bank SMS → 'log it?' notification, inbox import, Share → Corpus (Android, on-device)"
+}

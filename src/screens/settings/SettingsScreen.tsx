@@ -1,4 +1,6 @@
 import { Button, SectionLabel } from '@/components/ui';
+import DeleteAccountSheet from './components/DeleteAccountSheet';
+import { disableSms, enableSms, shareSupported, smsEnabled, smsSupported } from '@/services/bankSms';
 import { Corpus, Space } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
@@ -33,6 +35,8 @@ export default function SettingsScreen() {
 
   // Drafts: what's typed but not yet saved
   const [name, setName] = useState('');
+  const [smsOn, setSmsOn] = useState(smsEnabled());
+  const [showDelete, setShowDelete] = useState(false);
   const [budget, setBudget] = useState('');
   const [aside, setAside] = useState('');
   const [cycle, setCycle] = useState('');
@@ -220,6 +224,54 @@ export default function SettingsScreen() {
               </Pressable>
             </View>
 
+            {shareSupported && !smsSupported && (
+              <>
+                <SectionLabel>BANK SMS</SectionLabel>
+                <Pressable style={[styles.group, styles.row]} onPress={() => router.push('/sms-review' as Href)}>
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="share-outline" size={15} color={Corpus.gold} />
+                  </View>
+                  <View style={styles.rowBody}>
+                    <Text style={styles.rowLabel}>Share bank SMS to Corpus</Text>
+                    <Text style={styles.rowHint}>Messages → long-press a bank SMS → Share → Corpus. No SMS permission needed.</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
+                </Pressable>
+              </>
+            )}
+            {smsSupported && (
+              <>
+                <SectionLabel>BANK SMS</SectionLabel>
+                <View style={styles.group}>
+                  <View style={styles.row}>
+                    <View style={styles.rowIcon}>
+                      <Ionicons name="chatbox-ellipses-outline" size={15} color={Corpus.gold} />
+                    </View>
+                    <View style={styles.rowBody}>
+                      <Text style={styles.rowLabel}>Ask after each payment</Text>
+                      <Text style={styles.rowHint}>When your bank texts about a UPI, card or ATM payment, Corpus asks “log it?”. Read on this phone only — never OTPs or personal SMS.</Text>
+                    </View>
+                    <Switch
+                      value={smsOn}
+                      onValueChange={async (v) => { if (v) setSmsOn(await enableSms()); else { disableSms(); setSmsOn(false); } }}
+                      trackColor={{ true: Corpus.gold, false: Corpus.cardAlt }}
+                      thumbColor={Corpus.text}
+                    />
+                  </View>
+                  <Pressable style={[styles.row, styles.rowDivider]} onPress={() => router.push('/sms-review' as Href)}>
+                    <View style={styles.rowIcon}>
+                      <Ionicons name="time-outline" size={15} color={Corpus.gold} />
+                    </View>
+                    <View style={styles.rowBody}>
+                      <Text style={styles.rowLabel}>Waiting bank payments</Text>
+                      <Text style={styles.rowHint}>Log them, or catch up the last 30 days</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
+                  </Pressable>
+                </View>
+              </>
+            )}
+
             {/* NOTIFICATIONS — each saves instantly */}
             <SectionLabel>NOTIFICATIONS</SectionLabel>
             <View style={styles.group}>
@@ -331,7 +383,7 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.rowBody}>
                   <Text style={styles.rowLabel}>Theme</Text>
-                  <Text style={styles.rowValue}>Charcoal & Gold</Text>
+                  <Text style={styles.rowValue}>Ink & Gold</Text>
                 </View>
                 <Text style={styles.rowHint}>More soon</Text>
               </View>
@@ -353,9 +405,14 @@ export default function SettingsScreen() {
             <Ionicons name="log-out-outline" size={18} color={Corpus.danger} />
             <Text style={styles.logoutText}>Sign out</Text>
           </Pressable>
+          <Pressable style={[styles.logoutRow, styles.rowDivider]} onPress={() => setShowDelete(true)}>
+            <Ionicons name="trash-outline" size={18} color={Corpus.textMuted} />
+            <Text style={[styles.logoutText, { color: Corpus.textMuted }]}>Delete account and data</Text>
+          </Pressable>
         </View>
+        <DeleteAccountSheet visible={showDelete} onClose={() => setShowDelete(false)} onExport={() => { setShowDelete(false); router.push('/reports' as Href); }} />
 
-        <Text style={styles.version}>Corpus · v0.13 · Earn. Spend. Invest. Grow.</Text>
+        <Text style={styles.version}>Corpus · v1.0 · Earn. Spend. Invest. Grow.</Text>
       </ScrollView>
     </SafeAreaView>
   );

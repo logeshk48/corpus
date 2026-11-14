@@ -29,7 +29,6 @@ export default function LoginScreen() {
     setFormError(undefined);
     try {
       const user = await signIn(email, password);
-      console.log('Signed in:', user.uid);
       router.replace('/');
     } catch (e: any) {
       setFormError(friendlyAuthError(e.code));

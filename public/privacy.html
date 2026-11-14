@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corpus privacy policy</title>
+<style>
+  :root { --ink:#0B1210; --card:#131C19; --text:#F2EDDC; --muted:#8D9993; --gold:#D9AC3B; --rule:#24302B; }
+  body { margin:0; background:var(--ink); color:var(--text); font:16px/1.6 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 8px; color: var(--gold); }
+  p, li { color: var(--text); } .muted { color: var(--muted); }
+  ul { padding-left: 20px; } a { color: var(--gold); }
+  table { width:100%; border-collapse: collapse; font-size: 15px; }
+  td, th { text-align:left; padding: 8px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+<h1>Corpus privacy policy</h1>
+<p class="muted">Last updated 14 November 2026</p>
+
+<p>Corpus is a personal finance app for tracking what you earn, spend and invest. This page explains what Corpus stores, where, and what it never does.</p>
+
+<h2>What Corpus stores</h2>
+<table>
+  <tr><th>Data</th><th>Why</th><th>Where</th></tr>
+  <tr><td>Your email and password login</td><td>To sign you in</td><td>Google Firebase Authentication</td></tr>
+  <tr><td>What you enter: transactions, accounts and balances, budgets, bills, jars, investments, money with people, settings</td><td>This is the app — it shows your numbers back to you</td><td>Google Cloud Firestore, under your account only</td></tr>
+</table>
+<p>Only you can read or change your data. Firestore security rules block every other account, and Corpus has no admin screen that shows anyone’s entries.</p>
+
+<h2>What stays on your phone</h2>
+<ul>
+  <li><strong>Receipt photos.</strong> Text is read on your phone (Google ML Kit on Android, Apple Vision on iPhone). Photos are not uploaded or kept. Only the amount, shop and date you choose to save become an entry.</li>
+  <li><strong>Pasted or shared text.</strong> A bank SMS you paste or share to Corpus is read on your phone. Only the entry you save is stored.</li>
+  <li><strong>Bank SMS (Android, only if you turn it on).</strong> Corpus looks only at bank transaction messages — never OTPs or personal messages — to ask “log it?”. SMS text is never uploaded. You can turn this off any time in Settings.</li>
+  <li><strong>Reminders.</strong> Bill, SIP and budget reminders are scheduled on your phone. No push server is involved.</li>
+</ul>
+
+<h2>Live prices</h2>
+<p>To show current prices, Corpus asks its own server for public market data using only the stock symbol, fund code or coin name — never your amounts, holdings or identity. Prices come from Yahoo Finance, AMFI (via mfapi.in), npsnav.in, CoinGecko, gold-api.com and NSE/Upstox instrument lists.</p>
+
+<h2>What Corpus never does</h2>
+<ul>
+  <li>No ads, and no advertising or analytics trackers.</li>
+  <li>Never sells or shares your data.</li>
+  <li>Never connects to your bank, card or demat account, and never moves money.</li>
+</ul>
+
+<h2>Your choices</h2>
+<ul>
+  <li><strong>Download:</strong> Reports → Export gives your entries, holdings and capital gains as CSV files.</li>
+  <li><strong>Delete:</strong> Settings → Delete account and data removes your login and every entry permanently. See <a href="/delete-account">how to delete your account</a>.</li>
+</ul>
+
+<h2>Children</h2>
+<p>Corpus is meant for adults managing their own money and is not directed at children under 18.</p>
+
+<h2>Changes and contact</h2>
+<p>If this policy changes, the date above changes and the app will say so. For questions, write to the developer email shown on Corpus’s Google Play page.</p>
+</main>
+</body>
+</html>

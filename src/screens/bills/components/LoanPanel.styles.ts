@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const INTEREST = '#E07A6B';
 
@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
   title: { flex: 1, fontSize: Type.body, fontWeight: '600', color: Corpus.text },
   meta: { fontSize: Type.caption, color: Corpus.textMuted },
   link: { fontSize: Type.small, fontWeight: '500', color: Corpus.gold },
-  big: { fontSize: Type.h1, fontWeight: '600', color: Corpus.text },
+  big: { fontSize: Type.h1, fontFamily: Font.display, color: Corpus.text },
   sub: { fontSize: Type.small, color: Corpus.textMuted, marginTop: -6 },
   track: { height: 8, borderRadius: 4, backgroundColor: Corpus.bg, overflow: 'hidden', flexDirection: 'row' },
   stats: { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: Corpus.border, paddingTop: 10 },
@@ -63,7 +63,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   result: { backgroundColor: Corpus.incomeTint, borderRadius: Radius.md, padding: Space.md, gap: 4 },
-  resultBig: { fontSize: Type.h3, fontWeight: '700', color: Corpus.income },
+  resultBig: { fontSize: Type.h3, fontFamily: Font.display, color: Corpus.income },
   resultText: { fontSize: Type.small, color: Corpus.text, lineHeight: 18 },
   button: { backgroundColor: Corpus.gold, borderRadius: Radius.md, paddingVertical: 12, alignItems: 'center' },
   buttonText: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.onGold },

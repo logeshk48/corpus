@@ -1,4 +1,4 @@
-import { Corpus, Radius, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Type } from '@/constants/theme';
 import { StyleSheet, Text, View } from 'react-native';
 
 type Props = {
@@ -30,6 +30,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   label: { fontSize: Type.caption, color: Corpus.textMuted },
-  value: { fontSize: Type.h3, fontWeight: '600', color: Corpus.text },
+  value: { fontSize: Type.h3, fontFamily: Font.display, color: Corpus.text },
   delta: { fontSize: Type.caption, color: Corpus.textMuted },
 });

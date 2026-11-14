@@ -1,9 +1,15 @@
 import AuthGate from '@/components/AuthGate';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 
 export default function RootLayout() {
+  const [loaded, error] = useFonts({
+    'Bricolage-SemiBold': require('../../assets/fonts/BricolageGrotesque_600SemiBold.ttf'),
+    'Bricolage-Bold': require('../../assets/fonts/BricolageGrotesque_700Bold.ttf'),
+  });
+  if (!loaded && !error) return null; // a moment on first launch; falls back to the system font on error
   return (
     <AuthProvider>
       <ToastProvider>
@@ -27,6 +33,7 @@ export default function RootLayout() {
             <Stack.Screen name="networth" />
             <Stack.Screen name="wealth" />
             <Stack.Screen name="ask" />
+            <Stack.Screen name="sms-review" />
             <Stack.Screen name="debts" />
             <Stack.Screen name="inbox" />
             <Stack.Screen name="reports" />

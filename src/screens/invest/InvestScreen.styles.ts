@@ -1,14 +1,14 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontSize: Type.title, fontWeight: '600', color: Corpus.text },
+  heading: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
   hero: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, alignItems: 'center', gap: 4 },
   heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.6 },
-  heroValue: { fontSize: Type.amount, fontWeight: '600', color: Corpus.text },
+  heroValue: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
   heroSub: { fontSize: Type.small, color: Corpus.textMuted },
   card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 8 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -21,6 +21,6 @@ export const styles = StyleSheet.create({
   legend: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 2 },
   note: { fontSize: Type.small, color: Corpus.textFaint, lineHeight: 17 },
   emptyBox: { alignItems: 'center', gap: Space.sm, paddingVertical: 40, paddingHorizontal: Space.md },
-  emptyTitle: { fontSize: Type.title, fontWeight: '600', color: Corpus.text },
+  emptyTitle: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
   emptyText: { fontSize: Type.body, color: Corpus.textMuted, textAlign: 'center', lineHeight: 19 },
 });

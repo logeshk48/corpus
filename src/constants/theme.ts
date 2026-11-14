@@ -10,41 +10,48 @@ import { Platform } from 'react-native';
 // ─── Corpus Design System ───────────────────────────────
 export const Corpus = {
   // Surfaces
-  bg: '#0F1115',        // app background
-  card: '#1A1D24',      // cards
-  cardAlt: '#23262E',   // icon circles, nested elements
-  border: '#2A2E38',    // hairline borders
+  bg: '#0B1210',        // app background — ledger ink (green-black)
+  card: '#131C19',      // cards
+  cardAlt: '#1B2622',   // icon circles, nested elements
+  border: '#24302B',    // hairline borders
 
   // Brand
-  gold: '#C9A227',      // THE color — hero numbers, active states
-  goldSoft: '#E8D48A',  // lighter gold for subtle accents
+  gold: '#D9AC3B',      // THE color — hero numbers, active states
+  goldSoft: '#EED68F',  // lighter gold for subtle accents
 
   // Text
-  text: '#F5F2E8',      // primary (warm cream)
-  textMuted: '#8B8F98', // secondary labels
-  textFaint: '#575B64', // disabled, inactive
+  text: '#F2EDDC',      // primary (warm cream)
+  textMuted: '#8D9993', // secondary labels
+  textFaint: '#56635D', // disabled, inactive
 
   // Semantic
-  income: '#4CAF7D',    // green for money in
-  danger: '#E05252',    // red for over-budget
-  warning: '#E0A452',   // amber for 80% alerts
+  income: '#55B98A',    // green for money in
+  danger: '#E3644F',    // red for over-budget
+  warning: '#E5A54B',   // amber for 80% alerts
 
   // Text/icons placed ON a gold surface (buttons, active chips)
-  onGold: '#0F1115',
+  onGold: '#0B1210',
 
   // Tints: a dark wash + a hairline for each semantic colour.
   // Use the pair together, e.g. { backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine }
-  goldTint: '#1E1B12',    // highlighted card / note
-  goldLine: '#45391C',
-  goldActive: '#2E2712',  // selected chip / segment
-  incomeTint: '#1D2A22',
-  incomeLine: '#2C4A38',
-  warningTint: '#2E2412',
+  goldTint: '#1B1D13',    // highlighted card / note
+  goldLine: '#4A3D1C',
+  goldActive: '#2C2A14',  // selected chip / segment
+  incomeTint: '#15271F',
+  incomeLine: '#2A4A3A',
+  warningTint: '#2A2313',
   warningLine: '#5A4520',
-  dangerTint: '#2A1D1D',
+  dangerTint: '#2A1A17',
   dangerLine: '#5A2A2A',
   violet: '#C88BDB',      // loans / EMIs / recurring bills
-  violetTint: '#2A1F2E',
+  violetTint: '#251E2A',
+};
+
+// Display face for money and headings (Bricolage Grotesque, OFL — assets/fonts). Body text stays the system font.
+// Set fontFamily instead of fontWeight: a custom face carries its own weight.
+export const Font = {
+  display: 'Bricolage-SemiBold',     // screen headings, card titles
+  displayBold: 'Bricolage-Bold',     // amounts
 };
 
 // Type scale: the only font sizes used in the app

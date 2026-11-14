@@ -1,11 +1,11 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 // Shared by every onboarding step so they read as one flow
 export const styles = StyleSheet.create({
   wrap: { gap: Space.md },
   eyebrow: { fontSize: Type.caption, letterSpacing: 1.2, color: Corpus.gold, fontWeight: '600' },
-  title: { fontSize: Type.h1, lineHeight: 34, fontWeight: '600', color: Corpus.text },
+  title: { fontSize: Type.h1, fontFamily: Font.display, lineHeight: 34, color: Corpus.text },
   sub: { fontSize: Type.bodyLg, lineHeight: 21, color: Corpus.textMuted, marginBottom: Space.sm },
   list: { gap: 12 },
   card: {
@@ -44,7 +44,7 @@ export const styles = StyleSheet.create({
     paddingTop: 4,
   },
   totalLabel: { fontSize: Type.body, color: Corpus.textMuted },
-  totalValue: { fontSize: Type.h2, fontWeight: '600', color: Corpus.gold },
+  totalValue: { fontSize: Type.h2, fontFamily: Font.display, color: Corpus.gold },
   muted: { fontSize: Type.body, color: Corpus.textFaint, lineHeight: 18 },
 
   // Welcome
@@ -60,8 +60,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 6,
   },
-  markText: { fontSize: Type.amount, fontWeight: '700', color: Corpus.gold },
-  brand: { fontSize: Type.brand, fontWeight: '600', color: Corpus.gold, letterSpacing: 2 },
+  markText: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.gold },
+  brand: { fontSize: Type.brand, fontFamily: Font.displayBold, color: Corpus.gold, letterSpacing: 2 },
   tagline: { fontSize: Type.body, color: Corpus.textMuted, letterSpacing: 0.6 },
   promise: { flexDirection: 'row', gap: 14, alignItems: 'flex-start' },
   promiseIcon: {

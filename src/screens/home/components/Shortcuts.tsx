@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Radius, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -17,10 +17,10 @@ const TONE = { normal: Corpus.textMuted, warn: Corpus.warning, danger: Corpus.da
 export default function Shortcuts({ items }: { items: Shortcut[] }) {
   return (
     <View style={styles.grid}>
-      {items.map((s) => (
+      {items.map((s, i) => (
         <Pressable
           key={s.key}
-          style={({ pressed }) => [styles.tile, pressed && { opacity: 0.7 }]}
+          style={({ pressed }) => [styles.tile, i % 3 !== 2 && styles.tileRight, i < items.length - 3 && styles.tileBottom, pressed && { backgroundColor: Corpus.cardAlt }]}
           onPress={s.onPress}
           accessibilityRole="button"
           accessibilityLabel={`${s.label}, ${s.value}`}
@@ -35,18 +35,19 @@ export default function Shortcuts({ items }: { items: Shortcut[] }) {
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm },
-  tile: {
-    flexBasis: '31%',
-    flexGrow: 1,
-    minHeight: 84,
+  // One panel split by hairlines — the shortcuts are a menu, not six separate things
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: Corpus.card,
     borderRadius: Radius.lg,
     borderWidth: 0.5,
     borderColor: Corpus.border,
-    padding: 12,
-    gap: 4,
+    overflow: 'hidden',
   },
+  tile: { width: '33.333%', minHeight: 84, padding: 12, gap: 4 },
+  tileRight: { borderRightWidth: 0.5, borderRightColor: Corpus.border },
+  tileBottom: { borderBottomWidth: 0.5, borderBottomColor: Corpus.border },
   label: { fontSize: Type.body, fontWeight: '600', color: Corpus.text, marginTop: 4 },
   value: { fontSize: Type.small },
 });

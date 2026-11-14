@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -29,8 +29,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   summaryAmount: {
-    fontSize: Type.amount,
-    fontWeight: '500',
+    fontSize: Type.amount, fontFamily: Font.displayBold,
     color: Corpus.income,
     marginTop: 4,
   },

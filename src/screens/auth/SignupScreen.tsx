@@ -37,7 +37,6 @@ export default function SignupScreen() {
     setFormError(undefined);
     try {
       const user = await signUp(email, password);
-      console.log('Account created:', user.uid);
       router.replace('/'); // into the app
     } catch (e: any) {
       setFormError(friendlyAuthError(e.code));

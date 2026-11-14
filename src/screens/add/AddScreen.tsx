@@ -41,7 +41,7 @@ import type { ParsedMoney } from '@/utils/receipt';
 
 export default function AddScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string; first?: string }>();
+  const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string; first?: string; type?: string; date?: string; category?: string }>();
   const [amount, setAmount] = useState(params.amount ?? '');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
@@ -50,6 +50,12 @@ export default function AddScreen() {
     if (params.amount) setAmount(params.amount);
     if (params.note) setNote(params.note);
   }, [params.amount, params.note]);
+  // Coming from "Edit" on a bank SMS: money in/out, the SMS date and the guessed category
+  useEffect(() => {
+    if (params.type === 'income' || params.type === 'expense') setType(params.type);
+    if (params.date && !isNaN(Date.parse(params.date))) setDay(new Date(params.date));
+    if (params.category) { setCategory(params.category); setCategoryTouched(true); }
+  }, [params.type, params.date, params.category]);
   const [day, setDay] = useState(() => new Date());
   const [streamId, setStreamId] = useState(NO_STREAM);
   const [saving, setSaving] = useState(false);
@@ -137,7 +143,6 @@ export default function AddScreen() {
         accountId: accountId || undefined,
         date: withTimeOf(day, new Date()).toISOString(), // chosen day, current time
       });
-      console.log('Saved to Firestore:', id);
 
       notify(
         'Saved',

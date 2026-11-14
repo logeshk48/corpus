@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- SMS permissions + receiver are added only in the "sms" build (plugins/withBankSms.js).
+       Normal builds stay installable: Play Protect blocks sideloaded apps that ask for SMS access. -->
+</manifest>

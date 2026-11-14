@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
   summary: { flexDirection: 'row', gap: Space.sm },
   tile: { flex: 1, backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 4 },
   tileLabel: { fontSize: Type.small, color: Corpus.textMuted },
-  tileValue: { fontSize: Type.h2, fontWeight: '600' },
+  tileValue: { fontSize: Type.h2, fontFamily: Font.display },
   card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: Space.sm },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: Space.sm + 4 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: Corpus.cardAlt, alignItems: 'center', justifyContent: 'center' },
@@ -23,9 +23,9 @@ export const styles = StyleSheet.create({
   link: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600', paddingVertical: 4, paddingHorizontal: 6 },
   actions: { flexDirection: 'row', gap: Space.sm, marginTop: 4 },
   emptyBox: { alignItems: 'center', gap: Space.sm, paddingVertical: 60, paddingHorizontal: Space.lg },
-  emptyTitle: { fontSize: Type.title, fontWeight: '600', color: Corpus.text },
+  emptyTitle: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
   emptyText: { fontSize: Type.body, color: Corpus.textMuted, textAlign: 'center', lineHeight: 19 },
-  debtTotal: { fontSize: Type.amount - 6, fontWeight: '600', color: Corpus.warning },
+  debtTotal: { fontSize: Type.amount - 6, fontFamily: Font.displayBold, color: Corpus.warning },
   nudge: { backgroundColor: Corpus.goldTint, borderColor: Corpus.goldLine, borderWidth: 1, borderRadius: Radius.lg, padding: Space.md, gap: 6 },
   nudgeTitle: { fontSize: Type.label, fontWeight: '600', color: Corpus.gold },
   nudgeText: { fontSize: Type.body, color: Corpus.text, lineHeight: 19 },

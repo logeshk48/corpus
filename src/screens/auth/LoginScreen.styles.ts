@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -20,8 +20,7 @@ export const styles = StyleSheet.create({
     marginBottom: Space.xl,
   },
   brand: {
-    fontSize: Type.brand,
-    fontWeight: '600',
+    fontSize: Type.brand, fontFamily: Font.displayBold,
     color: Corpus.gold,
     letterSpacing: 1,
   },

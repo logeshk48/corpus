@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -28,18 +28,21 @@ export const styles = StyleSheet.create({
   amountRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
     marginTop: Space.sm,
   },
   rupee: {
-    fontSize: Type.h1,
+    fontSize: Type.h1, fontFamily: Font.display,
     color: Corpus.textMuted,
     marginRight: 4,
   },
   amountInput: {
-    fontSize: Type.entry,
-    fontWeight: '500',
+    fontSize: Type.entry, fontFamily: Font.displayBold,
     color: Corpus.gold,
     minWidth: 120,
+    flexShrink: 1,
+    width: '80%',
     textAlign: 'center',
     padding: 0,
   },

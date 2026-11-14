@@ -1,6 +1,8 @@
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
+import ShareCatcher from '@/components/ShareCatcher';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { View } from 'react-native';
 import BillsAutoLogger from '@/components/BillsAutoLogger';
 import MoneyNotifier from '@/components/MoneyNotifier';
 
@@ -9,6 +11,7 @@ export default function TabsLayout() {
     <>
       <BillsAutoLogger />
       <MoneyNotifier />
+      <ShareCatcher />
       <Tabs
       screenOptions={{
         headerShown: false,
@@ -17,7 +20,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: Corpus.bg,
           borderTopColor: Corpus.border,
+          borderTopWidth: 0.5,
         },
+        tabBarLabelStyle: { fontSize: Type.caption, fontWeight: '600' },
       }}
     >
       <Tabs.Screen
@@ -43,7 +48,9 @@ export default function TabsLayout() {
         options={{
           title: 'Add',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size + 6} color={Corpus.gold} />
+            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: Corpus.gold, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="add" size={22} color={Corpus.onGold} />
+            </View>
           ),
         }}
       />

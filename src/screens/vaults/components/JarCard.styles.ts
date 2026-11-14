@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   card: {
@@ -70,8 +70,7 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   balance: {
-    fontSize: Type.h3,
-    fontWeight: '600',
+    fontSize: Type.h3, fontFamily: Font.display,
   },
   goalWrap: {
     gap: 5,

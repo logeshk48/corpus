@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -36,8 +36,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   heroAmount: {
-    fontSize: Type.amount,
-    fontWeight: '600',
+    fontSize: Type.amount, fontFamily: Font.displayBold,
   },
   goalWrap: {
     width: '100%',

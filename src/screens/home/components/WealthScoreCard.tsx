@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import type { WealthScore } from '@/utils/wealthScore';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -44,7 +44,7 @@ const st = StyleSheet.create({
   card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   ring: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
-  num: { fontSize: Type.h3, fontWeight: '700' },
+  num: { fontSize: Type.h3, fontFamily: Font.display },
   title: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
   bars: { flexDirection: 'row', gap: 4 },
   barBg: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },

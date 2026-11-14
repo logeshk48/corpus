@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
@@ -22,7 +22,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
-  heroAmount: { fontSize: Type.amount, fontWeight: '600', color: Corpus.text },
+  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
   heroFreq: { fontSize: Type.small, color: Corpus.textMuted },
   statusPill: {
     marginTop: Space.sm,

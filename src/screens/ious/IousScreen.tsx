@@ -1,5 +1,5 @@
 import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
-import { Corpus, Type } from '@/constants/theme';
+import { Corpus, Font, Type } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useIous } from '@/hooks/useIous';
 import { useBills } from '@/hooks/useBills';
@@ -300,7 +300,7 @@ export default function IousScreen() {
           </View>
         ) : ious.length === 0 && debts.total === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: Type.hero }}>🤝</Text>
+            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold }}>🤝</Text>
             <Text style={styles.emptyTitle}>Nobody owes anybody</Text>
             <Text style={styles.emptyText}>
               Paid for a friend’s dinner? Borrowed from a flatmate? Note it here so nothing is forgotten — Corpus reminds you when it’s due.

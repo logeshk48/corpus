@@ -13,8 +13,8 @@ export type ScanResult = { ok: true; text: string } | { ok: false; reason: 'canc
 
 export async function scanReceipt(from: 'camera' | 'library'): Promise<ScanResult> {
   if (!reader?.isSupported) return { ok: false, reason: 'unavailable' };
-  const perm = from === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return { ok: false, reason: 'denied' };
+  // The system photo picker needs no permission (and Play restricts full photo access), so only the camera asks
+  if (from === 'camera' && !(await ImagePicker.requestCameraPermissionsAsync()).granted) return { ok: false, reason: 'denied' };
   const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1, allowsEditing: from === 'camera' };
   const res = from === 'camera' ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
   if (res.canceled || !res.assets?.[0]) return { ok: false, reason: 'cancelled' };

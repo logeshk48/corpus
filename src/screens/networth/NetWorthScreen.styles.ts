@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
   hero: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, gap: 4, alignItems: 'center' },
   heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.6 },
-  heroValue: { fontSize: Type.amount, fontWeight: '600', color: Corpus.text },
+  heroValue: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
   heroSub: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center' },
   views: { flexDirection: 'row', gap: Space.sm },
   view: { flex: 1, backgroundColor: Corpus.card, borderRadius: Radius.md, borderWidth: 1, borderColor: Corpus.border, padding: 10, gap: 2 },

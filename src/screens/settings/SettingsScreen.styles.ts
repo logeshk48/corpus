@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: {
@@ -42,8 +42,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: Type.h3,
-    fontWeight: '600',
+    fontSize: Type.h3, fontFamily: Font.display,
     color: Corpus.gold,
   },
   profileName: {

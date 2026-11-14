@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.4 },
-  heroAmount: { fontSize: Type.amount, fontWeight: '500', color: Corpus.text },
+  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
   heroPer: { fontSize: Type.body, color: Corpus.textMuted, marginTop: -2 },
   heroYear: { fontSize: Type.small, color: Corpus.textMuted, marginTop: 2 },
   progressWrap: { alignSelf: 'stretch', gap: 6, marginTop: Space.md },
