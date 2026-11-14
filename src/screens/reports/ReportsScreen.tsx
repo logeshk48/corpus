@@ -109,6 +109,15 @@ export default function ReportsScreen() {
 
         <DataHealthCard h={health} />
 
+        <Pressable style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 10, borderColor: Corpus.goldLine }]} onPress={() => router.push('/?review=1' as Href)}>
+          <Ionicons name="calendar-number-outline" size={18} color={Corpus.gold} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{`Review ${new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString('en-IN', { month: 'long' })}`}</Text>
+            <Text style={styles.meta}>How last month went, and 3 things to do this month</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+        </Pressable>
+
         {kind === 'fy' && (
           <Pressable style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 10, borderColor: Corpus.goldLine }]} onPress={() => router.push(`/tax?year=${year}` as Href)}>
             <Ionicons name="receipt-outline" size={18} color={Corpus.gold} />

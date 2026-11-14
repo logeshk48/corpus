@@ -57,7 +57,7 @@ import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link, useRouter, type Href } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import HeroCard from './components/HeroCard';
 import HomeHeader from './components/HomeHeader';
 import TransactionRow from './components/TransactionRow';
@@ -357,7 +357,8 @@ export default function HomeScreen() {
     if (a.kind === 'notify') await saveSettings({ notify: { ...(settings.notify ?? {}), daily: true } });
     showToast({ message: 'Done — saved to your settings' });
   };
-  const showMonth = new Date().getDate() <= 7 && mReport.hasData && !(settings.dismissedInsights ?? []).includes(`mreport:${lmKey}`);
+  const { review } = useLocalSearchParams<{ review?: string }>();
+  const showMonth = mReport.hasData && (review === '1' || (new Date().getDate() <= 7 && !(settings.dismissedInsights ?? []).includes(`mreport:${lmKey}`)));
   const gold = useGoldRate();
   const nwItems = netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null });
   const nwTotals = netWorthTotals(nwItems);
@@ -440,7 +441,7 @@ export default function HomeScreen() {
             onAct={actPlan}
             onOpen={() => router.push(`/analytics?month=${lmKey}` as Href)}
             onYear={() => router.push('/reports' as Href)}
-            onClose={() => saveSettings({ dismissedInsights: [...(settings.dismissedInsights ?? []), `mreport:${lmKey}`] }).catch(() => {})}
+            onClose={() => review === '1' ? router.setParams({ review: undefined }) : saveSettings({ dismissedInsights: [...(settings.dismissedInsights ?? []), `mreport:${lmKey}`] }).catch(() => {})}
           />
         )}
 
