@@ -1,7 +1,8 @@
 import { Button, SectionLabel } from '@/components/ui';
 import DeleteAccountSheet from './components/DeleteAccountSheet';
+import { setThemeChoice } from '@/services/theme';
 import { disableSms, enableSms, shareSupported, smsEnabled, smsSupported } from '@/services/bankSms';
-import { Corpus, Space } from '@/constants/theme';
+import { Corpus, Space, themeChoice } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
 import { logOut } from '@/services/auth';
@@ -381,11 +382,17 @@ export default function SettingsScreen() {
                 <View style={styles.rowIcon}>
                   <Ionicons name="moon-outline" size={15} color={Corpus.gold} />
                 </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowLabel}>Theme</Text>
-                  <Text style={styles.rowValue}>Ink & Gold</Text>
+                <View style={[styles.rowBody, { gap: 8 }]}>
+                  <Text style={styles.rowLabel}>Appearance</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {([['system', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']] as const).map(([k, label]) => (
+                      <Pressable key={k} onPress={() => setThemeChoice(k)} style={[chip.base, themeChoice === k && chip.on]} accessibilityRole="button" accessibilityState={{ selected: themeChoice === k }}>
+                        <Text style={[chip.text, themeChoice === k && chip.textOn]}>{label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Text style={styles.rowHint}>Automatic follows your phone’s light / dark setting</Text>
                 </View>
-                <Text style={styles.rowHint}>More soon</Text>
               </View>
             </View>
 

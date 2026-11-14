@@ -1,20 +1,22 @@
 import AuthGate from '@/components/AuthGate';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
-import { useFonts } from 'expo-font';
+import { isDark } from '@/constants/theme';
+import { watchSystemTheme } from '@/services/theme';
 import { Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    'Bricolage-SemiBold': require('../../assets/fonts/BricolageGrotesque_600SemiBold.ttf'),
-    'Bricolage-Bold': require('../../assets/fonts/BricolageGrotesque_700Bold.ttf'),
-  });
-  if (!loaded && !error) return null; // a moment on first launch; falls back to the system font on error
+  // The web build is pre-rendered without knowing the saved theme, so draw only in the browser
+  const [mounted, setMounted] = useState(Platform.OS !== 'web');
+  useEffect(() => { setMounted(true); return watchSystemTheme(); }, []);
+  if (!mounted) return null;
   return (
     <AuthProvider>
       <ToastProvider>
-        <StatusBar style="dark" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <AuthGate>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />

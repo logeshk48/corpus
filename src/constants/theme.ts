@@ -6,9 +6,10 @@
 import '@/global.css';
 
 import { Platform } from 'react-native';
+import { readThemeChoice, resolveScheme } from './themeChoice';
 
 // ─── Corpus Design System ───────────────────────────────
-export const Corpus = {
+const LIGHT = {
   // Surfaces — Apple-style light: grouped grey background, white cards
   bg: '#F2F2F7',        // app background (systemGroupedBackground)
   card: '#FFFFFF',      // cards, grouped lists
@@ -50,6 +51,41 @@ export const Corpus = {
   glassEdge: 'rgba(255,255,255,0.95)',
   shadow: 'rgba(0,0,0,0.14)',
 };
+// Apple-style dark: true black background, raised grey cards, brighter tints
+const DARK: typeof LIGHT = {
+  bg: '#000000',
+  card: '#1C1C1E',
+  cardAlt: '#2C2C2E',
+  border: '#38383A',
+  gold: '#30D158',
+  goldSoft: '#7EE2A0',
+  text: '#FFFFFF',
+  textMuted: '#A1A1A8',
+  textFaint: '#7C7C82',
+  income: '#30D158',
+  danger: '#FF6961',
+  warning: '#FFB340',
+  onGold: '#000000',
+  goldTint: '#10281B',
+  goldLine: '#1E4A31',
+  goldActive: '#163A27',
+  incomeTint: '#10281B',
+  incomeLine: '#1E4A31',
+  warningTint: '#2E2210',
+  warningLine: '#5A4320',
+  dangerTint: '#2E1614',
+  dangerLine: '#5C2724',
+  violet: '#C987F2',
+  violetTint: '#2A1838',
+  glass: 'rgba(40,40,42,0.78)',
+  glassEdge: 'rgba(255,255,255,0.16)',
+  shadow: 'rgba(0,0,0,0.55)',
+};
+
+// Picked once at startup; changing the theme in Settings restarts the app's screens with the new one
+export const themeChoice = readThemeChoice();
+export const isDark = resolveScheme(themeChoice) === 'dark';
+export const Corpus = isDark ? DARK : LIGHT;
 
 // Apple-style type: the phone's own system font (SF Pro on iPhone, Roboto on Android) for everything.
 // Weight comes from fontWeight next to it.
