@@ -48,6 +48,9 @@ import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
 import { useEffect, useState } from 'react';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
+import AffordSheet from './components/AffordSheet';
+import { monthlyFlow } from '@/utils/afford';
+import { upcomingBills } from '@/utils/moneyHealth';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,6 +100,7 @@ export default function HomeScreen() {
   const seenCleared = (ids: string[]) => saveSettings({ debtPlan: { ...dp, seenCleared: [...(dp.seenCleared ?? []), ...ids] } }).catch(() => {});
   const reminders = actionable([...shortAlert, ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
   const [showSafe, setShowSafe] = useState(false);
+  const [showAfford, setShowAfford] = useState(false);
   const { showToast } = useToast();
   const [paying, setPaying] = useState<Bill | null>(null);
 
@@ -402,6 +406,14 @@ export default function HomeScreen() {
         />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
 
+        <Pressable style={styles.linkCard} onPress={() => setShowAfford(true)} accessibilityRole="button">
+          <View style={[styles.linkIcon, styles.linkIconGold]}>
+            <Ionicons name="cart-outline" size={16} color={Corpus.gold} />
+          </View>
+          <Text style={styles.linkText}>Can I afford this?</Text>
+          <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+        </Pressable>
+
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
 
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
@@ -466,6 +478,15 @@ export default function HomeScreen() {
         )}
       </ScrollView>
       <SafeToSpendSheet visible={showSafe} result={safe} onClose={() => setShowSafe(false)} />
+      <AffordSheet
+        visible={showAfford} onClose={() => setShowAfford(false)} safe={safe}
+        have={accounts.length > 0 ? accHave : null} cardDues={accTotals.cardDues}
+        billsNext30={upcomingBills(bills).reduce((a, b) => a + b.amount, 0)} flow={monthlyFlow(yearTx)}
+        onStartJar={async (name, goal, targetDate) => {
+          await addVault({ name, icon: 'gift', color: VAULT_COLORS[0], goal, targetDate, kind: 'goal' });
+          showToast({ message: `Jar “${name}” started` });
+        }}
+      />
       <PayBillSheet bill={paying} onClose={() => setPaying(null)} onPay={payBill} onSkip={skipBill} />
     </SafeAreaView>
   );
