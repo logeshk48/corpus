@@ -26,6 +26,7 @@ export default function RootLayout() {
             <Stack.Screen name="accounts" />
             <Stack.Screen name="networth" />
             <Stack.Screen name="wealth" />
+            <Stack.Screen name="ask" />
             <Stack.Screen name="debts" />
             <Stack.Screen name="inbox" />
             <Stack.Screen name="reports" />

@@ -422,13 +422,16 @@ export default function HomeScreen() {
         />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
 
-        <Pressable style={styles.linkCard} onPress={() => setShowAfford(true)} accessibilityRole="button">
-          <View style={[styles.linkIcon, styles.linkIconGold]}>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Pressable style={[styles.linkCard, { flex: 1, paddingHorizontal: 12 }]} onPress={() => setShowAfford(true)} accessibilityRole="button">
             <Ionicons name="cart-outline" size={16} color={Corpus.gold} />
-          </View>
-          <Text style={styles.linkText}>Can I afford this?</Text>
-          <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
-        </Pressable>
+            <Text style={styles.linkText} numberOfLines={1}>Can I afford?</Text>
+          </Pressable>
+          <Pressable style={[styles.linkCard, { flex: 1, paddingHorizontal: 12 }]} onPress={() => router.push('/ask' as Href)} accessibilityRole="button">
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color={Corpus.gold} />
+            <Text style={styles.linkText} numberOfLines={1}>Ask Corpus</Text>
+          </Pressable>
+        </View>
 
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
 
