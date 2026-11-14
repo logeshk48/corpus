@@ -1,6 +1,7 @@
 import { SectionLabel } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { addTransaction } from '@/services/transactions';
 import { useTransactions } from '@/hooks/useTransactions';
 import { findCategory } from '@/constants/categories';
@@ -33,6 +34,9 @@ function notify(title: string, message: string) {
     Alert.alert(title, message);
   }
 }
+
+import PasteSheet from './components/PasteSheet';
+import type { ParsedMoney } from '@/utils/receipt';
 
 export default function AddScreen() {
   const router = useRouter();
@@ -101,6 +105,23 @@ export default function AddScreen() {
   };
 
 
+  // Pasted bank SMS / receipt → fill the form (you still check and tap Save)
+  const [showPaste, setShowPaste] = useState(false);
+  const fillFrom = (p: ParsedMoney) => {
+    setType(p.type);
+    setStreamId(NO_STREAM);
+    setAmount(p.amount ? String(p.amount) : '');
+    setNote(p.merchant ?? '');
+    if (p.date) setDay(p.date);
+    const g = p.merchant ? guessCategory(p.merchant, history, p.type) : undefined;
+    setCategory(g?.category ?? null);
+    setCategoryTouched(false);
+    if (p.last4) {
+      const acc = accounts.find((a) => !a.archived && a.name.includes(p.last4!));
+      if (acc) setAccountId(acc.id);
+    }
+  };
+
   const handleSave = async () => {
     if (!isValid || !category) return;
 
@@ -143,7 +164,13 @@ export default function AddScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.heading}>Add transaction</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.heading}>Add transaction</Text>
+          <Pressable onPress={() => setShowPaste(true)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }} accessibilityRole="button">
+            <Ionicons name="clipboard-outline" size={16} color={Corpus.gold} />
+            <Text style={{ color: Corpus.gold, fontWeight: '600', fontSize: Type.small }}>Paste SMS</Text>
+          </Pressable>
+        </View>
 
         {params.first && (
           <View style={styles.firstBanner}>
@@ -230,6 +257,7 @@ export default function AddScreen() {
 
         <SaveButton enabled={isValid && !saving} onPress={handleSave} />
       </ScrollView>
+      <PasteSheet visible={showPaste} onClose={() => setShowPaste(false)} history={history} onFill={fillFrom} />
     </SafeAreaView>
   );
 }
