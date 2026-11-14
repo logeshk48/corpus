@@ -1,11 +1,20 @@
 import { Corpus, Radius, Space, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { MonthReport } from '@/utils/monthReport';
+import type { PlanItem } from '@/utils/monthPlan';
+import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 // First week of the month: how last month went
-export default function MonthReportCard({ r, onOpen, onYear, onClose }: { r: MonthReport; onOpen: () => void; onYear: () => void; onClose: () => void }) {
+type Verdict = { tone: 'good' | 'ok' | 'bad' | 'neutral'; text: string };
+const VCOLOR = { good: Corpus.income, ok: Corpus.warning, bad: Corpus.danger, neutral: Corpus.textMuted };
+
+export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYear, onClose }: {
+  r: MonthReport; verdict: Verdict; plan: PlanItem[]; onAct: (p: PlanItem) => Promise<void>;
+  onOpen: () => void; onYear: () => void; onClose: () => void;
+}) {
+  const [done, setDone] = useState<string[]>([]);
   const pct = (x: number) => `${x > 0 ? '+' : '−'}${Math.round(Math.abs(x) * 100)}%`;
   const lines: { text: string; color?: string }[] = [];
   if (r.spentChange != null && Math.abs(r.spentChange) >= 0.05) lines.push({ text: `Spent ${pct(r.spentChange)} vs ${formatINR(Math.round(r.prevSpent))} the month before`, color: r.spentChange > 0 ? Corpus.warning : Corpus.income });
@@ -25,6 +34,7 @@ export default function MonthReportCard({ r, onOpen, onYear, onClose }: { r: Mon
           <Ionicons name="close" size={16} color={Corpus.textFaint} />
         </Pressable>
       </View>
+      <Text style={[st.verdict, { color: VCOLOR[verdict.tone] }]}>{verdict.text}</Text>
       <View style={st.nums}>
         <View style={st.num}>
           <Text style={st.label}>SAVED</Text>
@@ -42,6 +52,29 @@ export default function MonthReportCard({ r, onOpen, onYear, onClose }: { r: Mon
       {lines.slice(0, 5).map((l) => (
         <Text key={l.text} style={[st.line, l.color ? { color: l.color } : null]}>• {l.text}</Text>
       ))}
+      {plan.length > 0 && (
+        <View style={st.plan}>
+          <Text style={st.label}>{`DO THIS IN ${new Date().toLocaleDateString('en-IN', { month: 'long' }).toUpperCase()}`}</Text>
+          {plan.map((p, i) => {
+            const ok = done.includes(p.id);
+            return (
+              <View key={p.id} style={st.item}>
+                <Text style={st.n}>{i + 1}</Text>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={st.itemTitle}>{p.title}</Text>
+                  <Text style={st.line}>{p.body}</Text>
+                  <Pressable
+                    style={[st.cta, ok && st.ctaDone]} disabled={ok} accessibilityRole="button"
+                    onPress={() => onAct(p).then(() => { if (p.act.kind !== 'route') setDone((d) => [...d, p.id]); }).catch(() => {})}
+                  >
+                    <Text style={[st.ctaText, ok && { color: Corpus.income }]}>{ok ? 'Done ✓' : p.cta}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
       <View style={{ flexDirection: 'row', gap: 16 }}>
         <Text style={st.link} onPress={onOpen}>See {r.name} →</Text>
         <Text style={st.link} onPress={onYear}>Year report →</Text>
@@ -59,5 +92,13 @@ const st = StyleSheet.create({
   label: { fontSize: Type.caption, color: Corpus.textFaint, letterSpacing: 0.4 },
   value: { fontSize: Type.title, fontWeight: '700', color: Corpus.text },
   line: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
+  verdict: { fontSize: Type.body, fontWeight: '600' },
+  plan: { gap: 10, marginTop: 4, paddingTop: 10, borderTopWidth: 0.5, borderTopColor: Corpus.border },
+  item: { flexDirection: 'row', gap: 10 },
+  n: { width: 20, height: 20, borderRadius: 10, backgroundColor: Corpus.goldActive, color: Corpus.gold, fontSize: Type.caption, fontWeight: '700', textAlign: 'center', lineHeight: 20 },
+  itemTitle: { fontSize: Type.body, fontWeight: '600', color: Corpus.text },
+  cta: { alignSelf: 'flex-start', marginTop: 4, paddingVertical: 6, paddingHorizontal: 12, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Corpus.goldLine, backgroundColor: Corpus.goldTint },
+  ctaDone: { borderColor: Corpus.incomeLine, backgroundColor: Corpus.incomeTint },
+  ctaText: { fontSize: Type.small, fontWeight: '600', color: Corpus.gold },
   link: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600' },
 });

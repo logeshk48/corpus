@@ -7,6 +7,7 @@ import { useIous } from '@/hooks/useIous';
 import { useAccounts } from '@/hooks/useAccounts';
 import { accountBalances, accountTotals, cardReminders, verifiedAgo } from '@/utils/accounts';
 import { moneyHealth } from '@/utils/moneyHealth';
+import { monthPlan, monthVerdict, type PlanItem } from '@/utils/monthPlan';
 import { useAssets } from '@/hooks/useAssets';
 import { useGoldRate } from '@/hooks/useGoldRate';
 import { useInvestments } from '@/hooks/useInvestments';
@@ -342,6 +343,20 @@ export default function HomeScreen() {
   // First week of the month: last month's report (until you close it)
   const lmKey = lastMonthKey();
   const mReport = monthReport({ tx: yearTx, investments, month: lmKey, budget: settings.monthlyBudget, netWorth: nwSnaps, scoreLog: settings.scoreLog });
+  const mPlan = monthPlan({
+    r: mReport, tx: yearTx, monthlyBudget: settings.monthlyBudget, categoryBudgets: settings.categoryBudgets,
+    dailyReminderOn: !!settings.notify?.daily, hasSip: investments.some((i) => !!i.sip),
+    idleCash: accounts.length ? moneyHealth(accTotals.have, accTotals.cardDues, bills, yearTx).idle : 0,
+    hasEmergencyJar: vaults.some((v) => v.kind === 'emergency'),
+  });
+  const actPlan = async (p: PlanItem) => {
+    const a = p.act;
+    if (a.kind === 'route') return router.push(a.href as Href);
+    if (a.kind === 'catBudget') await saveCategoryBudgets({ ...(settings.categoryBudgets ?? {}), [a.category]: a.limit });
+    if (a.kind === 'budget') await saveSettings({ monthlyBudget: a.amount });
+    if (a.kind === 'notify') await saveSettings({ notify: { ...(settings.notify ?? {}), daily: true } });
+    showToast({ message: 'Done — saved to your settings' });
+  };
   const showMonth = new Date().getDate() <= 7 && mReport.hasData && !(settings.dismissedInsights ?? []).includes(`mreport:${lmKey}`);
   const gold = useGoldRate();
   const nwItems = netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null });
@@ -420,6 +435,9 @@ export default function HomeScreen() {
         {showMonth && (
           <MonthReportCard
             r={mReport}
+            verdict={monthVerdict(mReport)}
+            plan={mPlan}
+            onAct={actPlan}
             onOpen={() => router.push(`/analytics?month=${lmKey}` as Href)}
             onYear={() => router.push('/reports' as Href)}
             onClose={() => saveSettings({ dismissedInsights: [...(settings.dismissedInsights ?? []), `mreport:${lmKey}`] }).catch(() => {})}
