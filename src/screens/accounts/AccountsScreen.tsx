@@ -178,7 +178,7 @@ export default function AccountsScreen() {
           <ActivityIndicator color={Corpus.gold} style={{ paddingVertical: 60 }} />
         ) : list.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold }}>🏦</Text>
+            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold, fontWeight: '700' }}>🏦</Text>
             <Text style={styles.emptyTitle}>Where is your money?</Text>
             <Text style={styles.emptyText}>
               Add your cash, bank account, wallet and credit cards. When you log an expense, pick where it was paid from, and every balance stays up to date.

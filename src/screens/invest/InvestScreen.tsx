@@ -211,7 +211,7 @@ export default function InvestScreen() {
           <ActivityIndicator color={Corpus.gold} style={{ paddingVertical: 60 }} />
         ) : investments.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold }}>🌱</Text>
+            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold, fontWeight: '700' }}>🌱</Text>
             <Text style={styles.emptyTitle}>All your investments in one place</Text>
             <Text style={styles.emptyText}>
               Mutual funds, stocks, FDs, EPF, PPF, NPS, gold bonds. Add what you have and see what it's worth, what you've gained, and how it's split. Nothing is linked to your bank or demat.

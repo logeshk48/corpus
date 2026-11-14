@@ -9,6 +9,6 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm,
     paddingHorizontal: 2,
   },
-  text: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.textMuted },
+  text: { fontSize: Type.body, fontFamily: Font.display, fontWeight: '600', color: Corpus.textMuted },
   meta: { fontSize: Type.small, color: Corpus.textFaint },
 });

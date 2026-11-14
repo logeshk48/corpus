@@ -29,23 +29,24 @@ export default function HomeHeader() {
   const router = useRouter();
   const { attention } = useInbox();
 
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  // Apple large-title header: date line + round glass buttons, then a big "Today"
   return (
-    <View style={styles.container}>
-      <View>
-        <Text style={styles.greeting}>{getGreeting()}</Text>
-        <Text style={styles.name}>{name}</Text>
+    <View style={styles.wrap}>
+      <View style={styles.container}>
+        <Text style={styles.greeting} numberOfLines={1}>{today}</Text>
+        <View style={styles.actions}>
+          <Pressable style={styles.round} onPress={() => router.push('/inbox' as Href)} accessibilityLabel={`Reminders${attention ? `, ${attention} need attention` : ''}`}>
+            <Ionicons name="notifications-outline" size={19} color={Corpus.text} />
+            {attention > 0 && <View style={styles.dot} />}
+          </Pressable>
+          <Pressable style={[styles.round, styles.avatar]} onPress={() => router.push('/settings' as Href)} accessibilityLabel="Profile and settings">
+            <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+          </Pressable>
+        </View>
       </View>
-      <View style={styles.actions}>
-        <Pressable onPress={() => router.push('/inbox' as Href)} hitSlop={10} accessibilityLabel={`Reminders${attention ? `, ${attention} need attention` : ''}`}>
-          <Ionicons name={attention ? 'notifications' : 'notifications-outline'} size={20} color={attention ? Corpus.gold : Corpus.textMuted} />
-          {attention > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{attention > 9 ? '9+' : attention}</Text>
-            </View>
-          )}
-        </Pressable>
-        <Ionicons name="lock-closed-outline" size={20} color={Corpus.textMuted} />
-      </View>
+      <Text style={styles.name} accessibilityRole="header">Today</Text>
     </View>
   );
 }

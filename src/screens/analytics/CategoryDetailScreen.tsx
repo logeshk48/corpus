@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
   hero: { backgroundColor: Corpus.card, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, alignItems: 'center', gap: 4 },
   heroLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6 },
-  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
+  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, fontWeight: '700', color: Corpus.text },
   heroSub: { fontSize: Type.small, color: Corpus.textMuted },
   meterWrap: { alignSelf: 'stretch', gap: 6, marginTop: Space.sm, alignItems: 'center' },
   meterTrack: { alignSelf: 'stretch', height: 8, borderRadius: 4, backgroundColor: ChartColors.track, overflow: 'hidden' },

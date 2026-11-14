@@ -41,7 +41,7 @@ import type { ParsedMoney } from '@/utils/receipt';
 
 export default function AddScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string; first?: string; type?: string; date?: string; category?: string }>();
+  const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string; first?: string; type?: string; date?: string; category?: string; paste?: string }>();
   const [amount, setAmount] = useState(params.amount ?? '');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
@@ -114,6 +114,7 @@ export default function AddScreen() {
 
   // Pasted bank SMS / receipt → fill the form (you still check and tap Save)
   const [showPaste, setShowPaste] = useState(false);
+  useEffect(() => { if (params.paste === '1') setShowPaste(true); }, [params.paste]);
   const fillFrom = (p: ParsedMoney) => {
     setType(p.type);
     setStreamId(NO_STREAM);

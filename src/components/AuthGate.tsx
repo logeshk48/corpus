@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 20,
   },
-  brand: { fontSize: Type.brand, fontFamily: Font.displayBold, color: Corpus.gold, letterSpacing: 2 },
+  brand: { fontSize: Type.brand, fontFamily: Font.displayBold, fontWeight: '700', color: Corpus.gold, letterSpacing: 2 },
 });

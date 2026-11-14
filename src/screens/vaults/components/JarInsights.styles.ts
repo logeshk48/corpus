@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
     color: Corpus.text,
   },
   big: {
-    fontSize: Type.h2, fontFamily: Font.display,
+    fontSize: Type.h2, fontFamily: Font.display, fontWeight: '600',
   },
   line: {
     fontSize: Type.small,

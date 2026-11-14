@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   heroAmount: {
-    fontSize: Type.amount, fontFamily: Font.displayBold,
+    fontSize: Type.amount, fontFamily: Font.displayBold, fontWeight: '700',
   },
   goalWrap: {
     width: '100%',

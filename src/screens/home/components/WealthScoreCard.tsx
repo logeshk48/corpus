@@ -44,7 +44,7 @@ const st = StyleSheet.create({
   card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   ring: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
-  num: { fontSize: Type.h3, fontFamily: Font.display },
+  num: { fontSize: Type.h3, fontFamily: Font.display, fontWeight: '600' },
   title: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
   bars: { flexDirection: 'row', gap: 4 },
   barBg: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },

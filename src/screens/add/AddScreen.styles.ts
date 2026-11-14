@@ -33,12 +33,12 @@ export const styles = StyleSheet.create({
     marginTop: Space.sm,
   },
   rupee: {
-    fontSize: Type.h1, fontFamily: Font.display,
+    fontSize: Type.h1, fontFamily: Font.display, fontWeight: '600',
     color: Corpus.textMuted,
     marginRight: 4,
   },
   amountInput: {
-    fontSize: Type.entry, fontFamily: Font.displayBold,
+    fontSize: Type.entry, fontFamily: Font.displayBold, fontWeight: '700',
     color: Corpus.gold,
     minWidth: 120,
     flexShrink: 1,

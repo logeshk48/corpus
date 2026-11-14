@@ -6,7 +6,7 @@ export const styles = StyleSheet.create({
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
   hero: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, gap: 4, alignItems: 'center' },
   heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.6 },
-  heroValue: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.danger },
+  heroValue: { fontSize: Type.amount, fontFamily: Font.displayBold, fontWeight: '700', color: Corpus.danger },
   heroSub: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center' },
   tiles: { flexDirection: 'row', gap: Space.sm },
   tile: { flex: 1, backgroundColor: Corpus.card, borderRadius: Radius.md, borderWidth: 0.5, borderColor: Corpus.border, padding: 10, gap: 2 },
@@ -22,5 +22,5 @@ export const styles = StyleSheet.create({
   badgeText: { fontSize: Type.caption, fontWeight: '700' },
   note: { fontSize: Type.small, color: Corpus.textFaint, lineHeight: 17 },
   empty: { alignItems: 'center', gap: Space.sm, paddingVertical: 40 },
-  emptyTitle: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
+  emptyTitle: { fontSize: Type.title, fontFamily: Font.display, fontWeight: '600', color: Corpus.text },
 });

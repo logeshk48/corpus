@@ -22,7 +22,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 4,
   },
-  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
+  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, fontWeight: '700', color: Corpus.text },
   heroFreq: { fontSize: Type.small, color: Corpus.textMuted },
   statusPill: {
     marginTop: Space.sm,

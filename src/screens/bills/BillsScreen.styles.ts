@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.4 },
-  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
+  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, fontWeight: '700', color: Corpus.text },
   heroPer: { fontSize: Type.body, color: Corpus.textMuted, marginTop: -2 },
   heroYear: { fontSize: Type.small, color: Corpus.textMuted, marginTop: 2 },
   progressWrap: { alignSelf: 'stretch', gap: 6, marginTop: Space.md },

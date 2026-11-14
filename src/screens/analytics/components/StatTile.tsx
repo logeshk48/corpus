@@ -30,6 +30,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   label: { fontSize: Type.caption, color: Corpus.textMuted },
-  value: { fontSize: Type.h3, fontFamily: Font.display, color: Corpus.text },
+  value: { fontSize: Type.h3, fontFamily: Font.display, fontWeight: '600', color: Corpus.text },
   delta: { fontSize: Type.caption, color: Corpus.textMuted },
 });

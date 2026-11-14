@@ -300,7 +300,7 @@ export default function IousScreen() {
           </View>
         ) : ious.length === 0 && debts.total === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold }}>🤝</Text>
+            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold, fontWeight: '700' }}>🤝</Text>
             <Text style={styles.emptyTitle}>Nobody owes anybody</Text>
             <Text style={styles.emptyText}>
               Paid for a friend’s dinner? Borrowed from a flatmate? Note it here so nothing is forgotten — Corpus reminds you when it’s due.

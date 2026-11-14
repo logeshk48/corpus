@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   balance: {
-    fontSize: Type.h3, fontFamily: Font.display,
+    fontSize: Type.h3, fontFamily: Font.display, fontWeight: '600',
   },
   goalWrap: {
     gap: 5,

@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "corpus",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.logesh.corpus"
@@ -63,6 +63,6 @@
       }
     },
     "owner": "logesh48",
-    "backgroundColor": "#0B1210"
+    "backgroundColor": "#F2F2F7"
   }
 }

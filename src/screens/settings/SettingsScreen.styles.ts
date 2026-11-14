@@ -42,7 +42,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    fontSize: Type.h3, fontFamily: Font.display,
+    fontSize: Type.h3, fontFamily: Font.display, fontWeight: '600',
     color: Corpus.gold,
   },
   profileName: {

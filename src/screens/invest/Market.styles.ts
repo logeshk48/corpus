@@ -18,7 +18,7 @@ export const m = StyleSheet.create({
   searchText: { flex: 1, fontSize: Type.body, color: Corpus.textMuted },
   searchInput: { flex: 1, fontSize: Type.input, color: Corpus.text, paddingVertical: 4 },
   tabs: { flexDirection: 'row', gap: Space.sm },
-  bigPrice: { fontSize: Type.h1, fontFamily: Font.display, color: Corpus.text,},
+  bigPrice: { fontSize: Type.h1, fontFamily: Font.display, fontWeight: '600', color: Corpus.text,},
   chart: { height: 140, flexDirection: 'row', alignItems: 'flex-end', gap: 1 },
   ranges: { flexDirection: 'row', justifyContent: 'space-between' },
   range: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.sm },

@@ -9,49 +9,66 @@ import { Platform } from 'react-native';
 
 // ─── Corpus Design System ───────────────────────────────
 export const Corpus = {
-  // Surfaces
-  bg: '#0B1210',        // app background — ledger ink (green-black)
-  card: '#131C19',      // cards
-  cardAlt: '#1B2622',   // icon circles, nested elements
-  border: '#24302B',    // hairline borders
+  // Surfaces — Apple-style light: grouped grey background, white cards
+  bg: '#F2F2F7',        // app background (systemGroupedBackground)
+  card: '#FFFFFF',      // cards, grouped lists
+  cardAlt: '#EFEFF4',   // icon circles, nested elements, inputs
+  border: '#E3E3E8',    // hairline separators
 
-  // Brand
-  gold: '#D9AC3B',      // THE color — hero numbers, active states
-  goldSoft: '#EED68F',  // lighter gold for subtle accents
+  // Brand tint (kept under the old name "gold" so every screen picks it up)
+  gold: '#0A7D4F',      // Corpus green — active states, key numbers, buttons
+  goldSoft: '#34C77B',  // lighter green for subtle accents
 
   // Text
-  text: '#F2EDDC',      // primary (warm cream)
-  textMuted: '#8D9993', // secondary labels
-  textFaint: '#56635D', // disabled, inactive
+  text: '#000000',      // primary label
+  textMuted: '#6C6C70', // secondary label (passes 4.5:1 on white)
+  textFaint: '#8E8E93', // tertiary: icons, chevrons, placeholders
 
-  // Semantic
-  income: '#55B98A',    // green for money in
-  danger: '#E3644F',    // red for over-budget
-  warning: '#E5A54B',   // amber for 80% alerts
+  // Semantic (darker shades than iOS defaults so text stays readable on white)
+  income: '#1E8A47',    // money in
+  danger: '#D92D20',    // over budget, delete
+  warning: '#B45F00',   // 80% alerts, due soon
 
-  // Text/icons placed ON a gold surface (buttons, active chips)
-  onGold: '#0B1210',
+  // Text/icons placed ON the brand colour (buttons, active chips)
+  onGold: '#FFFFFF',
 
-  // Tints: a dark wash + a hairline for each semantic colour.
-  // Use the pair together, e.g. { backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine }
-  goldTint: '#1B1D13',    // highlighted card / note
-  goldLine: '#4A3D1C',
-  goldActive: '#2C2A14',  // selected chip / segment
-  incomeTint: '#15271F',
-  incomeLine: '#2A4A3A',
-  warningTint: '#2A2313',
-  warningLine: '#5A4520',
-  dangerTint: '#2A1A17',
-  dangerLine: '#5A2A2A',
-  violet: '#C88BDB',      // loans / EMIs / recurring bills
-  violetTint: '#251E2A',
+  // Tints: a light wash + a hairline for each semantic colour.
+  goldTint: '#E8F5EE',
+  goldLine: '#BFE3CF',
+  goldActive: '#D7EFE2',
+  incomeTint: '#E8F6EC',
+  incomeLine: '#C2E5CB',
+  warningTint: '#FFF4E5',
+  warningLine: '#FFD9A8',
+  dangerTint: '#FDEDEB',
+  dangerLine: '#F7C5C0',
+  violet: '#8944AB',      // loans / EMIs / recurring bills
+  violetTint: '#F4EAFB',
+
+  // Liquid-glass surfaces (tab bar, floating buttons): see-through white with a bright edge
+  glass: 'rgba(255,255,255,0.78)',
+  glassEdge: 'rgba(255,255,255,0.95)',
+  shadow: 'rgba(0,0,0,0.14)',
 };
 
-// Display face for money and headings (Bricolage Grotesque, OFL — assets/fonts). Body text stays the system font.
-// Set fontFamily instead of fontWeight: a custom face carries its own weight.
+// Apple-style type: the phone's own system font (SF Pro on iPhone, Roboto on Android) for everything.
+// Weight comes from fontWeight next to it.
+const SYSTEM = Platform.select({ ios: 'System', android: 'sans-serif', default: "-apple-system, 'SF Pro Display', 'Segoe UI', Roboto, Inter, system-ui, sans-serif" });
 export const Font = {
-  display: 'Bricolage-SemiBold',     // screen headings, card titles
-  displayBold: 'Bricolage-Bold',     // amounts
+  display: SYSTEM,     // screen headings, card titles (with fontWeight '600'/'700')
+  displayBold: SYSTEM, // amounts (with fontWeight '700')
+};
+
+// Apple-style icon squares: one colour per kind of thing (white symbol on top)
+export const Chip = {
+  green: '#1E9E5A', blue: '#0A72E8', indigo: '#5856D6', purple: '#A050D0', pink: '#E8335A',
+  red: '#E5372C', orange: '#F28A00', yellow: '#E0A800', teal: '#14A3B8', gray: '#8E8E93',
+};
+// Category → chip colour (expense + income ids)
+export const CategoryChip: Record<string, string> = {
+  food: Chip.orange, travel: Chip.blue, shopping: Chip.pink, bills: Chip.red, health: Chip.green,
+  fun: Chip.purple, education: Chip.indigo, other: Chip.gray,
+  salary: Chip.green, client: Chip.teal, business: Chip.yellow,
 };
 
 // Type scale: the only font sizes used in the app

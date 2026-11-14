@@ -206,7 +206,7 @@ const st = StyleSheet.create({
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
   brief: { backgroundColor: Corpus.goldTint, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.goldLine, padding: Space.md, gap: 4 },
   briefLabel: { fontSize: Type.caption, color: Corpus.gold, fontWeight: '700', letterSpacing: 0.6 },
-  briefBig: { fontSize: Type.h2, fontFamily: Font.display, color: Corpus.text },
+  briefBig: { fontSize: Type.h2, fontFamily: Font.display, fontWeight: '600', color: Corpus.text },
   briefSmall: { fontSize: Type.body, fontWeight: '500', color: Corpus.textMuted },
   week: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 8 },
   weekRow: { flexDirection: 'row', gap: 8 },

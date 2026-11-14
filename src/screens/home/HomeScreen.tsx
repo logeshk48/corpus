@@ -1,4 +1,5 @@
-import { Corpus } from '@/constants/theme';
+import { Chip, Corpus } from '@/constants/theme';
+import { Group, GroupRow, IconChip } from '@/components/ui';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
@@ -426,15 +427,17 @@ export default function HomeScreen() {
         />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
 
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable style={[styles.linkCard, { flex: 1, paddingHorizontal: 12 }]} onPress={() => setShowAfford(true)} accessibilityRole="button">
-            <Ionicons name="cart-outline" size={16} color={Corpus.gold} />
-            <Text style={styles.linkText} numberOfLines={1}>Can I afford?</Text>
-          </Pressable>
-          <Pressable style={[styles.linkCard, { flex: 1, paddingHorizontal: 12 }]} onPress={() => router.push('/ask' as Href)} accessibilityRole="button">
-            <Ionicons name="chatbubble-ellipses-outline" size={16} color={Corpus.gold} />
-            <Text style={styles.linkText} numberOfLines={1}>Ask Corpus</Text>
-          </Pressable>
+        <View style={styles.tiles}>
+          {[
+            { label: 'Add spend', icon: 'add', color: Chip.green, go: () => router.push('/add' as Href) },
+            { label: 'Scan receipt', icon: 'scan', color: Chip.blue, go: () => router.push('/add?paste=1' as Href) },
+            { label: 'Can I afford?', icon: 'cart', color: Chip.purple, go: () => setShowAfford(true) },
+          ].map((t) => (
+            <Pressable key={t.label} style={({ pressed }) => [styles.tile, pressed && { opacity: 0.7 }]} onPress={t.go} accessibilityRole="button">
+              <IconChip icon={t.icon} color={t.color} size={36} />
+              <Text style={styles.tileText} numberOfLines={1}>{t.label}</Text>
+            </Pressable>
+          ))}
         </View>
 
         {smsWaiting > 0 && (
@@ -488,30 +491,20 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitleInline}>Recent</Text>
-          <Link href="/transactions">
-            <Text style={styles.viewAll}>View all</Text>
-          </Link>
-        </View>
         {loading ? (
           <ActivityIndicator color={Corpus.gold} style={styles.loader} />
         ) : error ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : recent.length === 0 ? (
-          <Text style={styles.emptyText}>
-            No transactions this month yet. Tap the gold + to add one.
-          </Text>
+          <Group title="Recent">
+            <GroupRow icon="add" color={Chip.green} title="Log your first spend" subtitle="Tap Add below — it takes 3 seconds" onPress={() => router.push('/add' as Href)} />
+          </Group>
         ) : (
-          <View style={styles.recentList}>
+          <Group title="Recent" action="See all" onAction={() => router.push('/transactions' as Href)}>
             {recent.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                tx={tx}
-                onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })}
-              />
+              <TransactionRow key={tx.id} tx={tx} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })} />
             ))}
-          </View>
+          </Group>
         )}
       </ScrollView>
       <SafeToSpendSheet visible={showSafe} result={safe} onClose={() => setShowSafe(false)} />

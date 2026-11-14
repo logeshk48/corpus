@@ -1,3 +1,4 @@
+import { ActivityRing } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { SafeToSpendResult } from '@/utils/safeToSpend';
@@ -11,21 +12,14 @@ const STATUS_COLOR = {
   over: Corpus.danger,
 };
 
-// One mark per day of your money month: gone · today · still to come
-function CycleBar({ total, left, color }: { total: number; left: number; color: string }) {
-  const n = Math.min(Math.max(total, 1), 31);
-  const today = Math.min(n, Math.max(1, n - left + 1));
+// Two rings, Apple Activity style: outer = this month's money used, inner = how far through the month you are
+function Rings({ used, through }: { used: number; through: number }) {
   return (
-    <View style={styles.cycle} accessibilityLabel={`Day ${today} of ${n} in your money month`}>
-      <View style={styles.ticks}>
-        {Array.from({ length: n }, (_, i) => (
-          <View
-            key={i}
-            style={[styles.tick, i + 1 < today && styles.tickGone, i + 1 === today && { backgroundColor: color, height: 12 }]}
-          />
-        ))}
+    <View style={styles.rings} accessibilityLabel={`${Math.round(used * 100)}% of this month's money used, ${Math.round(through * 100)}% of the month gone`}>
+      <ActivityRing size={92} thickness={12} progress={used} color={Corpus.gold} track={Corpus.goldTint} />
+      <View style={styles.inner}>
+        <ActivityRing size={58} thickness={12} progress={through} color={Corpus.warning} track={Corpus.warningTint} />
       </View>
-      <Text style={styles.cycleText}>Day {today} of {n} · {left === 1 ? 'pay day tomorrow' : `${left - 1} days to pay day`}</Text>
     </View>
   );
 }
@@ -40,17 +34,24 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   if (loading) {
     return (
       <View style={styles.card}>
-        <Text style={styles.label}>Safe to spend today</Text>
-        <Text style={[styles.amount, { color: Corpus.textFaint }]}>···</Text>
+        <View style={styles.left}>
+          <Text style={styles.label}>Safe to spend today</Text>
+          <Text style={[styles.amount, { color: Corpus.textFaint }]}>···</Text>
+        </View>
       </View>
     );
   }
 
   if (result.status === 'noData') {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-        <Text style={styles.label}>Safe to spend today</Text>
-        <Text style={[styles.amount, { color: Corpus.textFaint }]}>₹ —</Text>
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, styles.cardCol, pressed && styles.pressed]}>
+        <View style={styles.top}>
+          <View style={styles.left}>
+            <Text style={styles.label}>Safe to spend today</Text>
+            <Text style={[styles.amount, { color: Corpus.textFaint }]}>₹ —</Text>
+          </View>
+          <Rings used={0} through={new Date().getDate() / new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} />
+        </View>
         <Text style={styles.emptyText}>
           Add this month's income (or set a monthly budget in Settings) and Corpus will tell you
           exactly how much you can spend each day.
@@ -77,41 +78,34 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   else if (result.status === 'tight') context = `Most of today's ${formatINR(result.dailyAllowance)} is used — go easy`;
   else if (over) context = `Tomorrow's allowance adjusts to ${formatINR(result.tomorrowAllowance)}/day`;
 
+  const used = result.income + (result.monthlyBudget ?? 0) > 0 ? Math.min(1, Math.max(0, 1 - Math.max(result.available, 0) / Math.max(1, result.available + result.spent))) : 0;
+  const through = Math.min(1, Math.max(0, (result.cycleDays - result.daysLeft + 1) / Math.max(1, result.cycleDays)));
+
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
-      <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
-        <View style={[styles.dot, { backgroundColor: color }]} />
-      </View>
-      <Text style={[styles.amount, { color }]} numberOfLines={1} adjustsFontSizeToFit>{amount}</Text>
-      <Text style={styles.context}>{context}</Text>
-      <CycleBar total={result.cycleDays} left={result.daysLeft} color={color} />
-
-      <View style={styles.chips}>
-        {result.spentToday > 0 && (
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>Spent today {formatINR(result.spentToday)}</Text>
-          </View>
-        )}
-        {result.limitedByBudget && (
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>Capped by your monthly budget</Text>
-          </View>
-        )}
-        {result.billsDue > 0 && (
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{formatINR(result.billsDue)} kept for bills</Text>
-          </View>
-        )}
-        {result.plansDue > 0 && (
-          <View style={styles.chip}>
-            <Text style={styles.chipText}>{formatINR(result.plansDue)} kept for jar goals</Text>
-          </View>
-        )}
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, styles.cardCol, pressed && styles.pressed]}>
+      <View style={styles.top}>
+        <View style={styles.left}>
+          <Text style={styles.label}>{label}</Text>
+          <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text }]} numberOfLines={1} adjustsFontSizeToFit>{amount}</Text>
+          <Text style={[styles.context, { color: result.status === 'ok' ? Corpus.textMuted : color }]}>{context}</Text>
+        </View>
+        <Rings used={used} through={through} />
       </View>
 
-      <View style={styles.how}>
-        <Text style={styles.howText}>How is this calculated?</Text>
+      {(result.spentToday > 0 || result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0) && (
+        <View style={styles.chips}>
+          {result.spentToday > 0 && <View style={styles.chip}><Text style={styles.chipText}>Spent today {formatINR(result.spentToday)}</Text></View>}
+          {result.limitedByBudget && <View style={styles.chip}><Text style={styles.chipText}>Capped by your monthly budget</Text></View>}
+          {result.billsDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.billsDue)} kept for bills</Text></View>}
+          {result.plansDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.plansDue)} kept for jar goals</Text></View>}
+        </View>
+      )}
+
+      <View style={styles.legend}>
+        <View style={[styles.key, { backgroundColor: Corpus.gold }]} /><Text style={styles.legendText}>Money used {Math.round(used * 100)}%</Text>
+        <View style={[styles.key, { backgroundColor: Corpus.warning }]} /><Text style={styles.legendText}>Day {result.cycleDays - result.daysLeft + 1} of {result.cycleDays}</Text>
+        <View style={{ flex: 1 }} />
+        <Text style={styles.howText}>How it works</Text>
         <Ionicons name="chevron-forward" size={13} color={Corpus.gold} />
       </View>
     </Pressable>

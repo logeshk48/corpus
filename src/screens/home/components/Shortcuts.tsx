@@ -1,6 +1,5 @@
-import { Corpus, Radius, Type } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Group, GroupRow } from '@/components/ui';
+import { Chip, Corpus } from '@/constants/theme';
 
 export type Shortcut = {
   key: string;
@@ -12,42 +11,16 @@ export type Shortcut = {
 };
 
 const TONE = { normal: Corpus.textMuted, warn: Corpus.warning, danger: Corpus.danger, good: Corpus.income };
+const COLOR: Record<string, string> = { accounts: Chip.blue, budgets: Chip.orange, people: Chip.teal, jars: Chip.yellow, income: Chip.green, networth: Chip.indigo };
+const solid = (icon: string) => icon.replace(/-outline$/, '');
 
-// Everything that isn't today's job, in one compact grid instead of a long list
-export default function Shortcuts({ items }: { items: Shortcut[] }) {
+// Everything that isn't today's job: one grouped list, like iPhone Settings
+export default function Shortcuts({ items }: { items: { key: string; label: string; icon: string; value: string; tone?: Shortcut['tone']; onPress: () => void }[] }) {
   return (
-    <View style={styles.grid}>
-      {items.map((s, i) => (
-        <Pressable
-          key={s.key}
-          style={({ pressed }) => [styles.tile, i % 3 !== 2 && styles.tileRight, i < items.length - 3 && styles.tileBottom, pressed && { backgroundColor: Corpus.cardAlt }]}
-          onPress={s.onPress}
-          accessibilityRole="button"
-          accessibilityLabel={`${s.label}, ${s.value}`}
-        >
-          <Ionicons name={s.icon as keyof typeof Ionicons.glyphMap} size={18} color={Corpus.gold} />
-          <Text style={styles.label} numberOfLines={1}>{s.label}</Text>
-          <Text style={[styles.value, { color: TONE[s.tone ?? 'normal'] }]} numberOfLines={1}>{s.value}</Text>
-        </Pressable>
+    <Group title="Money">
+      {items.map((s) => (
+        <GroupRow key={s.key} icon={solid(s.icon)} color={COLOR[s.key] ?? Chip.gray} title={s.label} value={s.value} valueColor={TONE[s.tone ?? 'normal']} onPress={s.onPress} />
       ))}
-    </View>
+    </Group>
   );
 }
-
-const styles = StyleSheet.create({
-  // One panel split by hairlines — the shortcuts are a menu, not six separate things
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: Corpus.card,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    overflow: 'hidden',
-  },
-  tile: { width: '33.333%', minHeight: 84, padding: 12, gap: 4 },
-  tileRight: { borderRightWidth: 0.5, borderRightColor: Corpus.border },
-  tileBottom: { borderBottomWidth: 0.5, borderBottomColor: Corpus.border },
-  label: { fontSize: Type.body, fontWeight: '600', color: Corpus.text, marginTop: 4 },
-  value: { fontSize: Type.small },
-});

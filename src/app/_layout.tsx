@@ -3,6 +3,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -13,6 +14,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <StatusBar style="dark" />
         <AuthGate>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />

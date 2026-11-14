@@ -77,12 +77,12 @@ export const styles = StyleSheet.create({
     paddingVertical: Space.md,
   },
   rupee: {
-    fontSize: Type.h1, fontFamily: Font.display,
+    fontSize: Type.h1, fontFamily: Font.display, fontWeight: '600',
     color: Corpus.textMuted,
     marginRight: 4,
   },
   amountInput: {
-    fontSize: Type.entry, fontFamily: Font.displayBold,
+    fontSize: Type.entry, fontFamily: Font.displayBold, fontWeight: '700',
     color: Corpus.gold,
     minWidth: 140,
     textAlign: 'center',

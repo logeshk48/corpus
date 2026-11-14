@@ -10,10 +10,14 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: Space.lg,
-    paddingBottom: 100,
-    gap: Space.md,
+    paddingHorizontal: Space.md,
+    paddingTop: Space.sm,
+    paddingBottom: 130, // room for the floating tab bar
+    gap: Space.md + 2,
   },
+  tiles: { flexDirection: 'row', gap: 10 },
+  tile: { flex: 1, height: 84, borderRadius: 22, backgroundColor: Corpus.card, alignItems: 'center', justifyContent: 'center', gap: 7 },
+  tileText: { fontSize: Type.small, fontWeight: '500', color: Corpus.text },
   statsRow: {
     flexDirection: 'row',
     gap: Space.sm + 2,
