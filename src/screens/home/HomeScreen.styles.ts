@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -24,6 +24,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Space.sm + 2,
   },
+  needsHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4, marginBottom: -4 },
+  needsTitle: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text },
+  needsBadge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: Corpus.gold, alignItems: 'center', justifyContent: 'center' },
+  needsBadgeText: { fontSize: Type.small, fontFamily: Font.displayBold, color: Corpus.onGold },
   linkCard: {
     flexDirection: 'row',
     alignItems: 'center',

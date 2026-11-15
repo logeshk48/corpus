@@ -1,3 +1,5 @@
+import CandleChart from '@/components/charts/CandleChart';
+import Spark from '@/components/charts/Spark';
 import { Button, Group, IconChip, Screen } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
 import { Chip, Corpus, Pastel, Type } from '@/constants/theme';
@@ -15,6 +17,7 @@ import { accountBalances, accountTotals, nextCardDue, verifiedAgo, type AccountB
 import { formatINR } from '@/utils/format';
 import { cardHealth, moneyHealth } from '@/utils/moneyHealth';
 import { bestSwipeDay, detectPayday, idleEarnings, minBalanceRisk, spendBetween, untilPayday } from '@/utils/payday';
+import { accountSpark, moneyCandles, type Candle, type CandleRange } from '@/utils/candles';
 import { addCheckinTotal, gapMatters, reconcile } from '@/utils/reconcile';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
@@ -33,7 +36,6 @@ const MONEY_COLORS = [Chip.blue, Chip.teal, Chip.indigo, Chip.purple];
 const CARD_COLORS = [Chip.pink, Chip.orange, Chip.purple, Chip.indigo];
 const OTHER = Chip.gray;
 const shortDate = (d: Date | string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-const filled = (icon: string) => icon.replace('-outline', '');
 
 export default function AccountsScreen() {
   const router = useRouter();
@@ -45,7 +47,10 @@ export default function AccountsScreen() {
   const { bills } = useBills();
   const [sheet, setSheet] = useState<{ editing?: AccountBalance; type?: 'credit' } | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [range, setRange] = useState<CandleRange>('days');
+  const [pick, setPick] = useState<number | null>(null);
   const t = useEntrance(700, loading);
+  const c = useEntrance(900, `${loading}-${range}`);
 
   const ct = settings.checkinTotals ?? [];
   const recon = useMemo(() => (ct.length >= 2 ? reconcile(ct[ct.length - 2], ct[ct.length - 1], transactions, ious) : null), [ct, transactions, ious]);
@@ -126,34 +131,87 @@ export default function AccountsScreen() {
     return sum > 0 ? top.map((x) => ({ ...x, pct: Math.round((x.amount / sum) * 100) })) : [];
   }, [money, colors]);
 
-  const summary = (
+  const candles = useMemo(() => moneyCandles(list, transactions, range), [list, transactions, range]);
+  const sel = pick !== null && pick < candles.length ? pick : candles.length - 1;
+  const cur = candles[sel];
+  const first = candles[0];
+  const candleLabel = (k: Candle) => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (range === 'days') return k.start.getTime() === today.getTime() ? 'Today' : shortDate(k.start);
+    return `${shortDate(k.start)} week`;
+  };
+  const scrubbing = pick !== null && sel !== candles.length - 1;
+  const shown = scrubbing && cur ? cur.close : totals.have;
+  const change = cur && first ? (scrubbing ? cur.close - cur.open : totals.have - first.open) : 0;
+  const base = cur && first ? (scrubbing ? cur.open : first.open) : 0;
+  const pct = base > 0 ? Math.abs(change / base) * 100 : 0;
+  const up = change >= 0;
+
+  const hero = (
     <View style={styles.summary}>
-      <Text style={styles.label}>You have</Text>
+      <Text style={styles.label}>{scrubbing && cur ? `${candleLabel(cur)} · closed at` : 'You have'}</Text>
       <Text
-        style={[styles.big, { fontSize: formatINR(totals.have).length > 10 ? Type.amount : Type.hero }, totals.have < 0 && { color: Corpus.danger }]}
+        style={[styles.big, { fontSize: formatINR(shown).length > 10 ? Type.amount : Type.hero }, shown < 0 && { color: Corpus.danger }]}
         numberOfLines={1}
         adjustsFontSizeToFit
-        accessibilityLabel={`You have ${formatINR(totals.have)} across ${money.length} account${money.length === 1 ? '' : 's'}`}
+        accessibilityLabel={`You have ${formatINR(totals.have)} in ${money.length} account${money.length === 1 ? '' : 's'}`}
       >
-        {formatINR(Math.round(totals.have * t))}
+        {formatINR(Math.round(shown * (scrubbing ? 1 : t)))}
       </Text>
-      {segments.length > 1 && (
-        <>
-          <View style={styles.stack} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            {segments.map((x) => (
-              <View key={x.key} style={[styles.seg, { flex: Math.max(x.pct, 2) * t + 0.001, backgroundColor: x.color }]} />
-            ))}
-          </View>
-          {segments.map((x) => (
-            <View key={x.key} style={styles.legendRow} accessible accessibilityLabel={`${x.name}: ${formatINR(x.amount)}, ${x.pct} percent`}>
-              <View style={[styles.dot, { backgroundColor: x.color }]} />
-              <Text style={styles.legendName} numberOfLines={1}>{x.name}</Text>
-              <Text style={styles.legendAmt}>{formatINR(x.amount)}</Text>
-              <Text style={styles.legendPct}>{x.pct}%</Text>
-            </View>
-          ))}
-        </>
+      {candles.length >= 2 && (
+        <View style={[styles.change, { backgroundColor: change === 0 ? Corpus.cardAlt : up ? Corpus.incomeTint : Corpus.dangerTint }]}>
+          <Ionicons name={change === 0 ? 'remove' : up ? 'trending-up' : 'trending-down'} size={15} color={change === 0 ? Corpus.textMuted : up ? Corpus.income : Corpus.danger} />
+          <Text style={[styles.changeText, { color: change === 0 ? Corpus.textMuted : up ? Corpus.income : Corpus.danger }]}>
+            {change === 0 ? 'No change' : `${up ? 'Up' : 'Down'} ${formatINR(Math.abs(change))}${pct >= 0.1 ? ` · ${pct.toFixed(1)}%` : ''}`}
+            {scrubbing ? (range === 'days' ? ' that day' : ' that week') : range === 'days' ? ' in 2 weeks' : ' in 3 months'}
+          </Text>
+        </View>
       )}
+      {candles.length >= 2 ? (
+        <View style={{ marginTop: 14, gap: 12 }}>
+          <CandleChart candles={candles} selected={sel} onSelect={setPick} appear={c} label={candleLabel} />
+          <View style={styles.ranges} accessibilityRole="tablist">
+            {(['days', 'weeks'] as const).map((r) => (
+              <Pressable key={r} onPress={() => { setRange(r); setPick(null); }} style={({ pressed }) => [styles.rangePill, range === r && styles.rangeOn, pressed && { opacity: 0.7 }]} accessibilityRole="tab" accessibilityState={{ selected: range === r }}>
+                <Text style={[styles.rangeText, range === r && { color: Corpus.onGold }]}>{r === 'days' ? '2 weeks' : '3 months'}</Text>
+              </Pressable>
+            ))}
+            {scrubbing && (
+              <Pressable onPress={() => setPick(null)} style={styles.rangePill} accessibilityRole="button" hitSlop={4}>
+                <Text style={styles.rangeText}>Back to now</Text>
+              </Pressable>
+            )}
+          </View>
+          <Text style={styles.chartNote}>Each candle: where your money started and ended, plus its high and low. Hollow green = ended higher, solid red = lower.</Text>
+        </View>
+      ) : (
+        <View style={styles.chartEmpty}>
+          <IconChip icon="mci:chart-timeline-variant" color={Chip.indigo} size={30} />
+          <Text style={[styles.extraText, { flex: 1 }]}>Your money chart appears after a couple of days of entries linked to these accounts.</Text>
+        </View>
+      )}
+    </View>
+  );
+
+  const where = segments.length > 1 && (
+    <View style={styles.card}>
+      <View style={styles.cardHead}>
+        <Text style={styles.cardTitle} accessibilityRole="header">Where it sits</Text>
+        <Text style={styles.meta}>{segments.length} places</Text>
+      </View>
+      <View style={styles.stack} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {segments.map((x) => (
+          <View key={x.key} style={[styles.seg, { flex: Math.max(x.pct, 2) * t + 0.001, backgroundColor: x.color }]} />
+        ))}
+      </View>
+      {segments.map((x) => (
+        <View key={x.key} style={styles.legendRow} accessible accessibilityLabel={`${x.name}: ${formatINR(x.amount)}, ${x.pct} percent`}>
+          <View style={[styles.dot, { backgroundColor: x.color }]} />
+          <Text style={styles.legendName} numberOfLines={1}>{x.name}</Text>
+          <Text style={styles.legendAmt}>{formatINR(x.amount)}</Text>
+          <Text style={styles.legendPct}>{x.pct}%</Text>
+        </View>
+      ))}
     </View>
   );
 
@@ -312,7 +370,7 @@ export default function AccountsScreen() {
         accessibilityHint="Edit this account"
       >
         <View style={styles.row}>
-          <IconChip icon={filled(accountTypeMeta(a.type).icon)} color={colors[a.id]} size={34} />
+          <IconChip icon={accountTypeMeta(a.type).chip} color={colors[a.id]} size={36} />
           <View style={styles.rowBody}>
             <View style={styles.nameLine}>
               <Text style={styles.name} numberOfLines={1}>{a.name}</Text>
@@ -323,12 +381,13 @@ export default function AccountsScreen() {
             {v.stale ? (
               <View style={styles.metaWarn}>
                 <Ionicons name="time" size={12} color={Corpus.warning} />
-                <Text style={[styles.meta, { color: Corpus.warning }]}>Check · {v.label.replace('verified ', '')}</Text>
+                <Text style={[styles.meta, { color: Corpus.warning }]}>{v.days} days old · check</Text>
               </View>
             ) : (
               <Text style={styles.meta}>{v.label.replace('verified', 'Checked')}</Text>
             )}
           </View>
+          <Spark values={accountSpark(a, transactions)} color={colors[a.id]} width={40} />
           <View>
             <Text style={[styles.amount, { color: amountColor }]}>{formatINR(Math.abs(a.balance))}</Text>
             <Text style={styles.amountSub}>{credit ? (a.balance > 0 ? 'you owe' : 'nothing owed') : a.balance < 0 ? 'overdrawn' : 'balance'}</Text>
@@ -403,8 +462,9 @@ export default function AccountsScreen() {
       >
         {loading ? skeleton : list.length === 0 ? empty : (
           <>
-            {summary}
+            {hero}
             {tiles}
+            {where}
             {nudge}
             {next30}
             {money.length > 0 && <Group title="Cash & bank">{money.map(row)}</Group>}

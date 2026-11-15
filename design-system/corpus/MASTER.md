@@ -70,3 +70,15 @@ Sizes: large title 34 · section 20 · row 16 · secondary 13 · min 12.
 - `Choice` for single picks (`tiles` for 3–4 short options with icons); `Toggle` for on/off. Selected state = filled brand pill, never colour alone.
 - Save shows a loading button, then a toast with the same verb ("added", "saved", "deleted"). Delete always asks first.
 - Each account keeps one identity colour (Chip palette) across its icon, the "where it sits" bar and the balance sheet.
+
+## Charts + icons (more "modern", step 4b)
+- `IconChip` is a glossy squircle (soft top light via `linear-gradient`, hairline highlight). `"mci:<name>"` uses Material Community icons for money things Ionicons lacks (bank, cash, credit-card-chip).
+- `CandleChart` (`src/components/charts`): money candles from Views, no SVG. Tap/hover a candle and the screen's big number shows that candle ("scrub"); "Back to now" resets. Green = ended higher, red = lower, always with "Up/Down ₹X" in words.
+- `Spark`: watchlist-style mini columns in list rows, the latest one solid. Hidden from screen readers (the row already says the amount).
+- Range pills ("2 weeks" / "3 months") in plain words, not "2W/3M".
+
+## Today: order of sections (step 4c)
+Glance → act → what needs you → what just happened → explore → long term. (ui-ux-pro-max `content-priority`, `primary-action`.)
+1. Header + Safe to spend (the one number) 2. Add spend / Scan / Can I afford? 3. Your usuals (one-tap log)
+4. **Needs you** (count badge): bill alerts, bank SMS to log, catch-up, month report, reminders — only when there is something
+5. Recent 6. This week 7. Up next 8. Your money bento (Accounts tile has a 14-day spark) 9. For you 10. Wealth score, debt plan, investing.

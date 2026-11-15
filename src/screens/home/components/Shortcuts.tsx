@@ -1,4 +1,6 @@
 import { Corpus, Font, Pastel, tabular, Type, type PastelName } from '@/constants/theme';
+import Spark from '@/components/charts/Spark';
+import { IconChip } from '@/components/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { useEntrance } from '@/hooks/useEntrance';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +11,7 @@ export type Shortcut = {
   icon: string;
   value: string;        // short status: "₹5.2K", "Update", "All square"
   tone?: 'normal' | 'warn' | 'danger' | 'good';
+  spark?: number[];     // wide tiles: last 14 days, drawn on the right
   onPress: () => void;
 };
 
@@ -24,7 +27,7 @@ export default function Shortcuts({ items }: { items: Shortcut[] }) {
   const t = useEntrance(700); // tiles appear one after another, 45 ms apart (skill: stagger 30–50 ms)
   return (
     <View style={st.wrap}>
-      <Text style={st.title} accessibilityRole="header">Money</Text>
+      <Text style={st.title} accessibilityRole="header">Your money</Text>
       <View style={st.grid}>
         {items.map((s, i) => {
           const k = Math.min(1, Math.max(0, (t * 700 - i * 45) / 300));
@@ -36,9 +39,7 @@ export default function Shortcuts({ items }: { items: Shortcut[] }) {
             <Pressable key={s.key} onPress={s.onPress} accessibilityRole="button" accessibilityLabel={`${s.label}, ${s.value}`}
               style={({ pressed }) => [st.tile, WIDE.has(s.key) ? st.wide : st.square, { backgroundColor: p.bg, opacity: k, transform: [{ translateY: (1 - k) * 10 }, { scale: pressed ? 0.96 : 1 }] }]}>
               <View style={st.top}>
-                <View style={[st.icon, { backgroundColor: p.icon }]}>
-                  <Ionicons name={solid(s.icon) as keyof typeof Ionicons.glyphMap} size={18} color="white" />
-                </View>
+                <IconChip icon={solid(s.icon)} color={p.icon} size={34} />
                 {alert && (
                   // never colour alone: icon + word
                   <View style={[st.alert, { borderColor: alert }]}>
@@ -55,6 +56,9 @@ export default function Shortcuts({ items }: { items: Shortcut[] }) {
                 </>
               ) : (
                 <Text style={[st.value, { color: p.fg }]} numberOfLines={2}>{s.value}</Text>
+              )}
+              {s.spark && WIDE.has(s.key) && (
+                <View style={st.spark}><Spark values={s.spark} color={p.icon} width={110} height={34} /></View>
               )}
             </Pressable>
           );
@@ -78,5 +82,6 @@ const st = StyleSheet.create({
   label: { fontSize: Type.body, fontWeight: '700' },
   value: { fontSize: Type.bodyLg, fontWeight: '500' },
   amount: { fontSize: Type.h3, fontFamily: Font.displayBold, ...tabular },
+  spark: { position: 'absolute', right: 16, bottom: 18 },
   small: { fontSize: Type.small, fontWeight: '500' },
 });

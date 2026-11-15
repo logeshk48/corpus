@@ -17,11 +17,11 @@ export type Account = {
 
 export type NewAccount = Omit<Account, 'id'>;
 
-export const ACCOUNT_TYPES: { id: AccountType; label: string; icon: string; hint: string }[] = [
-  { id: 'cash', label: 'Cash', icon: 'cash-outline', hint: 'Money in your wallet' },
-  { id: 'bank', label: 'Bank', icon: 'business-outline', hint: 'Savings / salary account (UPI goes here)' },
-  { id: 'wallet', label: 'Wallet', icon: 'phone-portrait-outline', hint: 'Paytm, Amazon Pay, PhonePe wallet' },
-  { id: 'credit', label: 'Credit card', icon: 'card-outline', hint: 'Track what you owe and the bill date' },
+export const ACCOUNT_TYPES: { id: AccountType; label: string; icon: string; chip: string; hint: string }[] = [
+  { id: 'cash', label: 'Cash', icon: 'cash-outline', chip: 'mci:cash', hint: 'Money in your wallet' },
+  { id: 'bank', label: 'Bank', icon: 'business-outline', chip: 'mci:bank', hint: 'Savings / salary account (UPI goes here)' },
+  { id: 'wallet', label: 'Wallet', icon: 'phone-portrait-outline', chip: 'mci:wallet', hint: 'Paytm, Amazon Pay, PhonePe wallet' },
+  { id: 'credit', label: 'Credit card', icon: 'card-outline', chip: 'mci:credit-card-chip', hint: 'Track what you owe and the bill date' },
 ];
 
 export const accountTypeMeta = (t: AccountType) => ACCOUNT_TYPES.find((x) => x.id === t) ?? ACCOUNT_TYPES[0];

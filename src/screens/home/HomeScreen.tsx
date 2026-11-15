@@ -51,6 +51,8 @@ import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import WeekCard from './components/WeekCard';
+import { moneyCandles } from '@/utils/candles';
+import { billsNeedingAttention } from '@/utils/bills';
 import AmbientGlow from '@/components/AmbientGlow';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import AffordSheet from './components/AffordSheet';
@@ -372,6 +374,8 @@ export default function HomeScreen() {
   };
   const { review } = useLocalSearchParams<{ review?: string }>();
   const showMonth = mReport.hasData && (review === '1' || (new Date().getDate() <= 7 && !(settings.dismissedInsights ?? []).includes(`mreport:${lmKey}`)));
+  // Time-sensitive things you can act on, gathered under one "Needs you" heading right below the actions
+  const needsCount = billsNeedingAttention(bills, 3).slice(0, 3).length + (smsWaiting > 0 ? 1 : 0) + (behind ? 1 : 0) + (showMonth ? 1 : 0) + (reminders.length > 0 ? 1 : 0);
   const gold = useGoldRate();
   const nwItems = netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null });
   const nwTotals = netWorthTotals(nwItems);
@@ -384,6 +388,7 @@ export default function HomeScreen() {
       key: 'accounts', label: 'Accounts', icon: 'wallet-outline',
       value: accounts.length === 0 ? 'Add cash & bank' : accStale ? 'Update balances' : `${compactINR(accHave)} you have`,
       tone: accStale ? 'warn' : 'normal',
+      spark: accounts.length ? moneyCandles(accList, yearTx, 'days', 14).map((c) => c.close) : undefined,
       onPress: () => router.push('/accounts' as Href),
     },
     {
@@ -434,13 +439,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <HomeHeader streak={streak.days} loggedToday={streak.loggedToday} />
-        <BillAlerts
-          bills={bills}
-          onPay={(b) => setPaying(b)}
-          onOpen={(b) => router.push(`/bill/${b.id}` as Href)}
-        />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
-
         <View style={styles.tiles}>
           {[
             { label: 'Add spend', icon: 'add', tone: Pastel.mint, go: () => router.push('/add' as Href) },
@@ -453,20 +452,26 @@ export default function HomeScreen() {
             </Pressable>
           ))}
         </View>
-
+        <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
+        {needsCount > 0 && (
+          <View style={styles.needsHead}>
+            <Text style={styles.needsTitle} accessibilityRole="header">Needs you</Text>
+            <View style={styles.needsBadge}><Text style={styles.needsBadgeText}>{needsCount}</Text></View>
+          </View>
+        )}
+        <BillAlerts
+          bills={bills}
+          onPay={(b) => setPaying(b)}
+          onOpen={(b) => router.push(`/bill/${b.id}` as Href)}
+        />
         {smsWaiting > 0 && (
-          <Pressable style={[styles.linkCard, { borderColor: Corpus.goldLine }]} onPress={() => router.push('/sms-review' as Href)} accessibilityRole="button">
-            <View style={[styles.linkIcon, styles.linkIconGold]}>
-              <Ionicons name="chatbox-ellipses-outline" size={16} color={Corpus.gold} />
-            </View>
+          <Pressable style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.8 }]} onPress={() => router.push('/sms-review' as Href)} accessibilityRole="button">
+            <IconChip icon="chatbubble-ellipses" color={Chip.blue} size={32} />
             <Text style={styles.linkText}>{smsWaiting} bank payment{smsWaiting > 1 ? 's' : ''} to log</Text>
             <Text style={styles.linkValue}>Review</Text>
             <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
           </Pressable>
         )}
-
-        <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
-
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
         {showMonth && (
           <MonthReportCard
@@ -479,34 +484,7 @@ export default function HomeScreen() {
             onClose={() => review === '1' ? router.setParams({ review: undefined }) : saveSettings({ dismissedInsights: [...(settings.dismissedInsights ?? []), `mreport:${lmKey}`] }).catch(() => {})}
           />
         )}
-
-        <InsightsCard items={insights} />
-
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
-
-        <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
-
-        {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
-
-        {!loading && !yearLoading && <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />}
-
-        <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
-
-        <Shortcuts items={shortcuts} />
-
-        {(investedThisMonth > 0 || nextSipAll) && (
-          <Pressable style={styles.linkCard} onPress={() => router.push('/invest' as Href)}>
-            <View style={[styles.linkIcon, styles.linkIconGold]}>
-              <Ionicons name="trending-up" size={16} color={Corpus.gold} />
-            </View>
-            <Text style={styles.linkText}>
-              {investedThisMonth > 0 ? `Invested ${formatINR(investedThisMonth)} this month` : 'SIPs'}
-              {nextSipAll ? `  ·  next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
-          </Pressable>
-        )}
-
         {loading ? (
           <ActivityIndicator color={Corpus.gold} style={styles.loader} />
         ) : error ? (
@@ -521,6 +499,22 @@ export default function HomeScreen() {
               <TransactionRow key={tx.id} tx={tx} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })} />
             ))}
           </Group>
+        )}
+        {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
+        <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
+        <Shortcuts items={shortcuts} />
+        <InsightsCard items={insights} />
+        {!loading && !yearLoading && <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />}
+        <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
+        {(investedThisMonth > 0 || nextSipAll) && (
+          <Pressable style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.8 }]} accessibilityRole="button" onPress={() => router.push('/invest' as Href)}>
+            <IconChip icon="trending-up" color={Chip.indigo} size={32} />
+            <Text style={styles.linkText}>
+              {investedThisMonth > 0 ? `Invested ${formatINR(investedThisMonth)} this month` : 'SIPs'}
+              {nextSipAll ? `  ·  next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+          </Pressable>
         )}
       </Animated.ScrollView>
       {/* iOS-style compact title: fades in once the big "Today" scrolls away */}

@@ -38,7 +38,7 @@ export default function UpdateBalancesSheet({ list, colors, onClose, onSave }: {
         return (
           <View key={a.id} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
             <View style={{ paddingTop: 30 }}>
-              <IconChip icon={accountTypeMeta(a.type).icon.replace('-outline', '')} color={colors[a.id]} size={34} />
+              <IconChip icon={accountTypeMeta(a.type).chip} color={colors[a.id]} size={34} />
             </View>
             <View style={{ flex: 1 }}>
               <Field
