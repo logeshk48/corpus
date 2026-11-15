@@ -1,13 +1,9 @@
-import { Button } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
-import { styles as f } from '@/screens/ious/components/IouSheet.styles';
+import { Button, Choice, Field, Sheet, Toggle } from '@/components/ui';
 import { ACCOUNT_TYPES, accountTypeMeta, type AccountType, type NewAccount } from '@/types/account';
 import type { AccountBalance } from '@/utils/accounts';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { View } from 'react-native';
 
 type Props = {
   editing?: AccountBalance;
@@ -15,6 +11,7 @@ type Props = {
   onClose: () => void;
   onSave: (a: NewAccount, makeDefault: boolean, newBalance: number) => Promise<void>;
   onDelete?: () => void;
+  initialType?: AccountType;
 };
 
 const num = (t: string) => t.replace(/[^0-9.]/g, '');
@@ -22,11 +19,12 @@ const day = (t: string) => {
   const n = Number(t.replace(/\D/g, ''));
   return n >= 1 && n <= 31 ? n : undefined;
 };
+const TYPES = ACCOUNT_TYPES.map((t) => ({ value: t.id, label: t.id === 'credit' ? 'Card' : t.label, icon: t.icon }));
 
-export default function AccountSheet({ editing, isDefault, onClose, onSave, onDelete }: Props) {
-  const [type, setType] = useState<AccountType>(editing?.type ?? 'bank');
+export default function AccountSheet({ editing, isDefault, onClose, onSave, onDelete, initialType }: Props) {
+  const [type, setType] = useState<AccountType>(editing?.type ?? initialType ?? 'bank');
   const [name, setName] = useState(editing?.name ?? '');
-  // When editing, you type the balance RIGHT NOW; we back-calculate the opening amount
+  // When editing, you type the balance RIGHT NOW; the screen saves the change as a check-in
   const [balance, setBalance] = useState(editing ? String(editing.balance) : '');
   const [limit, setLimit] = useState(editing?.creditLimit ? String(editing.creditLimit) : '');
   const [stmt, setStmt] = useState(editing?.statementDay ? String(editing.statementDay) : '');
@@ -34,16 +32,19 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
   const [makeDefault, setMakeDefault] = useState(isDefault);
   const [minBal, setMinBal] = useState(editing?.minBalance ? String(editing.minBalance) : '');
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false);
 
   const credit = type === 'credit';
-  const value = balance === '' ? 0 : Number(balance);
-  const valid = name.trim().length > 0 && !isNaN(value);
+  const value = balance === '' || balance === '-' ? 0 : Number(balance);
+  const nameError = tried && !name.trim() ? 'Give it a name, like “HDFC Savings”' : undefined;
+  const amountError = isNaN(value) ? 'Use numbers only' : undefined;
+  const dayError = (t: string) => (t && !day(t) ? 'A day from 1 to 31' : undefined);
 
   const save = async () => {
-    if (!valid || busy) return;
+    setTried(true);
+    if (!name.trim() || isNaN(value) || busy || dayError(stmt) || dayError(due)) return;
     setBusy(true);
     try {
-      // editing: balance changes are saved as a check-in by the screen (see onSave)
       const opening = editing ? editing.opening : value;
       await onSave(
         {
@@ -66,89 +67,59 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={sheet.sheet}>
-          <View style={sheet.handle} />
-          <View style={sheet.header}>
-            <View style={[sheet.iconCircle, { backgroundColor: Corpus.goldTint }]}>
-              <Ionicons name={accountTypeMeta(type).icon as keyof typeof Ionicons.glyphMap} size={18} color={Corpus.gold} />
+    <Sheet
+      title={editing ? editing.name : 'New account'}
+      subtitle={accountTypeMeta(type).hint}
+      onClose={onClose}
+      footer={
+        <>
+          <Button label={editing ? 'Save changes' : balance ? `Add account · ${formatINR(value)}` : 'Add account'} onPress={save} loading={busy} />
+          {editing && onDelete && <Button variant="danger" icon="trash-outline" label="Delete account" onPress={onDelete} />}
+        </>
+      }
+    >
+      <Choice tiles label="Type" options={TYPES} value={type} onChange={setType} />
+
+      <Field
+        label="Name"
+        value={name}
+        onChangeText={setName}
+        placeholder={credit ? 'SBI Card' : type === 'cash' ? 'Cash' : type === 'wallet' ? 'Paytm wallet' : 'HDFC Savings'}
+        maxLength={30}
+        error={nameError}
+        autoCapitalize="words"
+      />
+
+      <Field
+        money
+        label={credit ? 'You owe on it right now' : 'Balance right now'}
+        value={balance}
+        onChangeText={(t) => setBalance(t.replace(/[^0-9.-]/g, ''))}
+        placeholder="0"
+        error={amountError}
+        selectTextOnFocus
+        hint={editing ? 'Type what your bank or card app shows today. Saved as a check-in.' : 'Check your bank or card app. After this, Corpus keeps it updated as you add entries.'}
+      />
+
+      {credit && (
+        <>
+          <Field money label="Credit limit" value={limit} onChangeText={(t) => setLimit(num(t))} placeholder="50,000" hint="Optional. Shows how much of the limit you use." />
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Field label="Bill made on" value={stmt} onChangeText={(t) => setStmt(t.replace(/\D/g, '').slice(0, 2))} placeholder="Day, e.g. 15" keyboardType="number-pad" error={dayError(stmt)} />
             </View>
-            <View style={sheet.titleBlock}>
-              <Text style={sheet.title}>{editing ? `Edit ${editing.name}` : 'New account'}</Text>
-              <Text style={sheet.subtitle}>{accountTypeMeta(type).hint}</Text>
+            <View style={{ flex: 1 }}>
+              <Field label="Pay by" value={due} onChangeText={(t) => setDue(t.replace(/\D/g, '').slice(0, 2))} placeholder="Day, e.g. 5" keyboardType="number-pad" error={dayError(due)} />
             </View>
-            <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={18} color={Corpus.textMuted} />
-            </Pressable>
           </View>
+        </>
+      )}
 
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
-            <View style={sheet.chips}>
-              {ACCOUNT_TYPES.map((t) => (
-                <Pressable key={t.id} style={[sheet.chip, type === t.id && sheet.chipSuggested]} onPress={() => setType(t.id)}>
-                  <Text style={[sheet.chipText, type === t.id && sheet.chipTextSuggested]}>{t.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+      {type === 'bank' && (
+        <Field money label="Minimum balance" value={minBal} onChangeText={(t) => setMinBal(num(t))} placeholder="10,000" hint="Optional. Corpus warns you before you go below it." />
+      )}
 
-            <View style={f.field}>
-              <Text style={f.label}>NAME</Text>
-              <TextInput style={f.input} value={name} onChangeText={setName} placeholder={credit ? 'e.g. SBI Card' : type === 'cash' ? 'Cash' : 'e.g. HDFC Savings'} placeholderTextColor={Corpus.textFaint} maxLength={30} />
-            </View>
-
-            <View style={f.field}>
-              <Text style={f.label}>{credit ? 'AMOUNT YOU OWE ON IT RIGHT NOW' : 'BALANCE RIGHT NOW'}</Text>
-              <TextInput style={f.input} value={balance} onChangeText={(t) => setBalance(t.replace(/[^0-9.-]/g, ''))} placeholder="0" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-              <Text style={sheet.hint}>
-                {editing
-                  ? 'Type what your bank or card app shows today. Saved as a check-in'
-                  : 'Check your bank or card app. From now on, Corpus updates it as you add entries'}
-              </Text>
-            </View>
-
-            {credit && (
-              <>
-                <View style={f.field}>
-                  <Text style={f.label}>CREDIT LIMIT (OPTIONAL)</Text>
-                  <TextInput style={f.input} value={limit} onChangeText={(t) => setLimit(num(t))} placeholder="e.g. 50000" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-                </View>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
-                  <View style={[f.field, { flex: 1 }]}>
-                    <Text style={f.label}>BILL GENERATED ON</Text>
-                    <TextInput style={f.input} value={stmt} onChangeText={(t) => setStmt(t.replace(/\D/g, '').slice(0, 2))} placeholder="Day, e.g. 15" placeholderTextColor={Corpus.textFaint} keyboardType="number-pad" />
-                  </View>
-                  <View style={[f.field, { flex: 1 }]}>
-                    <Text style={f.label}>PAYMENT DUE ON</Text>
-                    <TextInput style={f.input} value={due} onChangeText={(t) => setDue(t.replace(/\D/g, '').slice(0, 2))} placeholder="Day, e.g. 5" placeholderTextColor={Corpus.textFaint} keyboardType="number-pad" />
-                  </View>
-                </View>
-              </>
-            )}
-
-            {type === 'bank' && (
-              <View style={f.field}>
-                <Text style={f.label}>MINIMUM BALANCE (OPTIONAL)</Text>
-                <TextInput style={f.input} value={minBal} onChangeText={(t) => setMinBal(num(t))} placeholder="e.g. 10000 · Corpus warns before you go below" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-              </View>
-            )}
-
-            {!credit && (
-              <Pressable style={f.chainToggle} onPress={() => setMakeDefault(!makeDefault)}>
-                <Ionicons name={makeDefault ? 'star' : 'star-outline'} size={20} color={makeDefault ? Corpus.gold : Corpus.textMuted} />
-                <View style={{ flex: 1 }}>
-                  <Text style={f.chainTitle}>Use this by default</Text>
-                  <Text style={f.chainHint}>Pre-selected when you add an expense or income</Text>
-                </View>
-              </Pressable>
-            )}
-
-            <Button label={editing ? 'Save changes' : `Add account${balance ? ` · ${formatINR(value)}` : ''}`} onPress={save} loading={busy} disabled={!valid} />
-            {editing && onDelete && <Button variant="danger" icon="trash-outline" label="Delete account" onPress={onDelete} />}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+      {!credit && <Toggle title="Use by default" hint="Picked for you when you add an expense or income" value={makeDefault} onChange={setMakeDefault} />}
+    </Sheet>
   );
 }

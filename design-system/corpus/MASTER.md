@@ -63,3 +63,10 @@ Sizes: large title 34 · section 20 · row 16 · secondary 13 · min 12.
 - Glass only on navigation and controls; solid when Reduce Transparency is on.
 - Icons: Ionicons only, filled for selected / outline otherwise, never emoji as icons.
 - 4/8 spacing rhythm: 8 · 12 · 16 · 24 · 32.
+
+## Forms and sheets (from step 4, Accounts)
+- Every form opens in `Sheet` (`src/components/ui/Sheet.tsx`): title + round close, body scrolls, actions pinned at the bottom.
+- `Field`: visible sentence-case label above the box, `money` adds ₹ + number keyboard, hint or error (with icon) right under the field.
+- `Choice` for single picks (`tiles` for 3–4 short options with icons); `Toggle` for on/off. Selected state = filled brand pill, never colour alone.
+- Save shows a loading button, then a toast with the same verb ("added", "saved", "deleted"). Delete always asks first.
+- Each account keeps one identity colour (Chip palette) across its icon, the "where it sits" bar and the balance sheet.

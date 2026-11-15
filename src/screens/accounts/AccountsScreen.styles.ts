@@ -1,27 +1,77 @@
-import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Corpus.bg },
-  content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
-  hero: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, alignItems: 'center', gap: 4 },
-  heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.6 },
-  heroValue: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
-  heroSub: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center' },
-  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 8 },
-  top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: Corpus.cardAlt, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: Type.label, fontWeight: '600', color: Corpus.text },
+  // summary: what you have + where it sits
+  summary: { backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
+  label: { fontSize: Type.body, color: Corpus.textMuted },
+  big: { fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1, ...tabular },
+  stack: { flexDirection: 'row', height: 14, gap: 3, marginTop: 12, marginBottom: 6 },
+  seg: { height: 14, borderRadius: 5 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 28 },
+  dot: { width: 10, height: 10, borderRadius: 3 },
+  legendName: { flex: 1, fontSize: Type.bodyLg, color: Corpus.text },
+  legendAmt: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  legendPct: { width: 40, textAlign: 'right', fontSize: Type.body, color: Corpus.textMuted, ...tabular },
+
+  // two pastel bento tiles
+  tiles: { flexDirection: 'row', gap: 12 },
+  tile: { flex: 1, minHeight: 112, borderRadius: 26, padding: 14, gap: 2 },
+  tileTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  tileLabel: { fontSize: Type.body, fontFamily: Font.display },
+  tileValue: { fontSize: Type.h2, fontFamily: Font.displayBold, letterSpacing: -0.4, ...tabular },
+  tileSub: { fontSize: Type.small, lineHeight: 16 },
+
+  // next 30 days, read like a receipt
+  card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 16, gap: 10 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  cardTitle: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
+  line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  lineName: { fontSize: Type.bodyLg, color: Corpus.textMuted },
+  lineAmt: { fontSize: Type.bodyLg, color: Corpus.text, ...tabular },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: Corpus.border, marginVertical: 2 },
+  totalName: { fontSize: Type.label, fontFamily: Font.display, color: Corpus.text },
+  totalAmt: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text, ...tabular },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  pillText: { fontSize: Type.small, fontFamily: Font.display },
+  tip: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingTop: 4 },
+  tipText: { flex: 1, fontSize: Type.body, color: Corpus.text, lineHeight: 19 },
+  strong: { fontFamily: Font.display },
+
+  // stale balances prompt
+  nudge: { borderRadius: 24, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nudgeTitle: { fontSize: Type.label, fontFamily: Font.display },
+  nudgeSub: { fontSize: Type.small },
+
+  // check-in trend
+  trend: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 70 },
+  trendCol: { flex: 1, alignItems: 'center', gap: 4, maxWidth: 26 },
+  trendBar: { width: '100%', borderRadius: 4 },
+  trendLabel: { fontSize: Type.micro, color: Corpus.textMuted },
+
+  // account rows
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 10, paddingHorizontal: Space.md },
+  rowBody: { flex: 1, gap: 2 },
+  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { fontSize: Type.label, color: Corpus.text, flexShrink: 1 },
+  badge: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1, backgroundColor: Corpus.cardAlt },
+  badgeText: { fontSize: Type.micro, fontFamily: Font.display, color: Corpus.textMuted },
   meta: { fontSize: Type.small, color: Corpus.textMuted },
-  balance: { fontSize: Type.title, fontFamily: Font.display },
-  bar: { height: 5, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },
-  barFill: { height: 5, borderRadius: 3 },
-  note: { fontSize: Type.small, color: Corpus.textFaint, lineHeight: 17 },
-  trend: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6, height: 64 },
-  trendCol: { alignItems: 'center', gap: 3, width: 18 },
-  trendBar: { width: 14, borderRadius: 3 },
-  trendLabel: { fontSize: Type.micro, color: Corpus.textFaint },
-  emptyBox: { alignItems: 'center', gap: Space.sm, paddingVertical: 50, paddingHorizontal: Space.md },
-  emptyTitle: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
-  emptyText: { fontSize: Type.body, color: Corpus.textMuted, textAlign: 'center', lineHeight: 19 },
+  metaWarn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  amount: { fontSize: Type.label, fontFamily: Font.displayBold, color: Corpus.text, textAlign: 'right', ...tabular },
+  amountSub: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'right' },
+  extras: { paddingLeft: 62, paddingRight: Space.md, paddingBottom: 12, gap: 8, marginTop: -4 },
+  bar: { height: 6, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: 3 },
+  extra: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
+  extraText: { flex: 1, fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
+
+  footnote: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17, paddingHorizontal: 4, textAlign: 'center' },
+
+  // empty + loading
+  empty: { borderRadius: 28, padding: 22, gap: 10, alignItems: 'flex-start' },
+  emptyTitle: { fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.5 },
+  emptyText: { fontSize: Type.bodyLg, lineHeight: 20 },
+  skel: { backgroundColor: Corpus.card, borderRadius: 24 },
+  skelLine: { backgroundColor: Corpus.cardAlt, borderRadius: 6 },
 });
