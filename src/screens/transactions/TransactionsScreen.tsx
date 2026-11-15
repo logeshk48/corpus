@@ -1,7 +1,6 @@
-import { ScreenHeader, SectionLabel } from '@/components/ui';
-import FilterChips, { ChipOption } from '@/components/FilterChips';
+import { IconChip, Segmented, useNavChrome } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { Chip, Corpus } from '@/constants/theme';
 import { useTransactions } from '@/hooks/useTransactions';
 import TransactionRow from '@/screens/home/components/TransactionRow';
 import { formatINR } from '@/utils/format';
@@ -9,18 +8,17 @@ import { groupByDay } from '@/utils/groupTransactions';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Animated, Pressable, Text, TextInput, View } from 'react-native';
 import type { Transaction } from '@/types/transaction';
 import { styles } from './TransactionsScreen.styles';
 
 type Filter = 'all' | 'expense' | 'income';
 
-const FILTERS: ChipOption<Filter>[] = [
-  { id: 'all', label: 'All' },
-  { id: 'expense', label: 'Expenses' },
-  { id: 'income', label: 'Income' },
-];
+const FILTERS = [
+  { value: 'all', label: 'All' },
+  { value: 'expense', label: 'Spent' },
+  { value: 'income', label: 'Money in' },
+] as const;
 
 // Does a transaction match the search text? (note, category name, or amount)
 function matchesSearch(tx: Transaction, q: string): boolean {
@@ -56,7 +54,7 @@ export default function TransactionsScreen() {
 
   const summary =
     filter === 'all'
-      ? `${visible.length} transaction${visible.length === 1 ? '' : 's'} this year`
+      ? `${visible.length} this year`
       : filter === 'expense'
       ? `${formatINR(total)} spent this year`
       : `${formatINR(total)} earned this year`;
@@ -70,67 +68,76 @@ export default function TransactionsScreen() {
       ? 'No income this year'
       : 'No expenses this year';
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Transactions" onBack={goBack} />
+  const chrome = useNavChrome({ title: 'Transactions', subtitle: loading ? undefined : summary, onBack: goBack });
 
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={Corpus.textFaint} />
-          <TextInput
-            style={styles.searchInput}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search notes, categories, amounts"
-            placeholderTextColor={Corpus.textFaint}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {search.length > 0 && (
-            <Pressable onPress={() => setSearch('')} hitSlop={10}>
-              <Ionicons name="close-circle" size={16} color={Corpus.textMuted} />
-            </Pressable>
-          )}
-        </View>
-
-        <FilterChips options={FILTERS} value={filter} onChange={setFilter} />
-
-        {loading ? (
-          <View style={styles.empty}>
-            <ActivityIndicator color={Corpus.gold} />
-          </View>
-        ) : error ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>{error}</Text>
-          </View>
-        ) : sections.length === 0 ? (
-          <View style={styles.empty}>
-            <Ionicons name="receipt-outline" size={32} color={Corpus.textFaint} />
-            <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-            <Text style={styles.emptyText}>
-              {q ? 'Try a different word or clear the search' : 'Add one from the gold + tab'}
-            </Text>
-          </View>
-        ) : (
-          <>
-            <Text style={styles.summary}>{summary}</Text>
-            {sections.map((section) => (
-              <View key={section.title}>
-                <SectionLabel right={dayTotal(section.data)}>{section.title}</SectionLabel>
-                <View style={styles.list}>
-                  {section.data.map((tx) => (
-                    <TransactionRow
-                      key={tx.id}
-                      tx={tx}
-                      onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })}
-                    />
-                  ))}
-                </View>
-              </View>
-            ))}
-          </>
+  const header = (
+    <View style={styles.head}>
+      {chrome.title}
+      <View style={styles.searchBox}>
+        <Ionicons name="search" size={17} color={Corpus.textFaint} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search notes, categories, amounts"
+          placeholderTextColor={Corpus.textFaint}
+          autoCapitalize="none"
+          autoCorrect={false}
+          accessibilityLabel="Search transactions"
+        />
+        {search.length > 0 && (
+          <Pressable onPress={() => setSearch('')} hitSlop={12} accessibilityLabel="Clear search">
+            <Ionicons name="close-circle" size={18} color={Corpus.textMuted} />
+          </Pressable>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+      <Segmented options={FILTERS} value={filter} onChange={setFilter} />
+    </View>
+  );
+
+  const empty = loading ? (
+    <View style={styles.empty}><ActivityIndicator color={Corpus.gold} /></View>
+  ) : error ? (
+    <View style={styles.empty}><Text style={styles.emptyTitle}>{error}</Text></View>
+  ) : (
+    <View style={styles.empty}>
+      <IconChip icon={q ? 'search' : 'receipt'} color={Chip.gray} size={48} />
+      <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+      <Text style={styles.emptyText}>{q ? 'Try a different word, or clear the search.' : 'Tap Add in the tab bar to log your first one.'}</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.safe}>
+      <Animated.SectionList
+        {...chrome.scrollProps}
+        sections={loading || error ? [] : sections}
+        keyExtractor={(t) => t.id}
+        stickySectionHeadersEnabled={false}
+        initialNumToRender={20}
+        windowSize={11}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.content, { paddingTop: chrome.padTop, paddingBottom: chrome.padBottom }]}
+        ListHeaderComponent={header}
+        ListEmptyComponent={empty}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.dayHead}>
+            <Text style={styles.dayTitle} accessibilityRole="header">{section.title}</Text>
+            <Text style={styles.dayMeta}>{dayTotal(section.data)}</Text>
+          </View>
+        )}
+        renderItem={({ item, index, section }) => {
+          const first = index === 0, last = index === section.data.length - 1;
+          return (
+            <View style={[styles.cell, first && styles.cellFirst, last && styles.cellLast]}>
+              <TransactionRow tx={item} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: item.id } })} />
+              {!last && <View style={styles.sep} />}
+            </View>
+          );
+        }}
+      />
+      {chrome.bar}
+    </View>
   );
 }

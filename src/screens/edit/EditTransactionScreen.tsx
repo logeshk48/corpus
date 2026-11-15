@@ -1,4 +1,4 @@
-import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
+import { Button, Screen, SectionLabel } from '@/components/ui';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { styles as form } from '@/screens/add/AddScreen.styles';
@@ -174,13 +174,7 @@ export default function EditTransactionScreen() {
   };
 
   return (
-    <SafeAreaView style={form.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={form.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <ScreenHeader title="Edit transaction" onBack={goBack} />
+    <Screen title="Edit" subtitle={original ? (original.type === 'income' ? 'Money in' : 'Spent') : undefined} onBack={goBack} keyboard>
 
         {loading ? (
           <View style={styles.center}>
@@ -245,7 +239,6 @@ export default function EditTransactionScreen() {
             <Button variant="danger" icon="trash-outline" label="Delete transaction" onPress={handleDelete} disabled={busy} />
           </>
         )}
-      </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
