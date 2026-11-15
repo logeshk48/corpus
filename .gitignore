@@ -42,3 +42,5 @@ example
 /ios
 /android
 .env
+# Local design tool (ui-ux-pro-max skill) — used while building, not part of the app
+.claude/skills/

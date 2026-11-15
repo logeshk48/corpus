@@ -1,6 +1,6 @@
 import { ActivityRing } from '@/components/ui';
 import { useEntrance } from '@/hooks/useEntrance';
-import { Corpus, Type } from '@/constants/theme';
+import { Chip, Corpus, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { SafeToSpendResult } from '@/utils/safeToSpend';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,12 +14,14 @@ const STATUS_COLOR = {
 };
 
 // Two rings, Apple Activity style: outer = this month's money used, inner = how far through the month you are
-function Rings({ used, through }: { used: number; through: number }) {
+function Rings({ used, through, tone = 'ok' }: { used: number; through: number; tone?: 'ok' | 'tight' | 'over' }) {
+  const money = tone === 'over' ? Corpus.danger : tone === 'tight' ? Corpus.warning : Corpus.income;
+  const moneyTrack = tone === 'over' ? Corpus.dangerTint : tone === 'tight' ? Corpus.warningTint : Corpus.incomeTint;
   return (
     <View style={styles.rings} accessibilityLabel={`${Math.round(used * 100)}% of this month's money used, ${Math.round(through * 100)}% of the month gone`}>
-      <ActivityRing size={92} thickness={12} progress={used} color={Corpus.gold} track={Corpus.goldTint} />
+      <ActivityRing size={92} thickness={12} progress={used} color={money} track={moneyTrack} />
       <View style={styles.inner}>
-        <ActivityRing size={58} thickness={12} progress={through} color={Corpus.warning} track={Corpus.warningTint} />
+        <ActivityRing size={58} thickness={12} progress={through} color={Chip.blue} track={Corpus.cardAlt} />
       </View>
     </View>
   );
@@ -29,7 +31,7 @@ function Rings({ used, through }: { used: number; through: number }) {
 const amountSize = (a: string) => (a.length <= 7 ? Type.entry : a.length <= 9 ? Type.amount : Type.h1);
 
 const PILL = {
-  ok: { text: 'On track', bg: Corpus.goldTint, fg: Corpus.gold },
+  ok: { text: 'On track', bg: Corpus.incomeTint, fg: Corpus.income },
   tight: { text: 'Go easy', bg: Corpus.warningTint, fg: Corpus.warning },
   over: { text: 'Over today', bg: Corpus.dangerTint, fg: Corpus.danger },
 };
@@ -105,7 +107,7 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
           <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text, fontSize: amountSize(amount) }]} numberOfLines={1} adjustsFontSizeToFit>{amount}</Text>
           <Text style={[styles.context, { color: result.status === 'ok' ? Corpus.textMuted : color }]}>{context}</Text>
         </View>
-        <Rings used={used * t} through={through * t} />
+        <Rings used={used * t} through={through * t} tone={result.status} />
       </View>
 
       {(result.spentToday > 0 || result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0) && (
@@ -118,8 +120,8 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
       )}
 
       <View style={styles.legend}>
-        <View style={[styles.key, { backgroundColor: Corpus.gold }]} /><Text style={styles.legendText}>Money used {Math.round(used * 100)}%</Text>
-        <View style={[styles.key, { backgroundColor: Corpus.warning }]} /><Text style={styles.legendText}>Day {result.cycleDays - result.daysLeft + 1} of {result.cycleDays}</Text>
+        <View style={[styles.key, { backgroundColor: result.status === 'over' ? Corpus.danger : result.status === 'tight' ? Corpus.warning : Corpus.income }]} /><Text style={styles.legendText}>Money used {Math.round(used * 100)}%</Text>
+        <View style={[styles.key, { backgroundColor: Chip.blue }]} /><Text style={styles.legendText}>Day {result.cycleDays - result.daysLeft + 1} of {result.cycleDays}</Text>
         <View style={{ flex: 1 }} />
         <Text style={styles.howText}>How it works</Text>
         <Ionicons name="chevron-forward" size={13} color={Corpus.gold} />

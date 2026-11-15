@@ -37,11 +37,11 @@ export default function HomeHeader() {
       <View style={styles.container}>
         <Text style={styles.greeting} numberOfLines={1}>{today}</Text>
         <View style={styles.actions}>
-          <Pressable style={styles.round} onPress={() => router.push('/inbox' as Href)} accessibilityLabel={`Reminders${attention ? `, ${attention} need attention` : ''}`}>
+          <Pressable style={styles.round} hitSlop={4} onPress={() => router.push('/inbox' as Href)} accessibilityLabel={`Reminders${attention ? `, ${attention} need attention` : ''}`}>
             <Ionicons name="notifications-outline" size={19} color={Corpus.text} />
             {attention > 0 && <View style={styles.dot} />}
           </Pressable>
-          <Pressable style={[styles.round, styles.avatar]} onPress={() => router.push('/settings' as Href)} accessibilityLabel="Profile and settings">
+          <Pressable style={[styles.round, styles.avatar]} hitSlop={4} onPress={() => router.push('/settings' as Href)} accessibilityLabel="Profile and settings">
             <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
           </Pressable>
         </View>

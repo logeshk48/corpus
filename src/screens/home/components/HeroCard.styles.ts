@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Corpus, Font, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 
 // Apple-style summary card: big number on the left, Activity rings on the right
 export const styles = StyleSheet.create({
@@ -9,7 +9,7 @@ export const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   left: { flex: 1, gap: 2 },
   label: { fontSize: Type.label, fontWeight: '500', color: Corpus.textMuted },
-  amount: { fontSize: Type.entry, fontFamily: Font.displayBold, fontWeight: '700', letterSpacing: -1 },
+  amount: { fontSize: Type.entry, fontFamily: Font.displayBold, letterSpacing: -1.2, ...tabular },
   context: { fontSize: Type.label },
   rings: { width: 92, height: 92, alignItems: 'center', justifyContent: 'center' },
   inner: { position: 'absolute', top: 17, left: 17 },

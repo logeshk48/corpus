@@ -1,4 +1,4 @@
-import { Corpus, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -7,6 +7,6 @@ export const styles = StyleSheet.create({
   middle: { flex: 1, gap: 1 },
   note: { fontSize: Type.input, color: Corpus.text },
   meta: { fontSize: Type.body, color: Corpus.textMuted },
-  amount: { fontSize: Type.input, color: Corpus.text },
+  amount: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.text, ...tabular },
   amountIncome: { color: Corpus.income },
 });

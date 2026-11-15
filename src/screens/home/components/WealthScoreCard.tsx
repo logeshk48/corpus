@@ -46,7 +46,7 @@ const st = StyleSheet.create({
   card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   ring: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
-  num: { position: 'absolute', fontSize: Type.title, fontFamily: Font.display, fontWeight: '700' },
+  num: { position: 'absolute', fontSize: Type.title, fontFamily: Font.displayBold },
   title: { fontSize: Type.input, fontWeight: '600', color: Corpus.text },
   bars: { flexDirection: 'row', gap: 4 },
   barBg: { flex: 1, height: 5, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },

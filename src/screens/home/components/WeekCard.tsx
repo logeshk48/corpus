@@ -56,7 +56,7 @@ export default function WeekCard({ tx, onPress }: { tx: Transaction[]; onPress: 
 const st = StyleSheet.create({
   card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: Space.md },
   head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: Type.h3, fontFamily: Font.display, fontWeight: '700', color: Corpus.text },
+  title: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text },
   sub: { fontSize: Type.body, color: Corpus.textMuted, marginTop: 2 },
   big: { fontSize: Type.label, fontWeight: '700', color: Corpus.text },
   bars: { flexDirection: 'row', gap: 10, height: 96 },

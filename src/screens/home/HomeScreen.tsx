@@ -50,6 +50,7 @@ import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import WeekCard from './components/WeekCard';
+import AmbientGlow from '@/components/AmbientGlow';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import AffordSheet from './components/AffordSheet';
 import { monthlyFlow } from '@/utils/afford';
@@ -419,6 +420,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
+      <AmbientGlow
+        tone={loading ? 'none' : safe.status === 'noData' ? 'none' : safe.status}
+        opacity={scrollY.interpolate({ inputRange: [0, 260], outputRange: [Corpus.glow, Corpus.glow * 0.35], extrapolate: 'clamp' })}
+      />
       <Animated.ScrollView
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}

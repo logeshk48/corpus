@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   bigNumber: {
-    fontSize: Type.amount, fontFamily: Font.displayBold, fontWeight: '700',
+    fontSize: Type.amount, fontFamily: Font.displayBold,
     color: Corpus.text,
     marginTop: 4,
   },

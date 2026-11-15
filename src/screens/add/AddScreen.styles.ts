@@ -5,7 +5,7 @@ export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { paddingHorizontal: Space.md, paddingTop: Space.sm, paddingBottom: 130, gap: Space.md + 2 },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontSize: Type.amount, fontFamily: Font.display, fontWeight: '700', color: Corpus.text, letterSpacing: 0.3 },
+  heading: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: 0.3 },
   glassBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20,
     backgroundColor: Corpus.glass, borderWidth: 0.5, borderColor: Corpus.glassEdge,
@@ -17,9 +17,9 @@ export const styles = StyleSheet.create({
   firstText: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 19 },
   amountCard: { backgroundColor: Corpus.card, borderRadius: 26, paddingTop: 22, paddingBottom: 16, paddingHorizontal: Space.md, alignItems: 'center', gap: 10 },
   amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch' },
-  rupee: { fontSize: Type.h1 + 6, fontFamily: Font.display, fontWeight: '600', color: Corpus.textFaint, marginRight: 2 },
+  rupee: { fontSize: Type.h1 + 6, fontFamily: Font.display, color: Corpus.textFaint, marginRight: 2 },
   amountInput: {
-    fontSize: Type.entry + 12, fontFamily: Font.displayBold, fontWeight: '700', color: Corpus.text, letterSpacing: -1.5,
+    fontSize: Type.entry + 12, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1.5,
     minWidth: 60, maxWidth: '85%', flexShrink: 1, textAlign: 'center', padding: 0,
   },
   summary: { flexDirection: 'row', alignItems: 'center', gap: 8, maxWidth: '100%', backgroundColor: Corpus.bg, borderRadius: 16, paddingVertical: 6, paddingHorizontal: 10 },

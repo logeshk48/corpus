@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
     marginBottom: Space.xl,
   },
   brand: {
-    fontSize: Type.brand, fontFamily: Font.displayBold, fontWeight: '700',
+    fontSize: Type.brand, fontFamily: Font.displayBold,
     color: Corpus.gold,
     letterSpacing: 1,
   },

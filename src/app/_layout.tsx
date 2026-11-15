@@ -3,6 +3,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { isDark } from '@/constants/theme';
 import { watchSystemTheme } from '@/services/theme';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
@@ -12,7 +13,11 @@ export default function RootLayout() {
   // The web build is pre-rendered without knowing the saved theme, so draw only in the browser
   const [mounted, setMounted] = useState(Platform.OS !== 'web');
   useEffect(() => { setMounted(true); return watchSystemTheme(); }, []);
-  if (!mounted) return null;
+  const [fontsReady, fontError] = useFonts({
+    'Inter-SemiBold': require('../../assets/fonts/Inter_600SemiBold.ttf'),
+    'Inter-Bold': require('../../assets/fonts/Inter_700Bold.ttf'),
+  });
+  if (!mounted || (!fontsReady && !fontError)) return null; // a blink on first launch; system font if loading fails
   return (
     <AuthProvider>
       <ToastProvider>

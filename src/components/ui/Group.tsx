@@ -1,4 +1,4 @@
-import { Corpus, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Children, isValidElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -52,13 +52,13 @@ export function GroupRow({ icon, color, title, subtitle, value, valueColor, onPr
 const s = StyleSheet.create({
   wrap: { gap: 6 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 4 },
-  title: { fontSize: Type.h3, fontWeight: '700', color: Corpus.text },
+  title: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.2 },
   action: { fontSize: Type.input, color: Corpus.gold },
   card: { backgroundColor: Corpus.card, borderRadius: 22, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8, paddingHorizontal: Space.md },
   body: { flex: 1, gap: 1 },
   rowTitle: { fontSize: Type.input, color: Corpus.text },
   sub: { fontSize: Type.body, color: Corpus.textMuted },
-  value: { fontSize: Type.input, color: Corpus.textMuted, maxWidth: '45%' },
+  value: { fontSize: Type.input, color: Corpus.textMuted, maxWidth: '45%', ...tabular },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: Corpus.border, marginLeft: 58 },
 });

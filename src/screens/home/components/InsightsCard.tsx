@@ -59,7 +59,7 @@ export default function InsightsCard({ items }: { items: Insight[] }) {
 const st = StyleSheet.create({
   card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, gap: 10 },
   head: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 4 },
-  headText: { flex: 1, fontSize: Type.h3, fontFamily: Font.display, fontWeight: '700', color: Corpus.text },
+  headText: { flex: 1, fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text },
   more: { fontSize: Type.input, color: Corpus.gold },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   title: { flex: 1, fontSize: Type.input, fontWeight: '600', color: Corpus.text },

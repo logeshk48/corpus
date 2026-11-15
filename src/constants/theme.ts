@@ -10,66 +10,64 @@ import { readThemeChoice, resolveScheme } from './themeChoice';
 
 // ─── Corpus Design System ───────────────────────────────
 const LIGHT = {
-  // Surfaces — Apple-style light: grouped grey background, white cards
-  bg: '#F2F2F7',        // app background (systemGroupedBackground)
+  // Graphite + green (picked with the ui-ux-pro-max skill): black-and-white premium surfaces,
+  // and green / amber / red ONLY ever mean money status — never decoration.
+  bg: '#F4F4F1',        // warm off-white background (skill: no pure white backgrounds)
   card: '#FFFFFF',      // cards, grouped lists
-  cardAlt: '#EFEFF4',   // icon circles, nested elements, inputs
-  border: '#E3E3E8',    // hairline separators
+  cardAlt: '#EDEDE9',   // icon circles, nested elements, inputs
+  border: '#E4E4DF',    // hairline separators
 
-  // Brand tint (kept under the old name "gold" so every screen picks it up)
-  gold: '#0A7D4F',      // Corpus green — active states, key numbers, buttons
-  goldSoft: '#34C77B',  // lighter green for subtle accents
+  // Brand ("gold" kept as the token name so every screen picks it up): graphite
+  gold: '#111111',      // primary buttons, selected tab, links
+  goldSoft: '#3A3A37',
 
-  // Text
-  text: '#000000',      // primary label
-  textMuted: '#6C6C70', // secondary label (passes 4.5:1 on white)
-  textFaint: '#8E8E93', // tertiary: icons, chevrons, placeholders
+  text: '#111111',
+  textMuted: '#5F5F5B', // secondary (6.3:1 on white)
+  textFaint: '#6E6E69', // tertiary hints, chevrons (5.1:1)
 
-  // Semantic (darker shades than iOS defaults so text stays readable on white)
-  income: '#1E8A47',    // money in
-  danger: '#D92D20',    // over budget, delete
-  warning: '#B45F00',   // 80% alerts, due soon
+  income: '#0F7A45',    // money in · on track
+  danger: '#C8322B',    // over · delete
+  warning: '#A85A00',   // tight · due soon
 
-  // Text/icons placed ON the brand colour (buttons, active chips)
   onGold: '#FFFFFF',
 
-  // Tints: a light wash + a hairline for each semantic colour.
-  goldTint: '#E8F5EE',
-  goldLine: '#BFE3CF',
-  goldActive: '#D7EFE2',
-  incomeTint: '#E8F6EC',
-  incomeLine: '#C2E5CB',
-  warningTint: '#FFF4E5',
-  warningLine: '#FFD9A8',
-  dangerTint: '#FDEDEB',
-  dangerLine: '#F7C5C0',
-  violet: '#8944AB',      // loans / EMIs / recurring bills
-  violetTint: '#F4EAFB',
+  goldTint: '#EAEAE6',  // selected chip / tab background
+  goldLine: '#D6D6D0',
+  goldActive: '#E2E2DD',
+  incomeTint: '#E0F2E7',
+  incomeLine: '#BFE3CC',
+  warningTint: '#FFF1DC',
+  warningLine: '#F5D29C',
+  dangerTint: '#FCE8E6',
+  dangerLine: '#F2C2BD',
+  violet: '#7A3FA0',
+  violetTint: '#F1E8F7',
 
-  // Liquid-glass surfaces (tab bar, floating buttons): see-through white with a bright edge
-  glass: 'rgba(255,255,255,0.78)',
-  glassEdge: 'rgba(255,255,255,0.95)',
-  shadow: 'rgba(0,0,0,0.14)',
+  glass: 'rgba(255,255,255,0.74)',
+  glassEdge: 'rgba(255,255,255,0.92)',
+  shadow: 'rgba(0,0,0,0.12)',
+  glow: 0.55,           // living-background strength
 };
-// Apple-style dark: true black background, raised grey cards, brighter tints
+
+// Pure black (OLED) with raised graphite cards; the brand flips to near-white
 const DARK: typeof LIGHT = {
   bg: '#000000',
   card: '#1C1C1E',
   cardAlt: '#2C2C2E',
   border: '#38383A',
-  gold: '#30D158',
-  goldSoft: '#7EE2A0',
+  gold: '#F5F5F0',
+  goldSoft: '#D9D9D4',
   text: '#FFFFFF',
   textMuted: '#A1A1A8',
-  textFaint: '#7C7C82',
-  income: '#30D158',
+  textFaint: '#8E8E93',
+  income: '#32D27A',
   danger: '#FF6961',
   warning: '#FFB340',
   onGold: '#000000',
-  goldTint: '#10281B',
-  goldLine: '#1E4A31',
-  goldActive: '#163A27',
-  incomeTint: '#10281B',
+  goldTint: '#2C2C2E',
+  goldLine: '#48484A',
+  goldActive: '#3A3A3C',
+  incomeTint: '#0F2A1C',
   incomeLine: '#1E4A31',
   warningTint: '#2E2210',
   warningLine: '#5A4320',
@@ -77,23 +75,24 @@ const DARK: typeof LIGHT = {
   dangerLine: '#5C2724',
   violet: '#C987F2',
   violetTint: '#2A1838',
-  glass: 'rgba(40,40,42,0.78)',
-  glassEdge: 'rgba(255,255,255,0.16)',
+  glass: 'rgba(36,36,38,0.78)',
+  glassEdge: 'rgba(255,255,255,0.14)',
   shadow: 'rgba(0,0,0,0.55)',
+  glow: 0.5,
 };
 
-// Picked once at startup; changing the theme in Settings restarts the app's screens with the new one
 export const themeChoice = readThemeChoice();
 export const isDark = resolveScheme(themeChoice) === 'dark';
 export const Corpus = isDark ? DARK : LIGHT;
 
-// Apple-style type: the phone's own system font (SF Pro on iPhone, Roboto on Android) for everything.
-// Weight comes from fontWeight next to it.
-const SYSTEM = Platform.select({ ios: 'System', android: 'sans-serif', default: "-apple-system, 'SF Pro Display', 'Segoe UI', Roboto, Inter, system-ui, sans-serif" });
+// Type: Inter for amounts and headings (bundled, assets/fonts — looks the same on iPhone, Android, web),
+// the phone's system font for everything else. A custom face carries its own weight: never add fontWeight next to it.
 export const Font = {
-  display: SYSTEM,     // screen headings, card titles (with fontWeight '600'/'700')
-  displayBold: SYSTEM, // amounts (with fontWeight '700')
+  display: 'Inter-SemiBold',   // headings, card titles
+  displayBold: 'Inter-Bold',   // amounts, large titles
 };
+// Amounts line up and don't jiggle while counting up
+export const tabular = { fontVariant: ['tabular-nums'] as ('tabular-nums')[] };
 
 // Apple-style icon squares: one colour per kind of thing (white symbol on top)
 export const Chip = {

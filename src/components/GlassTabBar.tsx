@@ -2,7 +2,8 @@ import { Corpus, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Floating "liquid glass" tab bar, Apple iOS 26 style: a capsule of tabs + a separate round Ask button.
@@ -21,9 +22,16 @@ export const TAB_BAR_SPACE = 96; // leave this much room at the bottom of tab sc
 export default function GlassTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [solid, setSolid] = useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceTransparencyEnabled?.().then(setSolid).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener?.('reduceTransparencyChanged', setSolid);
+    return () => sub?.remove();
+  }, []);
+  const glassLook = solid ? s.solid : blur;
   return (
     <View style={[s.wrap, { bottom: Math.max(insets.bottom, 10) + 6 }]} pointerEvents="box-none">
-      <View style={[s.bar, blur]} accessibilityRole="tablist">
+      <View style={[s.bar, glassLook]} accessibilityRole="tablist">
         {state.routes.map((r, i) => {
           const t = TABS[r.name];
           if (!t) return null; // Settings lives behind the profile button
@@ -46,7 +54,7 @@ export default function GlassTabBar({ state, navigation }: BottomTabBarProps) {
           );
         })}
       </View>
-      <Pressable style={[s.round, blur]} onPress={() => router.push('/ask' as Href)} accessibilityRole="button" accessibilityLabel="Ask Corpus">
+      <Pressable style={[s.round, glassLook]} onPress={() => router.push('/ask' as Href)} accessibilityRole="button" accessibilityLabel="Ask Corpus">
         <Ionicons name="search" size={22} color={Corpus.text} />
       </Pressable>
     </View>
@@ -69,7 +77,8 @@ const s = StyleSheet.create({
   bar: { ...glass, flex: 1, height: 62, borderRadius: 31, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 5 },
   tab: { flex: 1, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', gap: 2 },
   tabOn: { backgroundColor: Corpus.goldTint },
-  label: { fontSize: Type.micro, fontWeight: '500', color: Corpus.text },
+  label: { fontSize: Type.small, fontWeight: '500', color: Corpus.text },
   labelOn: { fontWeight: '700', color: Corpus.gold },
   round: { ...glass, width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center' },
+  solid: { backgroundColor: Corpus.card, borderColor: Corpus.border },
 });
