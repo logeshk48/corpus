@@ -40,7 +40,7 @@ export function GroupRow({ icon, color, title, subtitle, value, valueColor, onPr
       {icon && <IconChip icon={icon} color={color} />}
       <View style={s.body}>
         <Text style={s.rowTitle} numberOfLines={1}>{title}</Text>
-        {!!subtitle && <Text style={s.sub} numberOfLines={1}>{subtitle}</Text>}
+        {!!subtitle && <Text style={s.sub} numberOfLines={2}>{subtitle}</Text>}
       </View>
       {right}
       {!!value && <Text style={[s.value, valueColor ? { color: valueColor } : null]} numberOfLines={1}>{value}</Text>}

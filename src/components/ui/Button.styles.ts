@@ -1,11 +1,11 @@
-import { Corpus, Radius, Type } from '@/constants/theme';
+import { Corpus, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   base: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
 
   // Sizes
-  lg: { height: 52, borderRadius: Radius.md, paddingHorizontal: 20 },
+  lg: { height: 52, borderRadius: 999, paddingHorizontal: 22 },
   sm: { height: 32, borderRadius: 999, paddingHorizontal: 12, gap: 4 },
   labelLg: { fontSize: Type.input, fontWeight: '600' },
   labelSm: { fontSize: Type.body, fontWeight: '600' },

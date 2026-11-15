@@ -1,4 +1,5 @@
-import { Chip, Corpus } from '@/constants/theme';
+import { Chip, Corpus, Pastel } from '@/constants/theme';
+import { loggingStreak } from '@/utils/streak';
 import { Group, GroupRow, IconChip } from '@/components/ui';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -139,6 +140,7 @@ export default function HomeScreen() {
 
   // The heart of Corpus: how much can I safely spend today?
   const { transactions: yearTx, loading: yearLoading } = useTransactions('last12Months');
+  const streak = loggingStreak(yearTx);
 
   // Smart detection (Day 7): things Corpus noticed, each with a one-tap action
   const dismissed = settings.dismissedInsights ?? [];
@@ -431,7 +433,7 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
         showsVerticalScrollIndicator={false}
       >
-        <HomeHeader />
+        <HomeHeader streak={streak.days} loggedToday={streak.loggedToday} />
         <BillAlerts
           bills={bills}
           onPay={(b) => setPaying(b)}
@@ -441,13 +443,13 @@ export default function HomeScreen() {
 
         <View style={styles.tiles}>
           {[
-            { label: 'Add spend', icon: 'add', color: Chip.green, go: () => router.push('/add' as Href) },
-            { label: 'Scan receipt', icon: 'scan', color: Chip.blue, go: () => router.push('/add?paste=1' as Href) },
-            { label: 'Can I afford?', icon: 'cart', color: Chip.purple, go: () => setShowAfford(true) },
+            { label: 'Add spend', icon: 'add', tone: Pastel.mint, go: () => router.push('/add' as Href) },
+            { label: 'Scan receipt', icon: 'scan', tone: Pastel.sky, go: () => router.push('/add?paste=1' as Href) },
+            { label: 'Can I afford?', icon: 'cart', tone: Pastel.lilac, go: () => setShowAfford(true) },
           ].map((t) => (
-            <Pressable key={t.label} style={({ pressed }) => [styles.tile, pressed && { transform: [{ scale: 0.95 }] }]} onPress={t.go} accessibilityRole="button">
-              <IconChip icon={t.icon} color={t.color} size={36} />
-              <Text style={styles.tileText} numberOfLines={1}>{t.label}</Text>
+            <Pressable key={t.label} style={({ pressed }) => [styles.tile, { backgroundColor: t.tone.bg }, pressed && { transform: [{ scale: 0.95 }] }]} onPress={t.go} accessibilityRole="button">
+              <IconChip icon={t.icon} color={t.tone.icon} size={38} />
+              <Text style={[styles.tileText, { color: t.tone.fg }]} numberOfLines={1}>{t.label}</Text>
             </Pressable>
           ))}
         </View>

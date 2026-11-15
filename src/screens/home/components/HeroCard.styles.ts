@@ -11,6 +11,8 @@ export const styles = StyleSheet.create({
   label: { fontSize: Type.label, fontWeight: '500', color: Corpus.textMuted },
   amount: { fontSize: Type.entry, fontFamily: Font.displayBold, letterSpacing: -1.2, ...tabular },
   context: { fontSize: Type.label },
+  skeleton: { height: 40, width: '80%', borderRadius: 10, backgroundColor: Corpus.cardAlt, marginTop: 6 },
+  skeletonSm: { height: 16, width: '60%', marginTop: 8 },
   rings: { width: 92, height: 92, alignItems: 'center', justifyContent: 'center' },
   inner: { position: 'absolute', top: 17, left: 17 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.sm, marginTop: Space.sm + 2 },

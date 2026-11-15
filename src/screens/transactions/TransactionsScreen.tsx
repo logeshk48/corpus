@@ -1,4 +1,4 @@
-import { IconChip, Segmented, useNavChrome } from '@/components/ui';
+import { Button, IconChip, Segmented, useNavChrome } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
 import { Chip, Corpus } from '@/constants/theme';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -6,7 +6,7 @@ import TransactionRow from '@/screens/home/components/TransactionRow';
 import { formatINR } from '@/utils/format';
 import { groupByDay } from '@/utils/groupTransactions';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Animated, Pressable, Text, TextInput, View } from 'react-native';
 import type { Transaction } from '@/types/transaction';
@@ -96,14 +96,19 @@ export default function TransactionsScreen() {
   );
 
   const empty = loading ? (
-    <View style={styles.empty}><ActivityIndicator color={Corpus.gold} /></View>
+    <View style={styles.empty} accessibilityLabel="Loading transactions" accessibilityState={{ busy: true }}><ActivityIndicator color={Corpus.gold} /></View>
   ) : error ? (
     <View style={styles.empty}><Text style={styles.emptyTitle}>{error}</Text></View>
   ) : (
     <View style={styles.empty}>
       <IconChip icon={q ? 'search' : 'receipt'} color={Chip.gray} size={48} />
       <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-      <Text style={styles.emptyText}>{q ? 'Try a different word, or clear the search.' : 'Tap Add in the tab bar to log your first one.'}</Text>
+      <Text style={styles.emptyText}>{q ? 'Try a different word, or clear the search.' : 'Log your first one — it takes 3 seconds.'}</Text>
+      {q ? (
+        <Button size="sm" variant="secondary" label="Clear search" onPress={() => setSearch('')} />
+      ) : (
+        <Button label="Add a transaction" icon="add" onPress={() => router.push('/add' as Href)} />
+      )}
     </View>
   );
 

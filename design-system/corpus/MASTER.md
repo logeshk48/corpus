@@ -27,6 +27,25 @@ Icon squares (`Chip`) keep their colours: they identify kinds of things, not sta
 `AmbientGlow` behind Today: the glow colour IS the money status — green on track, amber tight, red over,
 grey before data (`assets/images/bg/glow-*.png`). Fades as you scroll. Strength token `Corpus.glow`.
 
+## Gen Z layer (on top of the premium base)
+- **Bento tiles in pastels** (`Pastel.lilac/peach/sky/butter/mint/rose`, light + dark sets, text ≥ 4.5:1) wherever a
+  set of areas is scanned at a glance — Money on Today, summaries on sub-screens. Big Inter amounts, small words.
+- **Pills**: primary buttons and chips fully rounded (999); tiles 26 radius.
+- **Streaks**: logging streak (`utils/streak.ts`) as a peach flame pill next to the large title (≥ 2 days).
+- **Copy**: short, friendly, second person — "Money in", "Spent", "Nothing spent yet this week". No emoji as icons.
+- Pastels are decoration only; money status keeps green / amber / red.
+- Bento follows the skill's **Bento Box Grid**: varied sizes (wide 2×1 for Accounts + Net worth, squares between),
+  tiles appear staggered 45 ms apart (skill: 30–50 ms), off with Reduce Motion.
+- Skill's Gen Z style **Neubrutalism** (black outlines, hard shadows) rejected: its own rule forbids mixing flat-brutal
+  with glass at random, and Corpus is glass.
+
+## Audit rules from ui-ux-pro-max (apply on every screen)
+- **Colour never alone** (High): status = colour + icon/word (bento "Check" pill, "On track" pill, ring legend).
+- **No clipped essential text** (Critical): wrap to 2 lines or give a full-detail path; never ellipsize meaning.
+- **Empty state = message + action** (Medium).
+- **Loading keeps layout + announces busy** (High): skeletons with `accessibilityState={{ busy: true }}`.
+- **Tap feedback < 100 ms**, lists of 50+ virtualised, thousand separators, tab badges sparingly.
+
 ## Type
 Inter (bundled, OFL) for amounts and headings: `Font.displayBold` (amounts, large titles), `Font.display` (titles);
 `tabular` digits on every amount. System font for body text. Never add fontWeight next to a custom face.

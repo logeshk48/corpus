@@ -1,4 +1,4 @@
-import { Corpus, Font, Type } from '@/constants/theme';
+import { Corpus, Font, Pastel, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -7,6 +7,10 @@ export const styles = StyleSheet.create({
   greeting: { flex: 1, fontSize: Type.body, fontWeight: '500', color: Corpus.textMuted },
   name: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: 0.3 },
   actions: { flexDirection: 'row', gap: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  streak: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, minHeight: 32, borderRadius: 999, backgroundColor: Pastel.peach.bg },
+  streakDim: { opacity: 0.6 },
+  streakText: { fontSize: Type.body, fontWeight: '700', color: Pastel.peach.fg },
   round: {
     width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
     backgroundColor: Corpus.glass, borderWidth: 0.5, borderColor: Corpus.glassEdge,

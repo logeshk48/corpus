@@ -94,6 +94,27 @@ export const Font = {
 // Amounts line up and don't jiggle while counting up
 export const tabular = { fontVariant: ['tabular-nums'] as ('tabular-nums')[] };
 
+// Gen Z bento tiles: soft pastel backgrounds with deep text (all ≥ 4.5:1). Decorative — never used for money status.
+type Tone = { bg: string; fg: string; icon: string };
+const PASTEL_LIGHT: Record<'lilac' | 'peach' | 'sky' | 'butter' | 'mint' | 'rose', Tone> = {
+  lilac: { bg: '#ECE6FF', fg: '#3B2A86', icon: '#6A4FE0' },
+  peach: { bg: '#FFE6D9', fg: '#7A2E0E', icon: '#E0632C' },
+  sky: { bg: '#DDEEFF', fg: '#123F73', icon: '#2B7BD6' },
+  butter: { bg: '#FFF2C2', fg: '#5C4500', icon: '#B98900' },
+  mint: { bg: '#D9F5E5', fg: '#0E5A34', icon: '#1E9E5A' },
+  rose: { bg: '#FFE1EA', fg: '#7C1D3B', icon: '#D6336C' },
+};
+const PASTEL_DARK: typeof PASTEL_LIGHT = {
+  lilac: { bg: '#231C3D', fg: '#DCD3FF', icon: '#A897FF' },
+  peach: { bg: '#3A2218', fg: '#FFD5C2', icon: '#FF9A6B' },
+  sky: { bg: '#16273D', fg: '#CDE4FF', icon: '#6FB1FF' },
+  butter: { bg: '#332A0E', fg: '#FFEBA8', icon: '#F5C842' },
+  mint: { bg: '#11291D', fg: '#C2F1D6', icon: '#4CD98B' },
+  rose: { bg: '#3A1824', fg: '#FFCCDA', icon: '#FF7FA3' },
+};
+export const Pastel = isDark ? PASTEL_DARK : PASTEL_LIGHT;
+export type PastelName = keyof typeof PASTEL_LIGHT;
+
 // Apple-style icon squares: one colour per kind of thing (white symbol on top)
 export const Chip = {
   green: '#1E9E5A', blue: '#0A72E8', indigo: '#5856D6', purple: '#A050D0', pink: '#E8335A',

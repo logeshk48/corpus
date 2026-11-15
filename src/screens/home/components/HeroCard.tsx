@@ -46,10 +46,14 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   const t = useEntrance(900, loading ? 0 : 1);
   if (loading) {
     return (
-      <View style={styles.card}>
-        <View style={styles.left}>
-          <Text style={styles.label}>Safe to spend today</Text>
-          <Text style={[styles.amount, { color: Corpus.textFaint }]}>···</Text>
+      <View style={[styles.card, styles.cardCol]} accessibilityLabel="Working out what you can spend today" accessibilityState={{ busy: true }}>
+        <View style={styles.top}>
+          <View style={styles.left}>
+            <Text style={styles.label}>Safe to spend today</Text>
+            <View style={styles.skeleton} />
+            <View style={[styles.skeleton, styles.skeletonSm]} />
+          </View>
+          <Rings used={0} through={0} />
         </View>
       </View>
     );

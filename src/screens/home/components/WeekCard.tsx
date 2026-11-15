@@ -33,9 +33,13 @@ export default function WeekCard({ tx, onPress }: { tx: Transaction[]; onPress: 
       <View style={st.head}>
         <View style={{ flex: 1 }}>
           <Text style={st.title}>This week</Text>
-          <Text style={st.sub}>
-            <Text style={st.big}>{formatINR(Math.round(w.total))}</Text>  ·  about {formatINR(Math.round(w.avg))} a day
-          </Text>
+          {w.total > 0 ? (
+            <Text style={st.sub}>
+              <Text style={st.big}>{formatINR(Math.round(w.total))}</Text>  ·  about {formatINR(Math.round(w.avg))} a day
+            </Text>
+          ) : (
+            <Text style={st.sub}>Nothing spent yet this week</Text>
+          )}
         </View>
         <Ionicons name="chevron-forward" size={17} color={Corpus.textFaint} />
       </View>

@@ -1,4 +1,4 @@
-import { Corpus } from '@/constants/theme';
+import { Corpus, Pastel } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,7 +22,7 @@ function displayNameFor(saved: string | undefined, email: string | null | undefi
   return 'there';
 }
 
-export default function HomeHeader() {
+export default function HomeHeader({ streak = 0, loggedToday = true }: { streak?: number; loggedToday?: boolean }) {
   const { user } = useAuth();
   const { settings } = useSettings();
   const name = displayNameFor(settings.displayName, user?.email);
@@ -46,7 +46,15 @@ export default function HomeHeader() {
           </Pressable>
         </View>
       </View>
-      <Text style={styles.name} accessibilityRole="header">Today</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.name} accessibilityRole="header">Today</Text>
+        {streak >= 2 && (
+          <View style={[styles.streak, !loggedToday && styles.streakDim]} accessibilityLabel={`${streak} day logging streak${loggedToday ? '' : ', log something today to keep it'}`}>
+            <Ionicons name="flame" size={15} color={Pastel.peach.icon} />
+            <Text style={styles.streakText}>{streak}-day streak</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }

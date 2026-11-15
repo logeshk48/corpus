@@ -18,8 +18,8 @@ export const styles = StyleSheet.create({
   tiles: { flexDirection: 'row', gap: 10 },
   compact: { position: 'absolute', top: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: Corpus.glass, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Corpus.border },
   compactText: { fontSize: Type.title, fontWeight: '600', color: Corpus.text },
-  tile: { flex: 1, height: 84, borderRadius: 22, backgroundColor: Corpus.card, alignItems: 'center', justifyContent: 'center', gap: 7 },
-  tileText: { fontSize: Type.small, fontWeight: '500', color: Corpus.text },
+  tile: { flex: 1, height: 96, borderRadius: 26, backgroundColor: Corpus.card, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  tileText: { fontSize: Type.body, fontWeight: '700', color: Corpus.text },
   statsRow: {
     flexDirection: 'row',
     gap: Space.sm + 2,
