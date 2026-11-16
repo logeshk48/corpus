@@ -8,5 +8,5 @@ export { default as IconChip } from './IconChip';
 export { default as Segmented } from './Segmented';
 export { default as Screen } from './Screen';
 export { useNavChrome } from './NavChrome';
-export { default as Sheet, Field, Choice, Toggle } from './Sheet';
+export { default as Sheet, Field, Choice, Toggle, Stepper, DayStepper } from './Sheet';
 export { default as Tap } from './Tap';

@@ -1,14 +1,11 @@
-import { Button } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
+import { Button, Choice, Field, Sheet, Stepper, Toggle } from '@/components/ui';
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import type { Bill, Loan, LoanType } from '@/types/bill';
 import { yearMonth } from '@/utils/bills';
 import { formatINR } from '@/utils/format';
 import { buildSchedule, calcEmi } from '@/utils/loan';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
-import { styles } from './BillSheet.styles';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 const TYPES: { id: LoanType; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: 'home' },
@@ -95,134 +92,81 @@ export default function LoanSheet({ bill, onClose, onSave, onRemove }: Props) {
     }
   };
 
+  const interestShare = valid && P + totalInterest > 0 ? totalInterest / (P + totalInterest) : 0;
+
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={[sheet.sheet, { maxHeight: '92%' }]}>
-          <View style={sheet.handle} />
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14 }} keyboardShouldPersistTaps="handled">
-            <View style={sheet.header}>
-              <View style={sheet.iconCircle}>
-                <Ionicons name="calculator-outline" size={18} color={Corpus.gold} />
-              </View>
-              <View style={sheet.titleBlock}>
-                <Text style={sheet.title}>Loan details · {bill.name}</Text>
-                <Text style={sheet.subtitle}>Unlocks balance, interest split and prepayment savings</Text>
-              </View>
-              <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-                <Ionicons name="close" size={18} color={Corpus.textMuted} />
-              </Pressable>
-            </View>
-
-            <Text style={styles.label}>LOAN TYPE</Text>
-            <View style={styles.templates}>
-              {TYPES.map((t) => (
-                <Pressable key={t.id} style={[sheet.chip, type === t.id && sheet.chipSuggested]} onPress={() => setType(t.id)}>
-                  <Ionicons name={t.icon as any} size={12} color={type === t.id ? Corpus.gold : Corpus.textMuted} />
-                  <Text style={[sheet.chipText, type === t.id && sheet.chipTextSuggested]}>{t.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.label}>LENDER (OPTIONAL)</Text>
-            <TextInput
-              style={styles.input}
-              value={lender}
-              onChangeText={setLender}
-              placeholder="e.g. HDFC Bank, Bajaj Finance"
-              placeholderTextColor={Corpus.textFaint}
-              maxLength={30}
-            />
-
-            <Text style={styles.label}>LOAN AMOUNT (PRINCIPAL)</Text>
-            <TextInput
-              style={styles.input}
-              value={principal}
-              onChangeText={setPrincipal}
-              placeholder="₹ e.g. 500000"
-              placeholderTextColor={Corpus.textFaint}
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.label}>INTEREST RATE (% PER YEAR)</Text>
-            <TextInput
-              style={styles.input}
-              value={rate}
-              onChangeText={setRate}
-              placeholder="e.g. 10.5"
-              placeholderTextColor={Corpus.textFaint}
-              keyboardType="decimal-pad"
-            />
-
-            <Text style={styles.label}>TENURE IN MONTHS (NUMBER OF EMIs)</Text>
-            <TextInput
-              style={styles.input}
-              value={tenure}
-              onChangeText={setTenure}
-              placeholder="e.g. 60"
-              placeholderTextColor={Corpus.textFaint}
-              keyboardType="numeric"
-            />
-            {N > 0 && (
-              <Text style={[styles.hint, { color: Corpus.gold }]}>
-                {N} months = {tenureLabel(N)}
-              </Text>
-            )}
-            <View style={styles.templates}>
-              {TENURES.map((m) => (
-                <Pressable key={m} style={[sheet.chip, N === m && sheet.chipSuggested]} onPress={() => setTenure(String(m))}>
-                  <Text style={[sheet.chipText, N === m && sheet.chipTextSuggested]}>{m} months</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.label}>FIRST EMI WAS IN</Text>
-            <View style={styles.dayRow}>
-              <Pressable style={styles.dayArrow} onPress={() => setFirstEmi(shiftYm(firstEmi, -1))}>
-                <Ionicons name="chevron-back" size={18} color={Corpus.text} />
-              </Pressable>
-              <Text style={styles.dayText}>{ymLabel(firstEmi)}</Text>
-              <Pressable style={styles.dayArrow} onPress={() => setFirstEmi(shiftYm(firstEmi, 1))}>
-                <Ionicons name="chevron-forward" size={18} color={Corpus.text} />
-              </Pressable>
-              <Pressable onPress={() => setFirstEmi(shiftYm(firstEmi, -12))} hitSlop={6}>
-                <Text style={styles.yearJump}>−1 yr</Text>
-              </Pressable>
-            </View>
-
-            {valid ? (
-              <View style={styles.switchRow}>
-                <View style={styles.switchBody}>
-                  <Text style={styles.switchTitle}>
-                    EMI {formatINR(Math.round(emi))} · ends {ymLabel(endMonth)}
-                  </Text>
-                  <Text style={styles.switchHint}>
-                    Total interest {formatINR(Math.round(totalInterest))} · you repay {formatINR(Math.round(P + totalInterest))}
-                  </Text>
-                </View>
-              </View>
-            ) : (
-              <Text style={styles.hint}>Fill amount, rate and tenure to calculate your EMI.</Text>
-            )}
-
-            {differs && (
-              <View style={styles.switchRow}>
-                <View style={styles.switchBody}>
-                  <Text style={styles.switchTitle}>Use {formatINR(Math.round(emi))} as the bill amount</Text>
-                  <Text style={styles.switchHint}>Currently {formatINR(bill.amount)} — also sets the end month to {ymLabel(endMonth)}</Text>
-                </View>
-                <Switch value={useEmi} onValueChange={setUseEmi} trackColor={{ false: Corpus.border, true: Corpus.gold }} thumbColor={Corpus.text} />
-              </View>
-            )}
-
-            <Button label="Save loan details" onPress={save} loading={busy} disabled={!valid} />
-            {bill.loan && (
-              <Button variant="danger" icon="trash-outline" label="Remove loan details" onPress={onRemove} disabled={busy} />
-            )}
-          </ScrollView>
-        </View>
+    <Sheet
+      title={`Loan behind ${bill.name}`}
+      subtitle="Shows what you still owe and what paying early saves"
+      onClose={onClose}
+      footer={
+        <>
+          <Button label="Save loan details" onPress={save} loading={busy} disabled={!valid} />
+          {bill.loan && <Button variant="danger" icon="trash-outline" label="Remove loan details" onPress={onRemove} disabled={busy} />}
+        </>
+      }
+    >
+      <Choice label="Loan type" options={TYPES.map((t) => ({ value: t.id, label: t.label, icon: t.icon }))} value={type} onChange={setType} />
+      <Field label="Lender (optional)" value={lender} onChangeText={setLender} placeholder="HDFC Bank, Bajaj Finance" maxLength={30} />
+      <Field label="Amount borrowed" money value={principal} onChangeText={(t) => setPrincipal(t.replace(/[^0-9.]/g, ''))} placeholder="500000" />
+      <Field label="Interest rate, % a year" value={rate} onChangeText={(t) => setRate(t.replace(/[^0-9.]/g, ''))} placeholder="10.5" keyboardType="decimal-pad"
+        error={rate.trim() !== '' && !(R >= 0 && R <= 50) ? 'Enter a rate from 0 to 50' : undefined} />
+      <Field label="Number of EMIs" value={tenure} onChangeText={(t) => setTenure(t.replace(/[^0-9]/g, '').slice(0, 3))} placeholder="60" keyboardType="number-pad"
+        hint={N > 0 ? `${N} months is ${tenureLabel(N)}` : undefined} />
+      <View style={st.chips}>
+        {TENURES.map((m) => (
+          <Pressable key={m} style={({ pressed }) => [st.chip, N === m && st.chipOn, pressed && { opacity: 0.7 }]} onPress={() => setTenure(String(m))} accessibilityRole="button" accessibilityState={{ selected: N === m }} accessibilityLabel={`${m} months`}>
+            <Text style={[st.chipText, N === m && { color: Corpus.onGold }]}>{m}</Text>
+          </Pressable>
+        ))}
       </View>
-    </Modal>
+      <Stepper label="First EMI was in" value={ymLabel(firstEmi)} onPrev={() => setFirstEmi(shiftYm(firstEmi, -1))} onNext={() => setFirstEmi(shiftYm(firstEmi, 1))}
+        extra={{ label: 'Back 1 year', onPress: () => setFirstEmi(shiftYm(firstEmi, -12)) }} />
+
+      {valid ? (
+        <View style={st.result} accessibilityLabel={`EMI ${formatINR(Math.round(emi))}, ends ${ymLabel(endMonth)}, total interest ${formatINR(Math.round(totalInterest))}`}>
+          <View style={st.resultTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={st.small}>Your EMI</Text>
+              <Text style={st.big}>{formatINR(Math.round(emi))}</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={st.small}>Last EMI</Text>
+              <Text style={st.mid}>{ymLabel(endMonth)}</Text>
+            </View>
+          </View>
+          <View style={st.split}>
+            <View style={{ flex: 1 - interestShare, backgroundColor: Corpus.text }} />
+            <View style={{ flex: interestShare, backgroundColor: Corpus.warning }} />
+          </View>
+          <View style={st.legend}>
+            <Text style={st.small}>Borrowed {formatINR(P)}</Text>
+            <Text style={[st.small, { color: Corpus.warning }]}>Interest {formatINR(Math.round(totalInterest))}</Text>
+          </View>
+          <Text style={st.small}>You repay {formatINR(Math.round(P + totalInterest))} in all.</Text>
+        </View>
+      ) : (
+        <Text style={st.small}>Fill in the amount, rate and number of EMIs to see your EMI.</Text>
+      )}
+
+      {differs && (
+        <Toggle icon="swap-horizontal" title={`Use ${formatINR(Math.round(emi))} as the bill amount`} value={useEmi} onChange={setUseEmi}
+          hint={`The bill says ${formatINR(bill.amount)} now. This also sets the last payment to ${ymLabel(endMonth)}.`} />
+      )}
+    </Sheet>
   );
 }
+
+const st = StyleSheet.create({
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: -6 },
+  chip: { minWidth: 48, minHeight: 40, paddingHorizontal: 12, borderRadius: 20, backgroundColor: Corpus.bg, alignItems: 'center', justifyContent: 'center' },
+  chipOn: { backgroundColor: Corpus.gold },
+  chipText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  result: { backgroundColor: Corpus.bg, borderRadius: 18, padding: 16, gap: 10 },
+  resultTop: { flexDirection: 'row', alignItems: 'flex-end' },
+  big: { fontSize: Type.h1, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.5, ...tabular },
+  mid: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  small: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 18, ...tabular },
+  split: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', gap: 2 },
+  legend: { flexDirection: 'row', justifyContent: 'space-between' },
+});

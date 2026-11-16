@@ -163,6 +163,53 @@ export function Toggle({ title, hint, value, onChange, icon = 'star' }: { title:
   );
 }
 
+// ‹ value › : step through a short ordered set (a day of the month, a month, a date). Arrows are 44pt targets.
+export function Stepper({ label, value, sub, onPrev, onNext, prevDisabled, nextDisabled, hint, extra }: {
+  label: string; value: string; sub?: string; onPrev: () => void; onNext: () => void;
+  prevDisabled?: boolean; nextDisabled?: boolean; hint?: string; extra?: { label: string; onPress: () => void };
+}) {
+  const arrow = (icon: 'chevron-back' | 'chevron-forward', off: boolean | undefined, go: () => void, name: string) => (
+    <Pressable onPress={go} disabled={off} style={({ pressed }) => [s.stepArrow, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel={`${name} ${label}`} accessibilityState={{ disabled: !!off }}>
+      <Ionicons name={icon} size={20} color={off ? Corpus.textFaint : Corpus.text} />
+    </Pressable>
+  );
+  return (
+    <View style={s.field}>
+      <Text style={s.label}>{label}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={[s.box, s.stepBox]}>
+          {arrow('chevron-back', prevDisabled, onPrev, 'Earlier')}
+          <View style={{ flex: 1, alignItems: 'center' }} accessibilityLiveRegion="polite">
+            <Text style={s.stepValue}>{value}</Text>
+            {!!sub && <Text style={s.msg}>{sub}</Text>}
+          </View>
+          {arrow('chevron-forward', nextDisabled, onNext, 'Later')}
+        </View>
+        {extra && (
+          <Pressable onPress={extra.onPress} style={({ pressed }) => [s.choice, pressed && { opacity: 0.7 }]} accessibilityRole="button">
+            <Text style={s.choiceText}>{extra.label}</Text>
+          </Pressable>
+        )}
+      </View>
+      {!!hint && <Text style={s.msg}>{hint}</Text>}
+    </View>
+  );
+}
+
+// A day you already lived: today or earlier, one day at a time
+export function DayStepper({ label, value, onChange, hint }: { label: string; value: Date; onChange: (d: Date) => void; hint?: string }) {
+  const today = new Date();
+  const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  const move = (n: number) => onChange(new Date(value.getFullYear(), value.getMonth(), value.getDate() + n, 9));
+  const isToday = same(value, today);
+  const full = value.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  return (
+    <Stepper label={label} hint={hint} value={isToday ? 'Today' : same(value, new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)) ? 'Yesterday' : full}
+      sub={isToday ? full : undefined} onPrev={() => move(-1)} onNext={() => move(1)} nextDisabled={isToday || value > today}
+      extra={isToday ? undefined : { label: 'Today', onPress: () => onChange(new Date()) }} />
+  );
+}
+
 const s = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
   scrim: { backgroundColor: Corpus.scrim },
@@ -192,6 +239,9 @@ const s = StyleSheet.create({
   choiceTile: { flex: 1, flexDirection: 'column', gap: 4, minHeight: 64, paddingHorizontal: 4, borderRadius: 18, justifyContent: 'center' },
   choiceOn: { backgroundColor: Corpus.gold },
   choiceText: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text },
+  stepBox: { flex: 1, paddingHorizontal: 4 },
+  stepArrow: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  stepValue: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.text, ...tabular },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, borderRadius: 16, backgroundColor: Corpus.bg, padding: 14 },
   toggleTitle: { fontSize: Type.label, color: Corpus.text },
   track: { width: 46, height: 28, borderRadius: 14, backgroundColor: Corpus.border, padding: 3 },

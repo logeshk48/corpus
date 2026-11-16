@@ -1,8 +1,8 @@
-import { IconButton, IconChip, Screen, SectionLabel } from '@/components/ui';
+import { Button, Group, GroupRow, IconButton, IconChip, Screen } from '@/components/ui';
 import { CategoryChip, Chip } from '@/constants/theme';
 import { findCategory } from '@/constants/categories';
 import Shine from '@/components/fx/Shine';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -34,7 +34,7 @@ import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import BillSheet, { type BillSheetMode } from './components/BillSheet';
 import PayBillSheet from './components/PayBillSheet';
 import LoanPanel from './components/LoanPanel';
@@ -145,7 +145,7 @@ export default function BillDetailScreen() {
       });
       await updateBill(bill.id, { loan, endMonth: newEnd, ...(mode === 'emi' ? { amount: newEmi } : {}) });
       showToast({
-        message: mode === 'emi' ? `Prepayment saved · new EMI ${formatINR(newEmi)}` : `Prepayment saved · loan now ends earlier`,
+        message: mode === 'emi' ? `Extra payment saved. New EMI ${formatINR(newEmi)}` : 'Extra payment saved. The loan ends sooner',
         actionLabel: 'Undo',
         onAction: async () => {
           await deleteTransaction(txId);
@@ -200,26 +200,26 @@ export default function BillDetailScreen() {
           </View>
         </View>
 
+        {bill.active && dueNow && (
+          <View style={{ gap: 8 }}>
+            <Button icon={bill.variable ? 'create' : 'checkmark'} label={bill.variable ? 'Enter amount' : 'Mark paid'} onPress={() => setPaying(bill)} />
+            <Button variant="quiet" label="Skip this one" onPress={() => skip(bill)} />
+          </View>
+        )}
+
         {bill.endMonth && !bill.loan && (() => {
           const left = remainingPayments(bill) ?? 0;
           const done = payments.length;
           const total = done + left;
-          const pct = total > 0 ? (done / total) * 100 : 100;
           return (
-            <View style={styles.loanCard}>
-              <View style={styles.loanTop}>
-                <Ionicons name="flag-outline" size={15} color={Corpus.gold} />
-                <Text style={styles.loanTitle}>{isFinished(bill) ? 'Loan completed 🎉' : 'Loan progress'}</Text>
-                <Text style={styles.loanEnd}>Last payment {endLabel(bill)}</Text>
+            <View style={d.card}>
+              <View style={d.row}>
+                <Text style={[d.title, { flex: 1 }]}>{isFinished(bill) ? 'All paid off' : `${left} payment${left === 1 ? '' : 's'} left`}</Text>
+                <Text style={d.muted}>Last one {endLabel(bill)}</Text>
               </View>
-              <View style={styles.loanTrack}>
-                <View style={[styles.loanFill, { width: `${pct}%` }]} />
-              </View>
-              <Text style={styles.loanText}>
-                {isFinished(bill)
-                  ? 'All payments done. Corpus has stopped logging this bill.'
-                  : `${left} payment${left === 1 ? '' : 's'} left · ${formatINR(left * bill.amount)} still to pay` +
-                    (done > 0 ? ` · ${done} recorded in Corpus` : '')}
+              <View style={d.bar}><View style={{ width: `${total > 0 ? (done / total) * 100 : 100}%`, backgroundColor: Corpus.income }} /></View>
+              <Text style={d.muted}>
+                {isFinished(bill) ? 'Corpus has stopped recording this bill.' : `${formatINR(left * bill.amount)} still to pay${done > 0 ? `, ${done} recorded here so far` : ''}.`}
               </Text>
             </View>
           );
@@ -229,72 +229,38 @@ export default function BillDetailScreen() {
           <LoanPanel bill={bill} onEditLoan={() => setEditingLoan(true)} onRecordPrepayment={recordPrepayment} />
         )}
 
-        {bill.active && dueNow && (
-          <View style={styles.actions}>
-            <Pressable style={styles.primary} onPress={() => setPaying(bill)}>
-              <Ionicons name={bill.variable ? 'create' : 'checkmark'} size={16} color={Corpus.onGold} />
-              <Text style={styles.primaryText}>{bill.variable ? 'Enter amount' : 'Pay now'}</Text>
-            </Pressable>
-            <Pressable style={styles.secondary} onPress={() => skip(bill)}>
-              <Ionicons name="play-skip-forward" size={15} color={Corpus.text} />
-              <Text style={styles.secondaryText}>Skip month</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <View style={styles.stats}>
-          <View style={styles.stat}>
-            <Text style={styles.statLabel}>Paid in {thisYear}</Text>
-            <Text style={styles.statValue}>{formatINR(paidThisYear)}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statLabel}>Costs per year</Text>
-            <Text style={styles.statValue}>{formatINR(yearlyCost(bill))}</Text>
-          </View>
-          {bill.variable && (
-            <View style={styles.stat}>
-              <Text style={styles.statLabel}>Average</Text>
-              <Text style={styles.statValue}>{average > 0 ? formatINR(average) : '—'}</Text>
-            </View>
-          )}
+        <View style={[d.card, d.strip]}>
+          <View style={d.stat}><Text style={d.muted}>Paid in {thisYear}</Text><Text style={d.value}>{formatINR(paidThisYear)}</Text></View>
+          <View style={d.rule} />
+          <View style={d.stat}><Text style={d.muted}>A full year</Text><Text style={d.value}>{formatINR(yearlyCost(bill))}</Text></View>
+          {bill.variable && average > 0 && <><View style={d.rule} /><View style={d.stat}><Text style={d.muted}>Average</Text><Text style={d.value}>{formatINR(average)}</Text></View></>}
         </View>
 
-        <SectionLabel>Payments in the last 12 months</SectionLabel>
-        <View style={styles.group}>
+        <Group title="Payments">
           {payments.length === 0 ? (
-            <View style={styles.empty}>
-              <Ionicons name="time-outline" size={26} color={Corpus.textFaint} />
-              <Text style={styles.emptyText}>No payments recorded yet</Text>
+            <View style={d.empty}>
+              <Text style={d.title}>Nothing recorded yet</Text>
+              <Text style={d.muted}>Each payment shows up here, with how it compares to the one before.</Text>
             </View>
           ) : (
             payments.map((t, i) => {
               const prev = payments[i + 1]; // older payment
               const diff = prev ? t.amount - prev.amount : 0;
-              const d = new Date(t.date);
+              const day = new Date(t.date);
               return (
-                <Pressable
+                <GroupRow
                   key={t.id}
+                  icon="checkmark"
+                  color={Chip.green}
+                  title={day.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  subtitle={diff !== 0 ? `${formatINR(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than the time before` : undefined}
+                  value={formatINR(t.amount)}
                   onPress={() => router.push({ pathname: '/edit/[id]', params: { id: t.id } })}
-                  style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
-                >
-                  <Ionicons name="checkmark-circle" size={20} color={Corpus.income} />
-                  <View style={styles.rowBody}>
-                    <Text style={styles.rowMonth}>{d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</Text>
-                    <Text style={styles.rowDate}>Paid {d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
-                  </View>
-                  <View style={styles.rowRight}>
-                    <Text style={styles.rowAmount}>{formatINR(t.amount)}</Text>
-                    {diff !== 0 && (
-                      <Text style={[styles.change, { color: diff > 0 ? Corpus.danger : Corpus.income }]}>
-                        {formatINR(Math.abs(diff))} {diff > 0 ? 'more' : 'less'} than last time
-                      </Text>
-                    )}
-                  </View>
-                </Pressable>
+                />
               );
             })
           )}
-        </View>
+        </Group>
       </Screen>
 
       <BillSheet mode={mode} onClose={() => setMode(null)} onSave={(b) => save(b)} onDelete={remove} />
@@ -308,3 +274,16 @@ export default function BillDetailScreen() {
     </>
   );
 }
+
+const d = StyleSheet.create({
+  card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 18, gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  title: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.2 },
+  muted: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 19, ...tabular },
+  bar: { flexDirection: 'row', height: 10, borderRadius: 5, overflow: 'hidden', backgroundColor: Corpus.cardAlt },
+  strip: { flexDirection: 'row', alignItems: 'center' },
+  stat: { flex: 1, gap: 2 },
+  rule: { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: Corpus.border, marginHorizontal: 14 },
+  value: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text, ...tabular },
+  empty: { padding: 18, gap: 4 },
+});

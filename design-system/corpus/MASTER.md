@@ -168,3 +168,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - Only bills marked "Records itself" are added on the due day (auto-debits). Everything else waits for Mark paid.
 - A missed payment stays as Late until it is paid or skipped. It never vanishes when the month turns.
 - The Pay sheet always asks which day it was paid, default today.
+
+## Bills 10b: forms and loan
+- Bill, loan and pay forms all use the shared Sheet with Field, Choice, Toggle, Stepper and DayStepper. No form draws its own inputs.
+- Stepper (‹ value ›) is for short ordered sets: day of month, month, a past date. Arrows are 44pt.
+- Loan card: one cell per EMI when there are 36 or fewer, a single bar above that. Green = cleared, amber = interest, always with words and numbers next to it.
+- A screen has one primary button. "I paid this extra" is secondary because Mark paid is the primary.

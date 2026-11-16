@@ -1,5 +1,4 @@
-import DateStepper from '@/components/DateStepper';
-import { Button, Sheet } from '@/components/ui';
+import { Button, DayStepper, Sheet } from '@/components/ui';
 import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import type { Bill } from '@/types/bill';
 import { isDayPlan, nextDue } from '@/utils/bills';
@@ -68,11 +67,8 @@ export default function PayBillSheet({ bill, onClose, onPay, onSkip }: Props) {
           <Text style={s.chipText}>Same as usual {formatINR(bill.amount)}</Text>
         </Pressable>
       )}
-      <View style={s.when}>
-        <Text style={s.whenLabel}>Paid on</Text>
-        <DateStepper value={paidOn} onChange={setPaidOn} />
-        {isDayPlan(bill) && <Text style={s.whenHint}>The next {bill.everyDays} days are counted from this day, or from the due date if you paid early.</Text>}
-      </View>
+      <DayStepper label="Paid on" value={paidOn} onChange={setPaidOn}
+        hint={isDayPlan(bill) ? `The next ${bill.everyDays} days count from this day, or from the due date if you paid early` : undefined} />
     </Sheet>
   );
 }
@@ -84,8 +80,5 @@ const s = StyleSheet.create({
   amount: { fontSize: Type.entry, fontFamily: Font.displayBold, color: Corpus.text, textAlign: 'center', padding: 0, ...tabular, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
   error: { fontSize: Type.small, color: Corpus.danger },
   chip: { alignSelf: 'center', minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.bg, justifyContent: 'center' },
-  when: { gap: 6 },
-  whenLabel: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
-  whenHint: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
   chipText: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
 });

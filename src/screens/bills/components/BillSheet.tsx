@@ -1,29 +1,14 @@
-import DateStepper from '@/components/DateStepper';
-import { Button } from '@/components/ui';
-import { askWeb } from '@/services/confirm';
+import { Button, Choice, DayStepper, Field, Sheet, Stepper, Toggle } from '@/components/ui';
 import { EXPENSE_CATEGORIES } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Font, Type } from '@/constants/theme';
 import CategoryGrid from '@/screens/add/components/CategoryGrid';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
-import type { Bill, NewBill } from '@/types/bill';
+import { askWeb } from '@/services/confirm';
+import type { Bill, BillFrequency, NewBill } from '@/types/bill';
 import { addDays, endLabel, fromIsoDay, isAuto, isDueInMonth, isoDay, ordinal, remainingPayments, yearMonth } from '@/utils/bills';
-import type { BillFrequency } from '@/types/bill';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { styles } from './BillSheet.styles';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 export type BillSheetMode = { kind: 'new'; template?: Template } | { kind: 'edit'; bill: Bill } | null;
 
@@ -184,271 +169,111 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
     }
   };
 
+  const FREQ: { value: BillFrequency; label: string }[] = [
+    { value: 'monthly', label: 'Monthly' }, { value: 'bimonthly', label: '2 months' }, { value: 'quarterly', label: '3 months' },
+    { value: 'halfyearly', label: '6 months' }, { value: 'yearly', label: 'Yearly' }, { value: 'days', label: 'Count days' },
+  ];
+  const pick = (t: Template) => {
+    setName(t.name); setDay(t.day); setCategory(t.category); setFrequency(t.frequency ?? 'monthly'); setVariable(!!t.variable);
+    setAuto(!!t.auto); if (t.everyDays) setEveryDays(String(t.everyDays));
+    setEndMonth(t.hasEnd ? shiftYm(yearMonth(new Date()), 11) : undefined);
+  };
+  const dueMonths = Array.from({ length: 12 / stepMonths }, (_, k) => monthName(((dueMonth - 1 + k * stepMonths) % 12) + 1).slice(0, 3)).join(', ');
+
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={[sheet.sheet, { maxHeight: '92%' }]}>
-          <View style={sheet.handle} />
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14 }} keyboardShouldPersistTaps="handled">
-            <View style={sheet.header}>
-              <View style={sheet.iconCircle}>
-                <Ionicons name="repeat" size={18} color={Corpus.gold} />
-              </View>
-              <View style={sheet.titleBlock}>
-                <Text style={sheet.title}>{editing ? 'Edit bill' : 'New recurring bill'}</Text>
-                <Text style={sheet.subtitle}>Its money is kept aside until it is paid</Text>
-              </View>
-              <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-                <Ionicons name="close" size={18} color={Corpus.textMuted} />
+    <Sheet
+      title={editing ? 'Edit bill' : 'New bill'}
+      subtitle="Its money is kept aside until it is paid"
+      onClose={onClose}
+      footer={
+        <>
+          <Button label={editing ? 'Save changes' : 'Add bill'} onPress={save} loading={busy} disabled={!canSave} />
+          {editing && <Button variant="danger" icon="trash-outline" label="Delete bill" onPress={() => confirmDelete(mode.bill, () => onDelete(mode.bill))} />}
+        </>
+      }
+    >
+      {!editing && (
+        <View style={st.templates}>
+          {BILL_TEMPLATES.map((t) => {
+            const on = name === t.name;
+            return (
+              <Pressable key={t.name} style={({ pressed }) => [st.template, on && st.templateOn, pressed && { opacity: 0.7 }]} onPress={() => pick(t)} accessibilityRole="button" accessibilityState={{ selected: on }}>
+                <Ionicons name={t.icon as keyof typeof Ionicons.glyphMap} size={14} color={on ? Corpus.onGold : Corpus.text} />
+                <Text style={[st.templateText, on && { color: Corpus.onGold }]}>{t.name}</Text>
               </Pressable>
-            </View>
-
-            {!editing && (
-              <View style={styles.templates}>
-                {BILL_TEMPLATES.map((t) => (
-                  <Pressable
-                    key={t.name}
-                    style={[sheet.chip, name === t.name && sheet.chipSuggested]}
-                    onPress={() => {
-                      setName(t.name);
-                      setDay(t.day);
-                      setCategory(t.category);
-                      setFrequency(t.frequency ?? 'monthly');
-                      setAuto(!!t.auto);
-                      if (t.everyDays) setEveryDays(String(t.everyDays));
-                      setVariable(!!t.variable);
-                      setEndMonth(t.hasEnd ? shiftYm(yearMonth(new Date()), 11) : undefined);
-                    }}
-                  >
-                    <Ionicons name={t.icon as any} size={12} color={name === t.name ? Corpus.gold : Corpus.textMuted} />
-                    <Text style={[sheet.chipText, name === t.name && sheet.chipTextSuggested]}>{t.name}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
-            <Text style={styles.label}>NAME</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g. Rent, Bike EMI, Netflix"
-              placeholderTextColor={Corpus.textFaint}
-              maxLength={30}
-            />
-
-            <Text style={styles.label}>HOW OFTEN</Text>
-            <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
-              {(['monthly', 'bimonthly', 'quarterly', 'halfyearly', 'yearly', 'days'] as BillFrequency[]).map((f) => (
-                <Pressable
-                  key={f}
-                  style={[styles.freq, { flexGrow: 1, flexBasis: '30%' }, frequency === f && styles.freqActive]}
-                  onPress={() => { setFrequency(f); if (f === 'days') setAuto(false); }}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: frequency === f }}
-                >
-                  <Text style={[styles.freqText, frequency === f && styles.freqTextActive]}>
-                    {{ monthly: 'Monthly', bimonthly: '2 months', quarterly: '3 months', halfyearly: '6 months', yearly: 'Yearly', days: 'Count days' }[f]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {byDays && (
-              <>
-                <Text style={styles.hint}>For prepaid plans like a 28 day recharge. The next date is counted from the day you paid, so it moves earlier each month.</Text>
-                <Text style={styles.label}>PLAN LENGTH IN DAYS</Text>
-                <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
-                  {['28', '30', '56', '84', '365'].map((d) => (
-                    <Pressable key={d} style={[styles.freq, everyDays === d && styles.freqActive]} onPress={() => setEveryDays(d)} accessibilityRole="button" accessibilityState={{ selected: everyDays === d }}>
-                      <Text style={[styles.freqText, everyDays === d && styles.freqTextActive]}>{d}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <TextInput
-                  style={styles.input}
-                  value={everyDays}
-                  onChangeText={(t) => setEveryDays(t.replace(/[^0-9]/g, '').slice(0, 3))}
-                  placeholder="Or type the number of days"
-                  placeholderTextColor={Corpus.textFaint}
-                  keyboardType="number-pad"
-                  accessibilityLabel="Plan length in days"
-                />
-                {!planOk && <Text style={sheet.error}>Enter a number of days from 1 to 730</Text>}
-                <Text style={styles.label}>LAST PAID ON</Text>
-                <DateStepper value={lastPaid} onChange={setLastPaid} />
-                {planOk && <Text style={styles.hint}>Next one is due {nextOn.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}.</Text>}
-              </>
-            )}
-            {frequency !== 'monthly' && !byDays && (
-              <>
-                <Text style={styles.label}>{frequency === 'yearly' ? 'DUE IN' : 'ONE OF THE MONTHS IT IS DUE'}</Text>
-                <View style={styles.dayRow}>
-                  <Pressable style={styles.dayArrow} onPress={() => setDueMonth(dueMonth <= 1 ? 12 : dueMonth - 1)}>
-                    <Ionicons name="chevron-back" size={18} color={Corpus.text} />
-                  </Pressable>
-                  <Text style={styles.dayText}>{monthName(dueMonth)}</Text>
-                  <Pressable style={styles.dayArrow} onPress={() => setDueMonth(dueMonth >= 12 ? 1 : dueMonth + 1)}>
-                    <Ionicons name="chevron-forward" size={18} color={Corpus.text} />
-                  </Pressable>
-                </View>
-                {frequency !== 'yearly' && (
-                  <Text style={styles.hint}>
-                    Due in {Array.from({ length: 12 / stepMonths }, (_, k) => monthName(((dueMonth - 1 + k * stepMonths) % 12) + 1).slice(0, 3)).join(', ')}
-                  </Text>
-                )}
-              </>
-            )}
-
-            <Text style={styles.label}>{variable ? 'USUAL AMOUNT (USED AS AN ESTIMATE)' : frequency === 'monthly' ? 'AMOUNT PER MONTH' : 'AMOUNT EACH TIME'}</Text>
-            <View style={sheet.amountRow}>
-              <Text style={sheet.rupee}>₹</Text>
-              <TextInput
-                style={sheet.amountInput}
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="0"
-                placeholderTextColor={Corpus.textFaint}
-                keyboardType="numeric"
-              />
-            </View>
-            {amountInvalid && <Text style={sheet.error}>Enter an amount greater than 0</Text>}
-
-            <View style={styles.switchRow}>
-              <View style={styles.switchBody}>
-                <Text style={styles.switchTitle}>Amount changes each time</Text>
-                <Text style={styles.switchHint}>
-                  {variable
-                    ? "Corpus will ask for the real amount when it's due (great for electricity, water)"
-                    : 'Off: the amount is the same each time'}
-                </Text>
-              </View>
-              <Switch
-                value={variable}
-                onValueChange={setVariable}
-                trackColor={{ false: Corpus.border, true: Corpus.gold }}
-                thumbColor={Corpus.text}
-              />
-            </View>
-
-            {!variable && (
-              <View style={styles.switchRow}>
-                <View style={styles.switchBody}>
-                  <Text style={styles.switchTitle}>Records itself on the due day</Text>
-                  <Text style={styles.switchHint}>
-                    {auto ? 'For auto-debits like an EMI or a subscription. Corpus adds the spend on the due day.' : 'Off: Corpus reminds you and waits until you mark it paid.'}
-                  </Text>
-                </View>
-                <Switch value={auto} onValueChange={setAuto} trackColor={{ false: Corpus.border, true: Corpus.gold }} thumbColor={Corpus.text} />
-              </View>
-            )}
-
-            {!byDays && (
-              <>
-                <Text style={styles.label}>{frequency === 'monthly' ? 'DUE EVERY MONTH ON THE' : 'DUE ON THE'}</Text>
-            <View style={styles.dayRow}>
-              <Pressable style={styles.dayArrow} onPress={() => setDay(day <= 1 ? 31 : day - 1)}>
-                <Ionicons name="chevron-back" size={18} color={Corpus.text} />
-              </Pressable>
-              <Text style={styles.dayText}>{ordinal(day)}</Text>
-              <Pressable style={styles.dayArrow} onPress={() => setDay(day >= 31 ? 1 : day + 1)}>
-                <Ionicons name="chevron-forward" size={18} color={Corpus.text} />
-              </Pressable>
-            </View>
-            {day > 28 && <Text style={styles.hint}>In shorter months it is due on the last day.</Text>}
-              </>
-            )}
-
-            {!editing && dueAlreadyPassed && (
-              <View style={styles.switchRow}>
-                <View style={styles.switchBody}>
-                  <Text style={styles.switchTitle}>Already logged this month’s payment?</Text>
-                  <Text style={styles.switchHint}>
-                    {paidThisMonth
-                      ? `It won’t be logged again. Corpus starts from next month`
-                      : `Corpus will log ${amount && !amountInvalid ? formatINR(value) : 'it'} as this month’s payment, so your spending stays accurate`}
-                  </Text>
-                </View>
-                <Switch
-                  value={paidThisMonth}
-                  onValueChange={setPaidThisMonth}
-                  trackColor={{ false: Corpus.border, true: Corpus.gold }}
-                  thumbColor={Corpus.text}
-                />
-              </View>
-            )}
-
-            {!byDays && (
-              <>
-            <View style={styles.switchRow}>
-              <View style={styles.switchBody}>
-                <Text style={styles.switchTitle}>Has an end date (loan / EMI)</Text>
-                <Text style={styles.switchHint}>
-                  {endMonth ? 'Corpus stops after the last payment' : 'Off: repeats until you delete or pause it'}
-                </Text>
-              </View>
-              <Switch
-                value={!!endMonth}
-                onValueChange={(on) => setEndMonth(on ? shiftYm(yearMonth(now), 11) : undefined)}
-                trackColor={{ false: Corpus.border, true: Corpus.gold }}
-                thumbColor={Corpus.text}
-              />
-            </View>
-            {endMonth && (
-              <>
-                <Text style={styles.label}>LAST PAYMENT IN</Text>
-                <View style={styles.dayRow}>
-                  <Pressable
-                    style={styles.dayArrow}
-                    onPress={() => setEndMonth(shiftYm(endMonth, -1))}
-                    disabled={endMonth <= yearMonth(now)}
-                  >
-                    <Ionicons name="chevron-back" size={18} color={endMonth <= yearMonth(now) ? Corpus.textFaint : Corpus.text} />
-                  </Pressable>
-                  <Text style={styles.dayText}>{endLabel({ ...draft, endMonth })}</Text>
-                  <Pressable style={styles.dayArrow} onPress={() => setEndMonth(shiftYm(endMonth, 1))}>
-                    <Ionicons name="chevron-forward" size={18} color={Corpus.text} />
-                  </Pressable>
-                  <Pressable onPress={() => setEndMonth(shiftYm(endMonth, 12))} hitSlop={6}>
-                    <Text style={styles.yearJump}>+1 yr</Text>
-                  </Pressable>
-                </View>
-                <Text style={[styles.hint, { color: Corpus.gold }]}>
-                  {left} payment{left === 1 ? '' : 's'} left
-                  {Number(amount) > 0 ? ` · ${formatINR(left * Number(amount))} still to pay` : ''}
-                </Text>
-              </>
-            )}
-
-              </>
-            )}
-
-            <Text style={styles.label}>CATEGORY</Text>
-            <CategoryGrid categories={EXPENSE_CATEGORIES} selected={category} onSelect={setCategory} />
-
-            {editing && (
-              <View style={styles.switchRow}>
-                <View style={styles.switchBody}>
-                  <Text style={styles.switchTitle}>Active</Text>
-                  <Text style={styles.switchHint}>Pause it to stop logging without deleting</Text>
-                </View>
-                <Switch
-                  value={active}
-                  onValueChange={setActive}
-                  trackColor={{ false: Corpus.border, true: Corpus.gold }}
-                  thumbColor={Corpus.text}
-                />
-              </View>
-            )}
-
-            <Button label={editing ? 'Save changes' : 'Add bill'} onPress={save} loading={busy} disabled={!canSave} />
-
-            {editing && (
-              <Button variant="danger" icon="trash-outline" label="Delete bill" onPress={() => confirmDelete(mode.bill, () => onDelete(mode.bill))} />
-            )}
-          </ScrollView>
+            );
+          })}
         </View>
+      )}
+
+      <Field label="Name" value={name} onChangeText={setName} placeholder="Rent, bike EMI, Netflix" maxLength={30} />
+      <Field
+        label={variable ? 'Usual amount' : frequency === 'monthly' ? 'Amount each month' : 'Amount each time'}
+        money value={amount} onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))} placeholder="0"
+        error={amountInvalid ? 'Enter an amount above 0' : undefined}
+        hint={variable ? 'Used as an estimate until you enter the real one' : undefined}
+      />
+
+      <Choice label="Repeats" options={FREQ} value={frequency} onChange={(f) => { setFrequency(f); if (f === 'days') setAuto(false); }} />
+
+      {byDays ? (
+        <>
+          <Choice label="Plan length in days" options={['28', '30', '56', '84', '365'].map((d) => ({ value: d, label: d }))} value={everyDays} onChange={setEveryDays} />
+          <Field label="Or type the days" value={everyDays} onChangeText={(t) => setEveryDays(t.replace(/[^0-9]/g, '').slice(0, 3))} keyboardType="number-pad"
+            error={!planOk ? 'Enter a number from 1 to 730' : undefined}
+            hint="For prepaid plans like a 28 day recharge. The date moves earlier each month." />
+          <DayStepper label="Last paid on" value={lastPaid} onChange={setLastPaid}
+            hint={planOk ? `Next one is due ${nextOn.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}` : undefined} />
+        </>
+      ) : (
+        <>
+          {frequency !== 'monthly' && (
+            <Stepper label={frequency === 'yearly' ? 'Due in' : 'One of the months it is due'} value={monthName(dueMonth)}
+              onPrev={() => setDueMonth(dueMonth <= 1 ? 12 : dueMonth - 1)} onNext={() => setDueMonth(dueMonth >= 12 ? 1 : dueMonth + 1)}
+              hint={frequency !== 'yearly' ? `Due in ${dueMonths}` : undefined} />
+          )}
+          <Stepper label="Due on the" value={ordinal(day)} onPrev={() => setDay(day <= 1 ? 31 : day - 1)} onNext={() => setDay(day >= 31 ? 1 : day + 1)}
+            hint={day > 28 ? 'In shorter months it is due on the last day' : undefined} />
+        </>
+      )}
+
+      <Toggle icon="flash" title="Amount changes each time" value={variable} onChange={setVariable}
+        hint={variable ? 'Corpus asks for the real amount when it is due. Good for electricity and water.' : 'Off: the amount is the same each time'} />
+      {!variable && (
+        <Toggle icon="sync-circle" title="Records itself on the due day" value={auto} onChange={setAuto}
+          hint={auto ? 'For auto-debits like an EMI or a subscription' : 'Off: Corpus reminds you and waits until you mark it paid'} />
+      )}
+      {!editing && dueAlreadyPassed && (
+        <Toggle icon="checkmark-circle" title="Already paid this month" value={paidThisMonth} onChange={setPaidThisMonth}
+          hint={paidThisMonth ? 'It starts from the next payment' : `The ${ordinal(day)} has passed, so it will show as due now`} />
+      )}
+      {!byDays && (
+        <>
+          <Toggle icon="flag" title="Has an end date" value={!!endMonth} onChange={(on) => setEndMonth(on ? shiftYm(yearMonth(now), 11) : undefined)}
+            hint={endMonth ? 'Corpus stops after the last payment' : 'For loans and EMIs. Off: it repeats until you pause or delete it'} />
+          {endMonth && (
+            <Stepper label="Last payment in" value={endLabel({ ...draft, endMonth }) ?? ''}
+              onPrev={() => setEndMonth(shiftYm(endMonth, -1))} prevDisabled={endMonth <= yearMonth(now)} onNext={() => setEndMonth(shiftYm(endMonth, 1))}
+              extra={{ label: '+1 year', onPress: () => setEndMonth(shiftYm(endMonth, 12)) }}
+              hint={`${left} payment${left === 1 ? '' : 's'} left${Number(amount) > 0 ? `, ${formatINR(left * Number(amount))} still to pay` : ''}`} />
+          )}
+        </>
+      )}
+
+      <View style={{ gap: 8 }}>
+        <Text style={st.label}>Category</Text>
+        <CategoryGrid categories={EXPENSE_CATEGORIES} selected={category} onSelect={setCategory} />
       </View>
-    </Modal>
+
+      {editing && <Toggle icon="play-circle" title="Active" value={active} onChange={setActive} hint={active ? 'Turn off to pause it without deleting' : 'Paused. Nothing is recorded or kept aside'} />}
+    </Sheet>
   );
 }
+
+const st = StyleSheet.create({
+  templates: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  template: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.bg },
+  templateOn: { backgroundColor: Corpus.gold },
+  templateText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+  label: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+});
