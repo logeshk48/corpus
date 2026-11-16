@@ -1,5 +1,5 @@
 import { Corpus } from '@/constants/theme';
-import type { VaultEntry, VaultWithBalance } from '@/types/vault';
+import { savedOf, type VaultEntry, type VaultWithBalance } from '@/types/vault';
 import { formatINR } from '@/utils/format';
 import {
   formatYearMonth,
@@ -26,7 +26,7 @@ type JarInsightsProps = {
 export default function JarInsights({ jar, entries, context, onEdit }: JarInsightsProps) {
   const plan = jarPlan(jar);
   const finish = projectedFinish(jar, entries);
-  const reached = milestoneReached(jar.balance, jar.goal);
+  const reached = milestoneReached(savedOf(jar), jar.goal);
   const kind = jarKind(jar);
 
   return (
@@ -42,7 +42,7 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
           {plan ? (
             <>
               {plan.status === 'done' ? (
-                <Text style={[styles.big, { color: Corpus.income }]}>Goal reached 🏆</Text>
+                <Text style={[styles.big, { color: Corpus.income }]}>Goal reached</Text>
               ) : plan.status === 'overdue' ? (
                 <Text style={styles.line}>
                   Your target month ({formatYearMonth(jar.targetDate!)}) has passed with{' '}
@@ -75,7 +75,7 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
                       ]}
                     >
                       {plan.status === 'onTrack'
-                        ? `This month is done — ${formatINR(plan.addedThisMonth)} added`
+                        ? `Done for this month: ${formatINR(plan.addedThisMonth)} added`
                         : `${formatINR(plan.shortThisMonth)} more this month keeps you on track`}
                     </Text>
                   </View>
@@ -91,11 +91,11 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
             </Pressable>
           )}
 
-          {jar.balance < jar.goal && (
+          {savedOf(jar) < jar.goal && (
             <Text style={styles.line}>
               {finish
-                ? `📈 At your recent pace, you'll reach it around ${formatYearMonth(finish)}.`
-                : '📈 Add money regularly and Corpus will predict your finish date.'}
+                ? `At your recent pace, you'll reach it around ${formatYearMonth(finish)}.`
+                : 'Add money regularly and Corpus works out your finish date.'}
             </Text>
           )}
 
@@ -140,7 +140,7 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
           {context.avgExpenses > 0 ? (
             <>
               <Text style={[styles.big, { color: jar.color }]}>
-                {(jar.balance / context.avgExpenses).toFixed(1)} months covered
+                {(savedOf(jar) / context.avgExpenses).toFixed(1)} months covered
               </Text>
               <Text style={styles.line}>
                 You spend about <Text style={styles.strong}>{formatINR(context.avgExpenses)}</Text> a month.
@@ -156,8 +156,8 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
           )}
           <Text style={styles.note}>
             Common guidance in India: 3–6 months of expenses for a stable salaried job, 6–12 months for
-            freelance or business income. Keep it somewhere instant and safe — a savings account,
-            sweep-in FD or liquid fund — not in stocks. Use it only for real emergencies.
+            freelance or business income. Keep it somewhere instant and safe: a savings account,
+            sweep-in FD or liquid fund, not stocks. Use it only for real emergencies.
           </Text>
         </View>
       )}
@@ -177,10 +177,10 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
           <View style={styles.card}>
             <View style={styles.cardTitleRow}>
               <Ionicons name="calendar-outline" size={15} color={jar.color} />
-              <Text style={styles.cardTitle}>Advance tax calendar · FY {fyStartYear}-{String(fyStartYear + 1).slice(2)}</Text>
+              <Text style={styles.cardTitle}>Advance tax calendar, FY {fyStartYear}-{String(fyStartYear + 1).slice(2)}</Text>
             </View>
             <Text style={[styles.big, { color: jar.color }]}>
-              {next.label} · in {next.daysLeft} days
+              {next.label} in {next.daysLeft} days
             </Text>
             <Text style={styles.line}>
               By then, <Text style={styles.strong}>{next.percent}%</Text> of your year's estimated tax should be paid.
@@ -204,7 +204,7 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
               })}
             </View>
             <Text style={styles.note}>
-              Advance tax applies only if your tax after TDS is ₹10,000 or more — usually because of
+              Advance tax applies only if your tax after TDS is ₹10,000 or more, usually because of
               freelance, business, rent or capital-gain income. Salary with TDS is normally covered.
               Late instalments cost 1% interest per month. Check with a CA for your exact amount.
             </Text>

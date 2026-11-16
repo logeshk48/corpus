@@ -3,6 +3,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDocs,
   onSnapshot,
@@ -49,9 +50,23 @@ export async function updateVault(id: string, changes: Partial<NewVault>) {
 // Deletes the jar AND its history in one atomic batch
 export async function deleteVault(id: string) {
   const entries = await getDocs(query(entriesCol(), where('vaultId', '==', id)));
+  // investments saving for this jar stay; they just stop being linked to it
+  const linked = await getDocs(query(collection(db, 'users', uid(), 'investments'), where('goalId', '==', id)));
   const batch = writeBatch(db);
   entries.forEach((e) => batch.delete(e.ref));
+  linked.forEach((h) => batch.update(h.ref, { goalId: deleteField() }));
   batch.delete(doc(vaultsCol(), id));
+  await batch.commit();
+}
+
+// Two jars for the same thing: move the second one's history and investments into the first, then remove it
+export async function mergeVaults(fromId: string, intoId: string) {
+  const entries = await getDocs(query(entriesCol(), where('vaultId', '==', fromId)));
+  const linked = await getDocs(query(collection(db, 'users', uid(), 'investments'), where('goalId', '==', fromId)));
+  const batch = writeBatch(db);
+  entries.forEach((e) => batch.update(e.ref, { vaultId: intoId }));
+  linked.forEach((h) => batch.update(h.ref, { goalId: intoId }));
+  batch.delete(doc(vaultsCol(), fromId));
   await batch.commit();
 }
 

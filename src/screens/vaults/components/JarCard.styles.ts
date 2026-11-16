@@ -1,127 +1,15 @@
+import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
-import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Corpus.card,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    padding: Space.md,
-    gap: Space.sm + 4,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  top: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Space.sm + 4,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  middle: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  milestone: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    borderRadius: 999,
-    borderWidth: 0.5,
-    paddingVertical: 1,
-    paddingHorizontal: 5,
-  },
-  milestoneText: {
-    fontSize: Type.micro,
-    fontWeight: '600',
-  },
-  insight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Corpus.bg,
-    borderRadius: Radius.sm,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-  },
-  insightText: {
-    flex: 1,
-    fontSize: Type.caption,
-  },
-  name: {
-    fontSize: Type.bodyLg,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
-  month: {
-    fontSize: Type.caption,
-    color: Corpus.textMuted,
-    marginTop: 2,
-  },
-  balance: {
-    fontSize: Type.h3, fontFamily: Font.display,
-  },
-  goalWrap: {
-    gap: 5,
-  },
-  track: {
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: Corpus.bg,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: 7,
-    borderRadius: 4,
-  },
-  goalText: {
-    fontSize: Type.caption,
-    color: Corpus.textMuted,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: Space.sm,
-  },
-  addButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    borderRadius: Radius.md,
-    paddingVertical: 10,
-  },
-  addText: {
-    fontSize: Type.body,
-    fontWeight: '600',
-    color: Corpus.onGold,
-  },
-  outButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    borderRadius: Radius.md,
-    paddingVertical: 10,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    backgroundColor: Corpus.bg,
-  },
-  outText: {
-    fontSize: Type.body,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
+  wrap: { flexDirection: 'row', alignItems: 'center', paddingRight: Space.md },
+  row: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingVertical: 12, paddingLeft: Space.md, paddingRight: 10 },
+  body: { flex: 1, gap: 2 },
+  top: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  name: { flex: 1, fontSize: Type.input, color: Corpus.text },
+  line: { fontSize: Type.body, color: Corpus.textMuted, ...tabular },
+  insight: { flexDirection: 'row', gap: 4, alignItems: 'flex-start', marginTop: 2 },
+  insightText: { flex: 1, fontSize: Type.small, lineHeight: 16 },
+  balance: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  add: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
 });

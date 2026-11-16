@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui';
+import { askWeb } from '@/services/confirm';
 import { EXPENSE_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import CategoryGrid from '@/screens/add/components/CategoryGrid';
@@ -64,7 +65,7 @@ type Props = {
 function confirmDelete(bill: Bill, onYes: () => void) {
   const msg = `Delete "${bill.name}"? Expenses already logged from it stay in your history.`;
   if (Platform.OS === 'web') {
-    if (window.confirm(msg)) onYes();
+    askWeb(`Delete bill?\n\n${msg}`, 'Delete').then((y) => { if (y) onYes(); });
   } else {
     Alert.alert('Delete bill', msg, [
       { text: 'Cancel', style: 'cancel' },

@@ -1,5 +1,6 @@
 import type { Transaction } from '@/types/transaction';
-import type { Vault, VaultEntry, VaultKind, VaultWithBalance } from '@/types/vault';
+import { sipNeeded } from '@/utils/returns';
+import { savedOf, type Vault, type VaultEntry, type VaultKind, type VaultWithBalance } from '@/types/vault';
 
 // ── Helpers ────────────────────────────────────────────────
 
@@ -40,22 +41,26 @@ export type JarPlan = {
 
 export function jarPlan(jar: VaultWithBalance, now: Date = new Date()): JarPlan | null {
   if (!jar.goal || !jar.targetDate) return null;
-  const remaining = jar.goal - jar.balance;
+  const remaining = jar.goal - savedOf(jar);
+  const added = jar.addedThisMonth + (jar.sipMonthly ?? 0); // SIPs into linked funds count too
   const monthsLeft = monthIndex(parseYearMonth(jar.targetDate)) - monthIndex(now) + 1;
 
   if (remaining <= 0) {
-    return { perMonth: 0, monthsLeft, addedThisMonth: jar.addedThisMonth, status: 'done', shortThisMonth: 0 };
+    return { perMonth: 0, monthsLeft, addedThisMonth: added, status: 'done', shortThisMonth: 0 };
   }
   if (monthsLeft <= 0) {
-    return { perMonth: remaining, monthsLeft: 0, addedThisMonth: jar.addedThisMonth, status: 'overdue', shortThisMonth: remaining };
+    return { perMonth: remaining, monthsLeft: 0, addedThisMonth: added, status: 'overdue', shortThisMonth: remaining };
   }
   // What was needed at the START of this month (this month's deposits count towards it)
-  const perMonth = Math.ceil((remaining + jar.addedThisMonth) / monthsLeft);
-  const shortThisMonth = Math.max(perMonth - jar.addedThisMonth, 0);
+  // With linked investments, money is expected to grow, so less is needed each month
+  const perMonth = jar.growthRate
+    ? Math.ceil(sipNeeded(jar.goal, savedOf(jar) - added, jar.growthRate, monthsLeft))
+    : Math.ceil((remaining + added) / monthsLeft);
+  const shortThisMonth = Math.max(perMonth - added, 0);
   return {
     perMonth,
     monthsLeft,
-    addedThisMonth: jar.addedThisMonth,
+    addedThisMonth: added,
     status: shortThisMonth === 0 ? 'onTrack' : 'behind',
     shortThisMonth,
   };
@@ -64,7 +69,7 @@ export function jarPlan(jar: VaultWithBalance, now: Date = new Date()): JarPlan 
 // ── 2. Projection: "at your pace you'll finish around <month>" ──
 
 export function projectedFinish(jar: VaultWithBalance, entries: VaultEntry[], now: Date = new Date()): string | null {
-  if (!jar.goal || jar.balance >= jar.goal) return null;
+  if (!jar.goal || savedOf(jar) >= jar.goal) return null;
   // Average NET saving per month over the last 3 months (incl. this one)
   const from = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString();
   let net = 0;
@@ -72,9 +77,9 @@ export function projectedFinish(jar: VaultWithBalance, entries: VaultEntry[], no
     if (e.vaultId !== jar.id || e.date < from) continue;
     net += e.type === 'in' ? e.amount : -e.amount;
   }
-  const perMonth = net / 3;
+  const perMonth = net / 3 + (jar.sipMonthly ?? 0);
   if (perMonth <= 0) return null;
-  const months = Math.ceil((jar.goal - jar.balance) / perMonth);
+  const months = Math.ceil((jar.goal - savedOf(jar)) / perMonth);
   if (months > 120) return null; // more than 10 years — not useful
   return toYearMonth(new Date(now.getFullYear(), now.getMonth() + months - 1, 1));
 }

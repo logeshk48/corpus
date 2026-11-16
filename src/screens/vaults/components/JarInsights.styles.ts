@@ -4,9 +4,7 @@ import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 export const styles = StyleSheet.create({
   card: {
     backgroundColor: Corpus.card,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
+    borderRadius: 22,
     padding: Space.md,
     gap: Space.sm + 2,
   },

@@ -28,10 +28,16 @@ export type NewVaultEntry = Omit<VaultEntry, 'id'>;
 
 // A jar plus its live numbers
 export type VaultWithBalance = Vault & {
-  balance: number;
+  balance: number;        // CASH in the jar (what you can take out). Safe-to-spend and net worth use this.
   addedThisMonth: number;
   takenThisMonth: number;
+  invested?: number;      // current value of investments linked to this jar (they stay in Invest / net worth once)
+  sipMonthly?: number;    // their active SIPs a month: counts towards the jar's monthly plan
+  growthRate?: number;    // expected % a year on the linked investments (the plan assumes money grows at this)
 };
+
+// Everything saved towards the goal: cash + linked investments
+export const savedOf = (j: Pick<VaultWithBalance, 'balance' | 'invested'>) => j.balance + (j.invested ?? 0);
 
 // Choices when creating / editing a jar
 export const VAULT_COLORS = ['#C9A227', '#4CAF7D', '#7FB7E0', '#A78BDB', '#E08A6B', '#D97BA6'];

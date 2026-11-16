@@ -1,4 +1,5 @@
 import { Button, SectionLabel } from '@/components/ui';
+import { askWeb } from '@/services/confirm';
 import { ChartColors } from '@/constants/chartColors';
 import { Corpus, Font, Type } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
@@ -23,7 +24,12 @@ import { m } from './Market.styles';
 import MarketSearchSheet, { type Target } from './MarketSearchSheet';
 import ImportSheet from './ImportSheet';
 import GoalsCard from './GoalsCard';
-import GoalSheet from './GoalSheet';
+import { useRouter } from 'expo-router';
+import { useVaults } from '@/hooks/useVaults';
+import { useGoalsToJars } from '@/hooks/useGoalsToJars';
+import { jarsWithInvestments, suggestJar } from '@/utils/jarFunds';
+import JarPickerSheet from '@/screens/vaults/components/JarPickerSheet';
+import { updateInvestment as linkInvestment } from '@/services/investments';
 import MixCard from './MixCard';
 import SipCards from './SipCards';
 import SipSheet from './SipSheet';
@@ -31,7 +37,6 @@ import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/inv
 import { saveMix, subscribeMix, type MixSnap } from '@/services/investMix';
 import { holdingXirr, portfolioXirr } from '@/utils/returns';
 import { monthKey, nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
-import type { InvestGoal } from '@/types/settings';
 import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
 import { styles } from './InvestScreen.styles';
@@ -46,6 +51,7 @@ const CLASS: Record<string, { label: string; color: string }> = {
 };
 
 export default function InvestScreen() {
+  const router = useRouter();
   const { showToast } = useToast();
   const { investments, live, liveError, updatedAt, loading } = useInvestments();
   const { settings } = useSettings();
@@ -110,27 +116,11 @@ export default function InvestScreen() {
   };
   const sipSkip = (p: (typeof pending)[number]) => skipSip(p.h, p).then(() => showToast({ message: 'Marked as skipped' }));
 
-  // Goals
-  const goals = settings.investGoals ?? [];
-  const [goalOpen, setGoalOpen] = useState<{ goal?: InvestGoal } | null>(null);
-  const saveGoal = async (g: InvestGoal, linkIds: string[]) => {
-    await saveSettings({ investGoals: [...goals.filter((x) => x.id !== g.id), g] });
-    await Promise.all(
-      investments.map((h) => {
-        const want = linkIds.includes(h.id);
-        if (want && h.goalId !== g.id) return updateInvestment(h.id, { goalId: g.id });
-        if (!want && h.goalId === g.id) return updateInvestment(h.id, { goalId: undefined });
-        return null;
-      })
-    );
-    setGoalOpen(null);
-    showToast({ message: `${g.name} saved` });
-  };
-  const deleteGoal = async (g: InvestGoal) => {
-    await saveSettings({ investGoals: goals.filter((x) => x.id !== g.id) });
-    await Promise.all(investments.filter((h) => h.goalId === g.id).map((h) => updateInvestment(h.id, { goalId: undefined })));
-    setGoalOpen(null);
-  };
+  // Goals live in Jars now: one goal = one jar (cash + linked investments)
+  const { vaults: cashJars, loading: jarsLoading } = useVaults();
+  const jars = jarsWithInvestments(cashJars, investments);
+  useGoalsToJars(settings.investGoals, investments, !loading && !jarsLoading);
+  const [pickFor, setPickFor] = useState<Investment | null>(null);
 
   // Mix history: one snapshot per month (latest value wins)
   const [mixHistory, setMixHistory] = useState<MixSnap[]>([]);
@@ -159,7 +149,7 @@ export default function InvestScreen() {
     run(() => (mode?.kind === 'edit' ? updateInvestment(mode.h.id, h) : addInvestment(h)), mode?.kind === 'edit' ? 'Updated' : `${h.name} added`);
   const remove = (h: Investment) => {
     const go = () => run(() => deleteInvestment(h.id), `${h.name} removed`);
-    if (Platform.OS === 'web') window.confirm(`Remove ${h.name}?`) && go();
+    if (Platform.OS === 'web') askWeb(`Remove ${h.name}?`, 'Remove').then((y) => { if (y) go(); });
     else Alert.alert(`Remove ${h.name}?`, '', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: go }]);
   };
 
@@ -259,7 +249,7 @@ export default function InvestScreen() {
               />
             )}
 
-            <GoalsCard goals={goals} list={investments} onAdd={() => setGoalOpen({})} onOpen={(g) => setGoalOpen({ goal: g })} />
+            <GoalsCard jars={jars} list={investments} onOpenJar={(id) => router.push({ pathname: '/vault/[id]', params: { id } })} onOpenJars={() => router.push('/vaults')} />
 
             {fySales.length > 0 && (
               <View style={styles.card}>
@@ -278,7 +268,7 @@ export default function InvestScreen() {
                     key={r.id}
                     onLongPress={() => {
                       const go = () => deleteRealized(r.id).then(() => showToast({ message: 'Sale record removed' }));
-                      if (Platform.OS === 'web') window.confirm(`Remove this sale record of ${r.name}? (Holding is not changed)`) && go();
+                      if (Platform.OS === 'web') askWeb(`Remove this sale record?\n\nYour ${r.name} holding is not changed.`, 'Remove').then((y) => { if (y) go(); });
                       else Alert.alert('Remove this sale record?', 'Your holding is not changed.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: go }]);
                     }}
                   >
@@ -387,6 +377,16 @@ export default function InvestScreen() {
                         {streak && streak.skipped ? ` · ${streak.skipped} missed this year` : ''}
                       </Text>
                     )}
+                    {(() => {
+                      const jar = jars.find((j) => j.id === h.goalId);
+                      const sug = jar ? null : suggestJar(h, jars);
+                      if (!jars.length) return null;
+                      return (
+                        <Text onPress={() => setPickFor(h)} style={[styles.jarPill, !jar && styles.jarPillOpen]} accessibilityRole="button" suppressHighlighting>
+                          {jar ? `For: ${jar.name}` : `Not in a jar. Add to ${sug?.jar.name ?? 'a jar'}?`}
+                        </Text>
+                      );
+                    })()}
                     {linked ? (
                       ['mf', 'stock', 'nps', 'goldbond'].includes(h.type) && (
                         <View style={styles.actions}>
@@ -499,13 +499,18 @@ export default function InvestScreen() {
           }}
         />
       )}
-      {goalOpen && (
-        <GoalSheet
-          goal={goalOpen.goal}
-          list={investments}
-          onClose={() => setGoalOpen(null)}
-          onSave={saveGoal}
-          onDelete={goalOpen.goal ? () => deleteGoal(goalOpen.goal!) : undefined}
+      {pickFor && (
+        <JarPickerSheet
+          holdings={[pickFor]}
+          jars={cashJars}
+          onClose={() => setPickFor(null)}
+          onSave={async ([p]) => {
+            try {
+              await linkInvestment(p.id, { goalId: p.jarId ?? undefined });
+              setPickFor(null);
+              showToast({ message: p.jarId ? `Now saving for ${cashJars.find((j) => j.id === p.jarId)?.name}` : 'Not in a jar' });
+            } catch { showToast({ message: 'Couldn’t save. Try again.' }); }
+          }}
         />
       )}
       {importing && (

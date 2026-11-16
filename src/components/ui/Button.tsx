@@ -16,6 +16,7 @@ type Props = {
   loading?: boolean;
   disabled?: boolean;
   tint?: string;           // custom fill for a primary button (e.g. a jar's colour)
+  tintText?: string;       // label colour on that fill (jar colours are light, so black)
   style?: StyleProp<ViewStyle>;
 };
 
@@ -38,10 +39,11 @@ export default function Button({
   loading,
   disabled,
   tint,
+  tintText,
   style,
 }: Props) {
   const inactive = disabled || loading;
-  const color = disabled ? Corpus.textFaint : TEXT[variant];
+  const color = disabled ? Corpus.textFaint : tint && tintText && variant === 'primary' ? tintText : TEXT[variant];
   const iconEl = icon ? <Ionicons name={icon} size={size === 'lg' ? 17 : 14} color={color} /> : null;
 
   return (

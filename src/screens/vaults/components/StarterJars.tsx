@@ -1,59 +1,47 @@
-import { Corpus } from '@/constants/theme';
+import { Group, IconChip } from '@/components/ui';
+import { Corpus, Font, Space, Type } from '@/constants/theme';
 import { STARTER_VAULTS, type NewVault } from '@/types/vault';
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
-import { styles } from './StarterJars.styles';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-type StarterJarsProps = {
+type Props = {
   existingNames: string[]; // hide starters you already created
   onCreate: (vault: NewVault) => void;
   onCustom: () => void;
-  compact?: boolean;       // shorter version once you have jars
+  compact?: boolean;       // once you have jars: just the list
 };
 
-export default function StarterJars({ existingNames, onCreate, onCustom, compact }: StarterJarsProps) {
-  const available = STARTER_VAULTS.filter(
-    (s) => !existingNames.some((n) => n.toLowerCase() === s.name.toLowerCase())
-  );
-
-  return (
-    <View style={styles.card}>
-      {!compact && (
-        <>
-          <Text style={styles.title}>Put money in jars</Text>
-          <Text style={styles.text}>
-            A jar keeps money separate for one purpose. Add money when you can, take it out when
-            you need it. Start with one of these:
-          </Text>
-        </>
-      )}
-
-      {available.map(({ why, ...vault }) => (
-        <Pressable
-          key={vault.name}
-          style={({ pressed }) => [styles.option, pressed && styles.pressed]}
-          onPress={() => onCreate(vault)}
-        >
-          <View style={[styles.icon, { backgroundColor: `${vault.color}26` }]}>
-            <Ionicons name={vault.icon as any} size={18} color={vault.color} />
-          </View>
-          <View style={styles.body}>
-            <Text style={styles.name}>{vault.name}</Text>
-            <Text style={styles.why}>{why}</Text>
-          </View>
-          <View style={styles.create}>
-            <Ionicons name="add" size={14} color={Corpus.gold} />
-            <Text style={styles.createText}>Create</Text>
-          </View>
-        </Pressable>
-      ))}
-
-      {!compact && (
-        <Pressable style={styles.custom} onPress={onCustom}>
-          <Ionicons name="color-wand-outline" size={15} color={Corpus.gold} />
-          <Text style={styles.customText}>Create your own jar (trip, gadget, wedding…)</Text>
-        </Pressable>
-      )}
-    </View>
-  );
+// Ready-made jars, one tap to create
+export default function StarterJars({ existingNames, onCreate, onCustom, compact }: Props) {
+  const available = STARTER_VAULTS.filter((s) => !existingNames.some((n) => n.toLowerCase() === s.name.toLowerCase()));
+  const rows = available.map(({ why, ...vault }) => (
+    <Pressable key={vault.name} onPress={() => onCreate(vault)} style={({ pressed }) => [s.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button" accessibilityLabel={`Create ${vault.name} jar. ${why}`}>
+      <IconChip icon={vault.icon} color={vault.color} />
+      <View style={s.body}>
+        <Text style={s.name}>{vault.name}</Text>
+        <Text style={s.why}>{why}</Text>
+      </View>
+      <View style={s.create}><Text style={s.createText}>Create</Text></View>
+    </Pressable>
+  ));
+  if (!compact) {
+    rows.push(
+      <Pressable key="own" onPress={onCustom} style={({ pressed }) => [s.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button">
+        <IconChip icon="add" color={Corpus.textMuted} />
+        <View style={s.body}>
+          <Text style={s.name}>Your own jar</Text>
+          <Text style={s.why}>A trip, a gadget, a wedding</Text>
+        </View>
+      </Pressable>
+    );
+  }
+  return <Group title={compact ? 'Ideas' : 'Start with one'}>{rows}</Group>;
 }
+
+const s = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62, paddingVertical: 10, paddingHorizontal: Space.md },
+  body: { flex: 1, gap: 2 },
+  name: { fontSize: Type.input, color: Corpus.text },
+  why: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 18 },
+  create: { minHeight: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: Corpus.cardAlt, justifyContent: 'center' },
+  createText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+});

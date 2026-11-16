@@ -407,7 +407,8 @@ export default function HomeScreen() {
     },
     {
       key: 'jars', label: 'Jars', icon: 'file-tray-stacked-outline',
-      value: vaults.length > 0 ? `${compactINR(jarsTotal)} saved` : 'Start saving',
+      // jars hold cash + linked investments (one goal = one jar)
+      value: vaults.length > 0 ? `${compactINR(jarsTotal + investments.filter((h) => h.goalId && vaults.some((v) => v.id === h.goalId)).reduce((s, h) => s + h.value, 0))} saved` : 'Start saving',
       onPress: () => router.push('/vaults' as Href),
     },
     {

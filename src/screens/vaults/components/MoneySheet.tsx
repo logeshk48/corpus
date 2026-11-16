@@ -1,14 +1,12 @@
-import { Button } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
-import type { VaultEntryType, VaultWithBalance } from '@/types/vault';
+import { Button, Field, Sheet } from '@/components/ui';
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
+import { savedOf, type VaultEntryType, type VaultWithBalance } from '@/types/vault';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
-import { styles } from './MoneySheet.styles';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import JarFill from './JarFill';
 
-type MoneySheetProps = {
+type Props = {
   jar: VaultWithBalance | null; // null = closed
   type: VaultEntryType;
   initialAmount?: number;       // e.g. from a smart tip
@@ -16,125 +14,88 @@ type MoneySheetProps = {
   onSubmit: (amount: number, note?: string) => Promise<void>;
 };
 
-export default function MoneySheet({ jar, type, initialAmount, onClose, onSubmit }: MoneySheetProps) {
+// Add to / take out of a jar. The jar on the left shows the new level as you type.
+export default function MoneySheet({ jar, type, initialAmount, onClose, onSubmit }: Props) {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (jar) {
-      setAmount(initialAmount ? String(initialAmount) : '');
-      setNote('');
-    }
+    if (jar) { setAmount(initialAmount ? String(initialAmount) : ''); setNote(''); }
   }, [jar, type, initialAmount]);
 
   if (!jar) return null;
-
   const isIn = type === 'in';
   const value = Number(amount);
   const entered = amount.trim() !== '';
   const notNumber = entered && (!Number.isFinite(value) || value <= 0);
   const tooMuch = !isIn && entered && !notNumber && value > jar.balance;
-  const canSubmit = entered && !notNumber && !tooMuch && !busy;
-  const newBalance = jar.balance + (isIn ? value : -value);
+  const ok = entered && !notNumber && !tooMuch;
+  const newBalance = jar.balance + (ok ? (isIn ? value : -value) : 0);
+  const newSaved = newBalance + (jar.invested ?? 0);
+  const level = jar.goal ? newSaved / jar.goal : newSaved > 0 ? 0.6 : 0;
 
-  // Helpful one-tap amounts
   const chips: { label: string; value: number }[] = [];
-  if (isIn && jar.goal && jar.goal > jar.balance) {
-    chips.push({ label: `Fill goal ${formatINR(jar.goal - jar.balance)}`, value: jar.goal - jar.balance });
-  }
-  for (const v of [500, 1000, 2000, 5000]) {
-    if (isIn || v < jar.balance) chips.push({ label: formatINR(v), value: v });
-  }
+  if (isIn && jar.goal && jar.goal > savedOf(jar)) chips.push({ label: `Fill it: ${formatINR(jar.goal - savedOf(jar))}`, value: jar.goal - savedOf(jar) });
+  for (const v of [500, 1000, 2000, 5000]) if (isIn || v < jar.balance) chips.push({ label: formatINR(v), value: v });
   if (!isIn && jar.balance > 0) chips.push({ label: `All ${formatINR(jar.balance)}`, value: jar.balance });
 
   const submit = async () => {
-    if (!canSubmit) return;
+    if (!ok || busy) return;
     setBusy(true);
-    try {
-      await onSubmit(value, note.trim() || undefined);
-    } finally {
-      setBusy(false);
-    }
+    try { await onSubmit(value, note.trim() || undefined); } finally { setBusy(false); }
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={sheet.sheet}>
-          <View style={sheet.handle} />
-
-          <View style={sheet.header}>
-            <View style={[sheet.iconCircle, { backgroundColor: `${jar.color}26` }]}>
-              <Ionicons name={jar.icon as any} size={18} color={jar.color} />
-            </View>
-            <View style={sheet.titleBlock}>
-              <Text style={sheet.title}>
-                {isIn ? `Add money to ${jar.name}` : `Take out from ${jar.name}`}
-              </Text>
-              <Text style={sheet.subtitle}>Balance now: {formatINR(jar.balance)}</Text>
-            </View>
-            <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={18} color={Corpus.textMuted} />
-            </Pressable>
-          </View>
-
-          <View style={sheet.amountRow}>
-            <Text style={sheet.rupee}>₹</Text>
+    <Sheet
+      title={isIn ? `Add to ${jar.name}` : `Take out of ${jar.name}`}
+      subtitle={`${formatINR(jar.balance)} cash in it${jar.invested ? `, ${formatINR(jar.invested)} invested` : ''}${jar.goal ? `. Goal ${formatINR(jar.goal)}` : ''}`}
+      onClose={onClose}
+      footer={<Button label={`${isIn ? 'Add' : 'Take out'} ${ok ? formatINR(value) : 'money'}`} tint={isIn ? jar.color : undefined} tintText="black" onPress={submit} loading={busy} disabled={!ok} />}
+    >
+      <View style={s.top}>
+        <JarFill level={level} color={jar.color} width={64} height={84} marks={!!jar.goal} />
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <View style={s.amountRow}>
+            <Text style={s.rupee}>₹</Text>
             <TextInput
-              style={[sheet.amountInput, { color: isIn ? jar.color : Corpus.text }]}
+              style={[s.amount, { color: isIn ? jar.color : Corpus.text }]}
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
               placeholder="0"
               placeholderTextColor={Corpus.textFaint}
-              keyboardType="numeric"
+              keyboardType="decimal-pad"
               autoFocus
               onSubmitEditing={submit}
+              accessibilityLabel={isIn ? 'Amount to add' : 'Amount to take out'}
             />
           </View>
-
-          <View style={sheet.chips}>
-            {chips.map((c) => (
-              <Pressable
-                key={c.label}
-                style={[sheet.chip, value === c.value && sheet.chipSuggested]}
-                onPress={() => setAmount(String(c.value))}
-              >
-                <Text style={[sheet.chipText, value === c.value && sheet.chipTextSuggested]}>{c.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <TextInput
-            style={styles.noteInput}
-            value={note}
-            onChangeText={setNote}
-            placeholder={isIn ? 'Note (optional) — e.g. From Zenith payment' : 'Note (optional) — e.g. Paid advance tax'}
-            placeholderTextColor={Corpus.textFaint}
-            maxLength={60}
-          />
-
-          {notNumber ? (
-            <Text style={sheet.error}>Enter an amount greater than 0</Text>
-          ) : tooMuch ? (
-            <Text style={sheet.error}>This jar only has {formatINR(jar.balance)}</Text>
-          ) : entered ? (
-            <View style={styles.preview}>
-              <Text style={styles.previewLabel}>New balance</Text>
-              <Text style={[styles.previewValue, { color: jar.color }]}>{formatINR(newBalance)}</Text>
-            </View>
-          ) : null}
-
-          <Button
-            label={`${isIn ? 'Add' : 'Take out'} ${entered && !notNumber ? formatINR(value) : 'money'}`}
-            tint={isIn ? jar.color : Corpus.text}
-            onPress={submit}
-            loading={busy}
-            disabled={!canSubmit}
-          />
+          {notNumber ? <Text style={s.error}>Enter an amount above ₹0</Text>
+            : tooMuch ? <Text style={s.error}>Only {formatINR(jar.balance)} cash in this jar{jar.invested ? '. Sell investments in Invest' : ''}</Text>
+            : <Text style={s.after}>{ok ? `Then ${formatINR(newBalance)} cash${jar.goal ? `, ${Math.min(100, Math.round((newSaved / jar.goal) * 100))}% of the goal` : ''}` : ' '}</Text>}
         </View>
       </View>
-    </Modal>
+      <View style={s.chips}>
+        {chips.map((c) => (
+          <Pressable key={c.label} style={({ pressed }) => [s.chip, value === c.value && s.chipOn, pressed && { opacity: 0.7 }]} onPress={() => setAmount(String(c.value))} accessibilityRole="button">
+            <Text style={[s.chipText, value === c.value && { color: Corpus.onGold }]}>{c.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Field label="Note" hint="Optional" value={note} onChangeText={setNote} placeholder={isIn ? 'From the Zenith payment' : 'Paid advance tax'} maxLength={60} />
+    </Sheet>
   );
 }
+
+const s = StyleSheet.create({
+  top: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  amountRow: { flexDirection: 'row', alignItems: 'center' },
+  rupee: { fontSize: Type.h1, fontFamily: Font.display, color: Corpus.textMuted, marginRight: 4 },
+  amount: { flex: 1, minWidth: 0, width: '100%', fontSize: Type.entry, fontFamily: Font.displayBold, padding: 0, ...tabular, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+  after: { fontSize: Type.body, color: Corpus.textMuted, ...tabular },
+  error: { fontSize: Type.body, color: Corpus.danger },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.bg, justifyContent: 'center' },
+  chipOn: { backgroundColor: Corpus.gold },
+  chipText: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
+});

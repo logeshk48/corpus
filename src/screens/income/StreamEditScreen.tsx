@@ -1,4 +1,5 @@
 import { Button, ScreenHeader } from '@/components/ui';
+import { askWeb } from '@/services/confirm';
 import FilterChips, { ChipOption } from '@/components/FilterChips';
 import { Corpus } from '@/constants/theme';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
@@ -38,7 +39,7 @@ function notify(message: string) {
 function confirmDelete(name: string, onConfirm: () => void) {
   const message = `Delete "${name}"? Past income stays in your history, just unlinked.`;
   if (Platform.OS === 'web') {
-    if (window.confirm(message)) onConfirm();
+    askWeb(`Delete stream?\n\n${message}`, 'Delete').then((y) => { if (y) onConfirm(); });
   } else {
     Alert.alert('Delete stream', message, [
       { text: 'Cancel', style: 'cancel' },

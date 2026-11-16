@@ -1,3 +1,4 @@
+import { savedOf } from '@/types/vault';
 import { Corpus } from '@/constants/theme';
 import type { VaultWithBalance } from '@/types/vault';
 import { formatINR } from '@/utils/format';
@@ -18,7 +19,7 @@ export function jarInsightLine(jar: VaultWithBalance, ctx: InsightContext): Insi
       return {
         icon: 'alert-circle',
         color: Corpus.danger,
-        text: `Target month passed · ${formatINR(plan.shortThisMonth)} still to go`,
+        text: `Target month passed, ${formatINR(plan.shortThisMonth)} still to go`,
       };
     }
     if (plan.status === 'behind') {
@@ -31,20 +32,20 @@ export function jarInsightLine(jar: VaultWithBalance, ctx: InsightContext): Insi
     return {
       icon: 'checkmark-circle',
       color: Corpus.income,
-      text: `On track · ${formatINR(plan.perMonth)}/month until ${formatYearMonth(jar.targetDate!)}`,
+      text: `On track: ${formatINR(plan.perMonth)} a month until ${formatYearMonth(jar.targetDate!)}`,
     };
   }
 
   const kind = jarKind(jar);
   if (kind === 'emergency' && ctx.avgExpenses > 0) {
-    const months = jar.balance / ctx.avgExpenses;
+    const months = savedOf(jar) / ctx.avgExpenses;
     return {
       icon: 'umbrella-outline',
       color: months >= ctx.recommendedMonths ? Corpus.income : Corpus.textMuted,
       text:
         months < 0.1
-          ? `Not covering any expenses yet · aim for ${ctx.recommendedMonths} months`
-          : `Covers ${months < 1 ? months.toFixed(1) : Math.floor(months * 10) / 10} months of expenses · aim for ${ctx.recommendedMonths}`,
+          ? `Covers no expenses yet. Aim for ${ctx.recommendedMonths} months`
+          : `Covers ${months < 1 ? months.toFixed(1) : Math.floor(months * 10) / 10} months of expenses. Aim for ${ctx.recommendedMonths}`,
     };
   }
   if (kind === 'tax') {
@@ -52,7 +53,7 @@ export function jarInsightLine(jar: VaultWithBalance, ctx: InsightContext): Insi
     return {
       icon: 'calendar-outline',
       color: t.daysLeft <= 15 ? Corpus.warning : Corpus.textMuted,
-      text: `Next advance tax: ${t.label} (${t.percent}% due) · in ${t.daysLeft} days`,
+      text: `Next advance tax: ${t.label} (${t.percent}% due) in ${t.daysLeft} days`,
     };
   }
   return null;

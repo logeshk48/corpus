@@ -2,6 +2,8 @@ import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
+  jarPill: { alignSelf: 'flex-start', marginTop: 6, overflow: 'hidden', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: Corpus.cardAlt, color: Corpus.text, fontSize: Type.body, fontFamily: Font.display },
+  jarPillOpen: { backgroundColor: Corpus.gold, color: Corpus.onGold },
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

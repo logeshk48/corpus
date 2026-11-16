@@ -1,26 +1,36 @@
-import { IconButton, ScreenHeader, SectionLabel } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
+import { Button, Group, IconButton, IconChip, Screen } from '@/components/ui';
+import { askWeb } from '@/services/confirm';
+import { Chip, Corpus } from '@/constants/theme';
+import { useTween } from '@/hooks/useTween';
+import JarFill from './components/JarFill';
 import { useToast } from '@/context/ToastContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
+import { useInvestments } from '@/hooks/useInvestments';
+import { updateInvestment } from '@/services/investments';
+import { investMeta } from '@/types/investment';
+import { savedOf } from '@/types/vault';
+import { investForecast, jarsWithInvestments, linkedTo } from '@/utils/jarFunds';
+import { compactINR } from '@/utils/format';
+import { sipAmount } from '@/utils/sip';
+import { formatYearMonth } from '@/utils/jarInsights';
+import LinkInvestmentsSheet from './components/LinkInvestmentsSheet';
 import { averageMonthlyExpenses, recommendedEmergencyMonths } from '@/utils/jarInsights';
 import { moneyMovedMessage } from './celebrate';
 import JarInsights from './components/JarInsights';
 import { addVaultEntry, deleteVault, deleteVaultEntry, updateVault } from '@/services/vaults';
 import type { NewVault, VaultEntry, VaultEntryType } from '@/types/vault';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import JarSheet, { type JarSheetMode } from './components/JarSheet';
 import MoneySheet from './components/MoneySheet';
 import { styles } from './JarDetailScreen.styles';
 
 function confirm(message: string, onYes: () => void) {
   if (Platform.OS === 'web') {
-    if (window.confirm(message)) onYes();
+    askWeb(`Remove entry?\n\n${message}`, 'Remove').then((y) => { if (y) onYes(); });
   } else {
     Alert.alert('Remove entry', message, [
       { text: 'Cancel', style: 'cancel' },
@@ -33,7 +43,10 @@ export default function JarDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { showToast } = useToast();
-  const { vaults, entries, loading } = useVaults();
+  const { vaults: cashJars, entries, loading } = useVaults();
+  const { investments } = useInvestments();
+  const vaults = jarsWithInvestments(cashJars, investments);
+  const [linking, setLinking] = useState(false);
   const [moneyType, setMoneyType] = useState<VaultEntryType | null>(null);
   const [jarMode, setJarMode] = useState<JarSheetMode>(null);
   const { transactions: yearTx } = useTransactions('last12Months');
@@ -43,29 +56,44 @@ export default function JarDetailScreen() {
   };
 
   const jar = vaults.find((v) => v.id === id);
+  const balV = useTween(jar ? savedOf(jar) : 0);
   const history = entries.filter((e) => e.vaultId === id); // newest first
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/vaults'));
 
   if (loading || !jar) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.content}>
-          <ScreenHeader onBack={goBack} />
-          <View style={styles.center}>
-            {loading ? (
-              <ActivityIndicator color={Corpus.gold} />
-            ) : (
-              <Text style={styles.muted}>This jar no longer exists</Text>
-            )}
-          </View>
-        </View>
-      </SafeAreaView>
+      <Screen title={loading ? 'Jar' : 'Jar not found'} onBack={goBack}>
+        {loading ? (
+          <View style={[styles.skel, { height: 200 }]} accessibilityLabel="Loading" accessibilityState={{ busy: true }} />
+        ) : (
+          <Text style={styles.muted}>This jar was deleted.</Text>
+        )}
+      </Screen>
     );
   }
 
-  const goalPercent = jar.goal ? Math.min((jar.balance / jar.goal) * 100, 100) : 0;
-  const reached = jar.goal !== undefined && jar.balance >= jar.goal;
+  const saved = savedOf(jar);
+  const goalPercent = jar.goal ? Math.min((saved / jar.goal) * 100, 100) : 0;
+  const reached = jar.goal !== undefined && saved >= jar.goal;
+  const holdings = linkedTo(jar.id, investments);
+  const forecast = investForecast(jar, investments);
+
+  const saveLinks = async (ids: string[]) => {
+    try {
+      await Promise.all(investments.map((h) => {
+        const want = ids.includes(h.id);
+        if (want && h.goalId !== jar.id) return updateInvestment(h.id, { goalId: jar.id });
+        if (!want && h.goalId === jar.id) return updateInvestment(h.id, { goalId: undefined });
+        return null;
+      }));
+      setLinking(false);
+      showToast({ message: ids.length ? `${ids.length} investment${ids.length > 1 ? 's' : ''} linked to ${jar.name}` : 'Investments unlinked' });
+    } catch (e) {
+      console.error(e);
+      showToast({ message: 'Couldn’t save. Try again.' });
+    }
+  };
 
   const moveMoney = async (amount: number, note?: string) => {
     if (!moneyType) return;
@@ -82,7 +110,7 @@ export default function JarDetailScreen() {
   const removeEntry = (entry: VaultEntry) => {
     // Removing a deposit must not push the balance below zero
     if (entry.type === 'in' && jar.balance - entry.amount < 0) {
-      showToast({ message: 'Remove a later take-out first — the balance would go below ₹0.' });
+      showToast({ message: 'Remove a later take-out first, or the balance goes below ₹0.' });
       return;
     }
     const label = entry.type === 'in' ? 'deposit' : 'withdrawal';
@@ -128,104 +156,82 @@ export default function JarDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title={jar.name} right={<IconButton icon="create-outline" label="Edit" onPress={() => setJarMode({ kind: 'edit', jar })} />} onBack={goBack} />
-
+    <>
+      <Screen title={jar.name} right={<IconButton icon="create-outline" label="Edit jar" onPress={() => setJarMode({ kind: 'edit', jar })} />} onBack={goBack}>
         <View style={styles.hero}>
-          <View style={[styles.heroIcon, { backgroundColor: `${jar.color}26` }]}>
-            <Ionicons name={jar.icon as any} size={26} color={jar.color} />
-          </View>
-          <Text style={styles.heroLabel}>IN THIS JAR</Text>
-          <Text style={[styles.heroAmount, { color: jar.color }]}>{formatINR(jar.balance)}</Text>
-          {jar.goal ? (
-            <View style={styles.goalWrap}>
-              <View style={styles.track}>
-                <View style={[styles.fill, { width: `${goalPercent}%`, backgroundColor: jar.color }]} />
-              </View>
+          <JarFill level={jar.goal ? saved / jar.goal : saved > 0 ? 0.6 : 0} color={jar.color} width={92} height={120} marks={!!jar.goal} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.heroLabel}>{jar.invested ? 'Saved for this goal' : 'In this jar'}</Text>
+            <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(balV))}</Text>
+            {jar.goal ? (
               <Text style={[styles.goalText, reached && { color: Corpus.income }]}>
-                {reached
-                  ? `🎉 You reached your ${formatINR(jar.goal)} goal`
-                  : `${Math.round(goalPercent)}% of ${formatINR(jar.goal)} · ${formatINR(jar.goal - jar.balance)} to go`}
+                {reached ? `Goal of ${formatINR(jar.goal)} reached` : `${Math.round(goalPercent)}% of ${formatINR(jar.goal)}\n${formatINR(jar.goal - saved)} to go`}
               </Text>
-            </View>
-          ) : (
-            <Text style={styles.goalText}>No goal set · tap ✎ to add one</Text>
-          )}
+            ) : (
+              <Pressable onPress={() => setJarMode({ kind: 'edit', jar })} accessibilityRole="button" hitSlop={6}>
+                <Text style={styles.goalText}>No goal yet. <Text style={styles.link}>Set one</Text></Text>
+              </Pressable>
+            )}
+          </View>
         </View>
 
         <View style={styles.actions}>
-          <Pressable style={[styles.addButton, { backgroundColor: jar.color }]} onPress={() => setMoneyType('in')}>
-            <Ionicons name="add" size={17} color={Corpus.onGold} />
-            <Text style={styles.addText}>Add money</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.outButton, jar.balance <= 0 && { opacity: 0.4 }]}
-            onPress={() => setMoneyType('out')}
-            disabled={jar.balance <= 0}
-          >
-            <Ionicons name="remove" size={17} color={Corpus.text} />
-            <Text style={styles.outText}>Take out</Text>
-          </Pressable>
+          <Button style={{ flex: 1 }} icon="add" label="Add money" tint={jar.color} tintText="black" onPress={() => setMoneyType('in')} />
+          <Button style={{ flex: 1 }} variant="secondary" icon="remove" label="Take out" onPress={() => setMoneyType('out')} disabled={jar.balance <= 0} />
         </View>
 
-        <JarInsights
-          jar={jar}
-          entries={entries}
-          context={context}
-          onEdit={() => setJarMode({ kind: 'edit', jar })}
-        />
+        <Group title="Investments">
+          {[
+            ...holdings.map((h) => (
+              <Pressable key={h.id} onPress={() => router.push('/invest')} style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button">
+                <IconChip icon={investMeta(h.type).icon.replace('-outline', '')} color={Chip.indigo} />
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{h.name}</Text>
+                  <Text style={styles.rowDate}>{h.sip?.active ? `SIP ${compactINR(sipAmount(h.sip, new Date()))} a month` : investMeta(h.type).label}</Text>
+                </View>
+                <Text style={styles.rowAmount}>{formatINR(Math.round(h.value))}</Text>
+              </Pressable>
+            )),
+            <Pressable key="link" onPress={() => setLinking(true)} style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button">
+              <IconChip icon={holdings.length ? 'swap-horizontal' : 'add'} color={Chip.gray} />
+              <View style={styles.rowBody}>
+                <Text style={styles.rowTitle}>{holdings.length ? 'Change linked investments' : 'Link an investment'}</Text>
+                {!holdings.length && <Text style={styles.rowDate}>A fund, stocks or FD saving for this goal</Text>}
+              </View>
+            </Pressable>,
+          ]}
+        </Group>
+        {forecast && (
+          <Text style={[styles.foot, { color: forecast.onTrack ? Corpus.income : Corpus.textMuted }]}>
+            {`With ${jar.sipMonthly ? `your ${compactINR(jar.sipMonthly)} a month in SIPs` : 'no SIP'} at about ${Math.round(forecast.rate)}% a year: around ${compactINR(forecast.projected)} by ${formatYearMonth(jar.targetDate!)}.${forecast.onTrack ? ' On track.' : ''}`}
+          </Text>
+        )}
 
-        <SectionLabel right={history.length > 0 ? "Tap an entry to remove it" : undefined}>HISTORY</SectionLabel>
-        <View style={styles.group}>
-          {history.length === 0 ? (
-            <View style={styles.empty}>
-              <Ionicons name="time-outline" size={26} color={Corpus.textFaint} />
-              <Text style={styles.emptyText}>No money moved yet</Text>
-            </View>
-          ) : (
-            history.map((e, i) => {
-              const isIn = e.type === 'in';
-              return (
-                <Pressable
-                  key={e.id}
-                  onPress={() => removeEntry(e)}
-                  style={({ pressed }) => [styles.row, i > 0 && styles.divider, pressed && styles.pressed]}
-                >
-                  <Ionicons
-                    name={isIn ? 'arrow-down-circle' : 'arrow-up-circle'}
-                    size={24}
-                    color={isIn ? jar.color : Corpus.textMuted}
-                  />
-                  <View style={styles.rowBody}>
-                    <Text style={styles.rowTitle}>{e.note ?? (isIn ? 'Added' : 'Taken out')}</Text>
-                    <Text style={styles.rowDate}>
-                      {new Date(e.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </Text>
-                  </View>
-                  <Text style={[styles.rowAmount, { color: isIn ? jar.color : Corpus.text }]}>
-                    {isIn ? '+' : '−'}{formatINR(e.amount)}
-                  </Text>
-                </Pressable>
-              );
-            })
-          )}
-        </View>
-      </ScrollView>
+        <JarInsights jar={jar} entries={entries} context={context} onEdit={() => setJarMode({ kind: 'edit', jar })} />
 
-      <MoneySheet
-        jar={moneyType ? jar : null}
-        type={moneyType ?? 'in'}
-        onClose={() => setMoneyType(null)}
-        onSubmit={moveMoney}
-      />
-      <JarSheet
-        mode={jarMode}
-        context={context}
-        onClose={() => setJarMode(null)}
-        onSave={saveJar}
-        onDelete={removeJar}
-      />
-    </SafeAreaView>
+        <Group animate title="History">
+          {history.length === 0
+            ? [<View key="none" style={styles.empty}><Text style={styles.muted}>No money moved yet</Text></View>]
+            : history.map((e) => {
+                const isIn = e.type === 'in';
+                return (
+                  <Pressable key={e.id} onPress={() => removeEntry(e)} style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button" accessibilityHint="Removes this entry">
+                    <IconChip icon={isIn ? 'arrow-down' : 'arrow-up'} color={isIn ? jar.color : Chip.gray} />
+                    <View style={styles.rowBody}>
+                      <Text style={styles.rowTitle}>{e.note ?? (isIn ? 'Added' : 'Taken out')}</Text>
+                      <Text style={styles.rowDate}>{new Date(e.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                    </View>
+                    <Text style={styles.rowAmount}>{isIn ? '+' : '−'}{formatINR(e.amount)}</Text>
+                  </Pressable>
+                );
+              })}
+        </Group>
+        {history.length > 0 && <Text style={styles.foot}>Tap an entry to remove it.</Text>}
+      </Screen>
+
+      <MoneySheet jar={moneyType ? jar : null} type={moneyType ?? 'in'} onClose={() => setMoneyType(null)} onSubmit={moveMoney} />
+      <JarSheet mode={jarMode} context={context} onClose={() => setJarMode(null)} onSave={saveJar} onDelete={removeJar} />
+      {linking && <LinkInvestmentsSheet jar={jar} jars={vaults} list={investments} onClose={() => setLinking(false)} onSave={saveLinks} />}
+    </>
   );
 }

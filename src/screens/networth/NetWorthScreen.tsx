@@ -1,4 +1,5 @@
 import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
+import { askWeb } from '@/services/confirm';
 import { Corpus } from '@/constants/theme';
 import { ChartColors } from '@/constants/chartColors';
 import { useToast } from '@/context/ToastContext';
@@ -128,7 +129,7 @@ export default function NetWorthScreen() {
       setSheet(null);
       showToast({ message: `${a.name} removed` });
     };
-    if (Platform.OS === 'web') window.confirm(`Remove ${a.name}?`) && go();
+    if (Platform.OS === 'web') askWeb(`Remove ${a.name}?`, 'Remove').then((y) => { if (y) go(); });
     else Alert.alert(`Remove ${a.name}?`, '', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: go }]);
   };
 

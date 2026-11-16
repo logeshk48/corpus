@@ -1,4 +1,5 @@
 import { Button, Group, GroupRow, IconChip, Screen } from '@/components/ui';
+import { askWeb } from '@/services/confirm';
 import { Chip, Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
@@ -24,7 +25,7 @@ import { styles } from './IousScreen.styles';
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 
 function confirm(title: string, message: string, onYes: () => void) {
-  if (Platform.OS === 'web') { if (window.confirm(`${title}\n\n${message}`)) onYes(); }
+  if (Platform.OS === 'web') askWeb(`${title}\n\n${message}`).then((y) => { if (y) onYes(); });
   else Alert.alert(title, message, [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes', style: 'destructive', onPress: onYes }]);
 }
 

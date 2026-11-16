@@ -1,4 +1,5 @@
 import AuthGate from '@/components/AuthGate';
+import ConfirmHost from '@/components/ConfirmHost';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { isDark } from '@/constants/theme';
@@ -52,6 +53,7 @@ export default function RootLayout() {
             <Stack.Screen name="reports" />
             <Stack.Screen name="tax" />
           </Stack>
+          <ConfirmHost />
         </AuthGate>
       </ToastProvider>
     </AuthProvider>

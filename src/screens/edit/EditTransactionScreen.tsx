@@ -1,4 +1,5 @@
 import { Button, Screen, SectionLabel } from '@/components/ui';
+import { askWeb } from '@/services/confirm';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { styles as form } from '@/screens/add/AddScreen.styles';
@@ -45,7 +46,7 @@ function notify(message: string) {
 function confirmDelete(onConfirm: () => void) {
   const message = 'Delete this transaction? This cannot be undone.';
   if (Platform.OS === 'web') {
-    if (window.confirm(message)) onConfirm();
+    askWeb(`Delete transaction?\n\n${message}`, 'Delete').then((y) => { if (y) onConfirm(); });
   } else {
     Alert.alert('Delete transaction', message, [
       { text: 'Cancel', style: 'cancel' },

@@ -1,4 +1,5 @@
 import CandleChart from '@/components/charts/CandleChart';
+import { askWeb } from '@/services/confirm';
 import Spark from '@/components/charts/Spark';
 import { Button, Group, IconChip, Screen } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
@@ -100,7 +101,7 @@ export default function AccountsScreen() {
       }
     };
     const msg = 'Your expenses and income stay. They just won’t be linked to this account.';
-    if (Platform.OS === 'web') window.confirm(`Delete ${a.name}?\n\n${msg}`) && go();
+    if (Platform.OS === 'web') askWeb(`Delete ${a.name}?\n\n${msg}`, 'Delete').then((y) => { if (y) go(); });
     else Alert.alert(`Delete ${a.name}?`, msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: go }]);
   };
 

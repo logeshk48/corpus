@@ -1,12 +1,23 @@
-import { Button, ScreenHeader } from '@/components/ui';
+import Bullet from '@/components/charts/Bullet';
+import { askWeb } from '@/services/confirm';
+import { Button, Group, IconChip, Screen } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { Chip, Corpus } from '@/constants/theme';
+import { useTween } from '@/hooks/useTween';
+import { useEntrance } from '@/hooks/useEntrance';
 import { useToast } from '@/context/ToastContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
-import { addVault, addVaultEntry, deleteVault, updateVault } from '@/services/vaults';
-import { STARTER_VAULTS, type NewVault, type VaultEntryType, type VaultWithBalance } from '@/types/vault';
-import { formatINR } from '@/utils/format';
+import { useInvestments } from '@/hooks/useInvestments';
+import { useSettings } from '@/hooks/useSettings';
+import { useGoalsToJars } from '@/hooks/useGoalsToJars';
+import { jarsWithInvestments, unlinkedOf } from '@/utils/jarFunds';
+import { addVault, addVaultEntry, deleteVault, mergeVaults, updateVault } from '@/services/vaults';
+import { updateInvestment } from '@/services/investments';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
+import JarPickerSheet from './components/JarPickerSheet';
+import { savedOf, STARTER_VAULTS, type NewVault, type VaultEntryType, type VaultWithBalance } from '@/types/vault';
+import { compactINR, formatINR } from '@/utils/format';
 import {
   averageMonthlyExpenses,
   jarPlan,
@@ -18,8 +29,6 @@ import { moneyMovedMessage } from './celebrate';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import JarCard from './components/JarCard';
 import JarSheet, { type JarSheetMode } from './components/JarSheet';
 import MoneySheet from './components/MoneySheet';
@@ -31,7 +40,27 @@ type MoneyMode = { jarId: string; type: VaultEntryType; amount?: number } | null
 export default function VaultsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { vaults, entries, total, addedThisMonth, loading } = useVaults();
+  const { vaults: cashJars, entries, total: cashTotal, addedThisMonth, loading } = useVaults();
+  const { investments, loading: invLoading } = useInvestments();
+  const { settings, loading: setLoading } = useSettings();
+  useGoalsToJars(settings.investGoals, investments, !loading && !invLoading && !setLoading);
+  const vaults = jarsWithInvestments(cashJars, investments);
+  // Every investment counts in the total: the ones in a jar and the ones not sorted yet
+  const loose = unlinkedOf(investments, vaults);
+  const looseValue = Math.round(loose.reduce((a, h) => a + h.value, 0));
+  const invested = vaults.reduce((a, v) => a + (v.invested ?? 0), 0) + looseValue;
+  const total = cashTotal + invested;
+  const [sorting, setSorting] = useState(false);
+  // Two jars with the same name (e.g. two Savings) → offer to merge
+  const dup = (() => {
+    const seen = new Map<string, (typeof vaults)[number]>();
+    for (const v of vaults) {
+      const k = v.name.trim().toLowerCase();
+      if (seen.has(k)) return { keep: seen.get(k)!, drop: v };
+      seen.set(k, v);
+    }
+    return null;
+  })();
   const { transactions: monthTx } = useTransactions('month');
   const { transactions: yearTx } = useTransactions('last12Months');
 
@@ -59,7 +88,8 @@ export default function VaultsScreen() {
   const tip = suggestJarTip(monthTx, vaults, entries);
   const showTip = tip && tip.income.id !== dismissedTip;
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const totalV = useTween(loading ? 0 : total);
+  const t = useEntrance(800, loading);
 
   const createJar = async (vault: NewVault) => {
     try {
@@ -111,60 +141,75 @@ export default function VaultsScreen() {
     }
   };
 
+  const sortInto = async (picks: { id: string; jarId: string | null }[]) => {
+    try {
+      const moves = picks.filter((p) => p.jarId);
+      await Promise.all(moves.map((p) => updateInvestment(p.id, { goalId: p.jarId! })));
+      setSorting(false);
+      showToast({ message: moves.length ? `${moves.length} investment${moves.length > 1 ? 's' : ''} put in jars` : 'Left as they are' });
+    } catch (e) {
+      console.error(e);
+      showToast({ message: 'Couldn’t save. Try again.' });
+    }
+  };
+
+  const merge = () => {
+    if (!dup) return;
+    const msg = dup.drop.balance > 0 || (dup.drop.invested ?? 0) > 0
+      ? `${formatINR(savedOf(dup.drop))} and its history move into the other ${dup.keep.name} jar. Nothing is lost.`
+      : `One of them is empty, so it’s removed. Nothing is lost.`;
+    const go = () => mergeVaults(dup.drop.id, dup.keep.id).then(() => showToast({ message: `Merged into one ${dup.keep.name} jar` })).catch(() => showToast({ message: 'Couldn’t merge. Try again.' }));
+    if (Platform.OS === 'web') askWeb(`Merge the two ${dup.keep.name} jars?\n\n${msg}`, 'Merge', false).then((y) => { if (y) go(); });
+    else Alert.alert(`Merge the two ${dup.keep.name} jars?`, msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Merge', onPress: go }]);
+  };
+
   const incomeName = (t: NonNullable<typeof tip>['income']) =>
     t.note ?? findCategory(t.type, t.category)?.label ?? 'income';
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Jars" right={vaults.length > 0 ? <Button size="sm" icon="add" label="New jar" onPress={() => setJarMode({ kind: 'new' })} /> : undefined} onBack={goBack} />
-
+    <>
+      <Screen
+        title="Jars"
+        subtitle="One goal each: cash and investments"
+        right={vaults.length > 0 ? <Button size="sm" icon="add" label="New jar" onPress={() => setJarMode({ kind: 'new' })} /> : undefined}
+      >
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Corpus.gold} />
+          <View style={{ gap: 14 }} accessibilityLabel="Loading jars" accessibilityState={{ busy: true }}>
+            <View style={[styles.skel, { height: 150 }]} />
+            <View style={[styles.skel, { height: 220 }]} />
           </View>
         ) : vaults.length === 0 ? (
-          <StarterJars
-            existingNames={[]}
-            onCreate={createJar}
-            onCustom={() => setJarMode({ kind: 'new' })}
-          />
+          <>
+            <Text style={styles.lead}>A jar keeps money apart for one thing: tax, an emergency, a trip. Add when you can, take out when you need it.</Text>
+            <StarterJars existingNames={[]} onCreate={createJar} onCustom={() => setJarMode({ kind: 'new' })} />
+          </>
         ) : (
           <>
             <View style={styles.hero}>
-              <Text style={styles.heroLabel}>MONEY IN YOUR JARS</Text>
-              <Text style={styles.heroAmount}>{formatINR(total)}</Text>
-              <Text style={styles.heroSub}>
-                {addedThisMonth > 0
-                  ? `+${formatINR(addedThisMonth)} added this month`
-                  : `${vaults.length} jar${vaults.length === 1 ? '' : 's'} · nothing added this month yet`}
-              </Text>
-
-              {streak > 0 && (
-                <View style={styles.streak}>
-                  <Text style={styles.streakText}>
-                    🔥 {streak}-month saving streak{streak >= 3 ? ' — brilliant!' : ''}
-                  </Text>
-                </View>
-              )}
+              <Text style={styles.heroLabel}>Saved for your goals</Text>
+              <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(totalV))}</Text>
+              <View style={styles.heroLine}>
+                <Text style={styles.heroSub}>
+                  {invested > 0 ? `${compactINR(cashTotal)} cash, ${compactINR(invested)} invested. ` : ''}
+                  {addedThisMonth > 0 ? `${formatINR(addedThisMonth)} added this month` : 'Nothing added this month yet'}
+                </Text>
+                {streak > 0 && (
+                  <View style={styles.streak} accessibilityLabel={`${streak} month saving streak`}>
+                    <Ionicons name="flame" size={13} color={Chip.orange} />
+                    <Text style={styles.streakText}>{streak}-month streak</Text>
+                  </View>
+                )}
+              </View>
 
               {planTotal > 0 && (
-                <View style={styles.plan}>
+                <View style={styles.plan} accessible accessibilityLabel={`This month's plan: ${formatINR(planDone)} of ${formatINR(planTotal)}`}>
                   <View style={styles.planRow}>
-                    <Text style={styles.planLabel}>This month's plan</Text>
-                    <Text style={styles.planValue}>
-                      {formatINR(planDone)} of {formatINR(planTotal)}
-                    </Text>
+                    <Text style={styles.planLabel}>This month’s plan</Text>
+                    <Text style={styles.planValue}>{formatINR(planDone)} of {formatINR(planTotal)}</Text>
                   </View>
-                  <View style={styles.planTrack}>
-                    <View
-                      style={[styles.planFill, { width: `${Math.min((planDone / planTotal) * 100, 100)}%` }]}
-                    />
-                  </View>
+                  <Bullet value={planDone} limit={planTotal} color={planDone >= planTotal ? Corpus.income : Corpus.text} height={10} appear={t} />
                   <Text style={styles.planHint}>
-                    {planDone >= planTotal
-                      ? '✓ Every goal is on track this month'
-                      : `${formatINR(planTotal - planDone)} more keeps all your goals on schedule`}
+                    {planDone >= planTotal ? 'Every goal is on schedule this month' : `${formatINR(planTotal - planDone)} more keeps every goal on schedule`}
                   </Text>
                 </View>
               )}
@@ -172,78 +217,62 @@ export default function VaultsScreen() {
 
             {showTip && tip && (
               <View style={styles.tip}>
-                <View style={styles.tipTop}>
-                  <Ionicons name="sparkles" size={16} color={Corpus.gold} />
+                <IconChip icon="arrow-down" color={Chip.green} size={34} />
+                <View style={{ flex: 1, gap: 8 }}>
                   <Text style={styles.tipText}>
-                    You received {formatINR(tip.income.amount)} from {incomeName(tip.income)}.{' '}
-                    <Text style={styles.tipMuted}>
-                      Put {formatINR(tip.amount)} ({tip.percent}%) in {tip.jar.name}?
-                    </Text>
+                    {formatINR(tip.income.amount)} came in from {incomeName(tip.income)}. Put {formatINR(tip.amount)} ({tip.percent}%) in {tip.jar.name}?
                   </Text>
-                </View>
-                <View style={styles.tipActions}>
-                  <Pressable style={styles.tipLater} onPress={() => setDismissedTip(tip.income.id)}>
-                    <Text style={styles.tipLaterText}>Not now</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.tipAdd}
-                    onPress={() => setMoney({ jarId: tip.jar.id, type: 'in', amount: tip.amount })}
-                  >
-                    <Text style={styles.tipAddText}>Add {formatINR(tip.amount)}</Text>
-                  </Pressable>
+                  <View style={styles.tipActions}>
+                    <Button size="sm" label={`Add ${formatINR(tip.amount)}`} onPress={() => setMoney({ jarId: tip.jar.id, type: 'in', amount: tip.amount })} />
+                    <Button size="sm" variant="secondary" label="Not now" onPress={() => setDismissedTip(tip.income.id)} />
+                  </View>
                 </View>
               </View>
             )}
 
-            <View style={styles.list}>
-              {vaults.map((jar) => (
-                <JarCard
-                  key={jar.id}
-                  jar={jar}
-                  context={context}
-                  onOpen={() => router.push({ pathname: '/vault/[id]', params: { id: jar.id } })}
-                  onAdd={() => setMoney({ jarId: jar.id, type: 'in' })}
-                  onTakeOut={() => setMoney({ jarId: jar.id, type: 'out' })}
-                />
-              ))}
-            </View>
-
-            {STARTER_VAULTS.some(
-              (s) => !vaults.some((v) => v.name.toLowerCase() === s.name.toLowerCase())
-            ) && (
-              <>
-                <Text style={styles.suggestLabel}>SUGGESTED JARS</Text>
-                <StarterJars
-                  compact
-                  existingNames={vaults.map((v) => v.name)}
-                  onCreate={createJar}
-                  onCustom={() => setJarMode({ kind: 'new' })}
-                />
-              </>
+            <Group animate title="Your jars">
+              {[
+                ...vaults.map((jar) => (
+                  <JarCard
+                    key={jar.id}
+                    jar={jar}
+                    context={context}
+                    onOpen={() => router.push({ pathname: '/vault/[id]', params: { id: jar.id } })}
+                    onAdd={() => setMoney({ jarId: jar.id, type: 'in' })}
+                  />
+                )),
+                ...(loose.length
+                  ? [
+                      <Pressable key="loose" onPress={() => setSorting(true)} style={({ pressed }) => [styles.loose, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button" accessibilityHint="Choose a jar for each investment">
+                        <IconChip icon="layers" color={Chip.indigo} size={36} />
+                        <View style={{ flex: 1, gap: 2 }}>
+                          <Text style={styles.looseTitle}>Not in a jar yet</Text>
+                          <Text style={styles.looseSub}>{loose.length} investment{loose.length > 1 ? 's' : ''} worth {formatINR(looseValue)}</Text>
+                        </View>
+                        <View style={styles.sortBtn}><Text style={styles.sortText}>Sort</Text></View>
+                      </Pressable>,
+                    ]
+                  : []),
+              ]}
+            </Group>
+            {dup && (
+              <Pressable onPress={merge} style={({ pressed }) => [styles.dup, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+                <Ionicons name="git-merge" size={18} color={Corpus.warning} />
+                <Text style={styles.dupText}>You have two jars called {dup.keep.name}</Text>
+                <Text style={styles.dupAction}>Merge</Text>
+              </Pressable>
             )}
 
-            <Pressable style={styles.another} onPress={() => setJarMode({ kind: 'new' })}>
-              <Ionicons name="add-circle-outline" size={16} color={Corpus.gold} />
-              <Text style={styles.anotherText}>Create another jar</Text>
-            </Pressable>
+            {STARTER_VAULTS.some((s) => !vaults.some((v) => v.name.toLowerCase() === s.name.toLowerCase())) && (
+              <StarterJars compact existingNames={vaults.map((v) => v.name)} onCreate={createJar} onCustom={() => setJarMode({ kind: 'new' })} />
+            )}
           </>
         )}
-      </ScrollView>
+      </Screen>
 
-      <MoneySheet
-        jar={moneyJar}
-        type={money?.type ?? 'in'}
-        initialAmount={money?.amount}
-        onClose={() => setMoney(null)}
-        onSubmit={moveMoney}
-      />
-      <JarSheet
-        mode={jarMode}
-        context={context}
-        onClose={() => setJarMode(null)}
-        onSave={saveJar}
-        onDelete={removeJar}
-      />
-    </SafeAreaView>
+      <MoneySheet jar={moneyJar} type={money?.type ?? 'in'} initialAmount={money?.amount} onClose={() => setMoney(null)} onSubmit={moveMoney} />
+      <JarSheet mode={jarMode} context={context} onClose={() => setJarMode(null)} onSave={saveJar} onDelete={removeJar} />
+      {sorting && <JarPickerSheet holdings={loose} jars={cashJars} onClose={() => setSorting(false)} onSave={sortInto} onNewJar={() => { setSorting(false); setJarMode({ kind: 'new' }); }} />}
+    </>
   );
 }

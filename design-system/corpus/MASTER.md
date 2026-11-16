@@ -106,3 +106,14 @@ Every motion answers something you did. Reduce Motion turns them off.
 - Lists: `<Group animate>` slides new rows in, fades removed ones, the rest close the gap (not on first load).
 - Candle chart: slide a finger across to read each candle.
 - Switches: the knob springs across.
+
+## Goals = Jars (product rule, step 7b)
+One goal = one jar. A jar holds cash you put in AND can have investments linked to it (holding.goalId = jar id).
+- Jar progress, milestones and the monthly plan use cash + linked investment value (`savedOf`); the plan assumes linked money grows at its expected return.
+- Cash only (`balance`) is used for take-out limits, Safe to spend and net worth, so investments are never counted twice.
+- The old Invest → Goals move into jars automatically once (useGoalsToJars). Invest shows a Goals card that links to the jars.
+- Deleting a jar unlinks its investments; it never deletes them.
+- Nothing is hidden: the Jars total counts every investment. Ones not in a jar show as one row, "Not in a jar yet · Sort".
+- Sort / "What is it for?" (JarPickerSheet) starts each holding on a suggested jar with the reason in words: liquid/gilt/debt/FD → Emergency fund, gold/silver → Savings, equity → the longest goal.
+- Each holding in Invest shows "For: Car" or "Not in a jar. Add to Car?".
+- Two jars with the same name → "You have two jars called Savings · Merge" (confirm first; history and investments move, nothing is lost).
