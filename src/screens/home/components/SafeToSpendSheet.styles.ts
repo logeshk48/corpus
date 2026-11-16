@@ -42,6 +42,7 @@ export const styles = StyleSheet.create({
     fontSize: Type.label,
     fontWeight: '600',
   },
+  pausedNote: { fontSize: Type.small, color: Corpus.warning, lineHeight: 17, paddingVertical: 4 },
   note: {
     fontSize: Type.caption,
     color: Corpus.textFaint,

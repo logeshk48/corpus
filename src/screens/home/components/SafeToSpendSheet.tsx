@@ -88,6 +88,11 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
                       {result.plansDue > 0 && (
                         <Row label="Kept for jar goals this month" value={result.plansDue} sign="−" />
                       )}
+                      {result.plansPaused.map((pp) => (
+                        <Text key={pp.name} style={styles.pausedNote}>
+                          {pp.name} plan paused: it needs {formatINR(pp.need)} this month, more than half your income. Open the jar to pick a date that fits.
+                        </Text>
+                      ))}
                       {result.billsDue > 0 && (
                         <Row label="Bills still due this month" value={result.billsDue} sign="−" />
                       )}

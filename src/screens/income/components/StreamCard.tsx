@@ -1,52 +1,65 @@
-import { Corpus } from '@/constants/theme';
+import Bullet from '@/components/charts/Bullet';
+import { IconChip } from '@/components/ui';
+import { CategoryChip, Chip, Corpus } from '@/constants/theme';
 import { streamTypeMeta, type IncomeStream } from '@/types/incomeStream';
-import { formatINR } from '@/utils/format';
+import { compactINR, formatINR } from '@/utils/format';
+import { ordinal, streamState, type Usual } from '@/utils/incomeUsual';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import { styles } from './StreamCard.styles';
 
-type StreamCardProps = {
-  stream: IncomeStream;
-  receivedThisMonth: number;
-  onPress?: () => void;
-};
+export const streamColor = (type: string) => CategoryChip[type] ?? Chip.gray;
 
-export default function StreamCard({ stream, receivedThisMonth, onPress }: StreamCardProps) {
-  const meta = streamTypeMeta(stream.type);
-  const expected = stream.expectedMonthly;
-  const percent = expected ? Math.min((receivedThisMonth / expected) * 100, 100) : 0;
-
-  let progressText = 'No monthly expectation set';
-  if (expected) {
-    progressText =
-      receivedThisMonth >= expected
-        ? `Fully received · ${formatINR(expected)} expected`
-        : `${formatINR(expected - receivedThisMonth)} still expected of ${formatINR(expected)}`;
+// What to say about a source this month, in words (never colour alone)
+export function stateLine(s: IncomeStream, received: number, u: Usual): { text: string; icon?: string; color?: string } {
+  const st = streamState(s, received, u);
+  const range = u.months >= 2 ? (u.low === u.high ? `Usually ${compactINR(u.avg)}` : `Usually ${compactINR(u.low)} to ${compactINR(u.high)}`) : null;
+  switch (st.kind) {
+    case 'fixedDone': return { text: 'All of it has come in', icon: 'checkmark-circle', color: Corpus.income };
+    case 'fixedLeft': return { text: `${formatINR(st.left)} still to come` };
+    case 'late': return { text: `Usually paid by the ${ordinal(st.payDay)}. Got it?`, icon: 'time', color: Corpus.warning };
+    case 'waiting': return { text: range ? `Not paid yet. ${range}` : 'Not paid yet this month' };
+    case 'low': return { text: `A lower month. ${range}` };
+    case 'high': return { text: `A strong month. ${range}`, icon: 'trending-up', color: Corpus.income };
+    case 'usual': return { text: `A usual month. ${range}` };
+    default: return { text: streamTypeMeta(s.type).label };
   }
+}
 
+// One income source as a row: what came in this month, how that compares, and a quick "Got paid"
+export default function StreamCard({ stream, receivedThisMonth, usual, onPress, onPaid, appear = 1 }: {
+  stream: IncomeStream; receivedThisMonth: number; usual: Usual; onPress?: () => void; onPaid: () => void; appear?: number;
+}) {
+  const meta = streamTypeMeta(stream.type);
+  const fixed = stream.fixed && stream.expectedMonthly ? stream.expectedMonthly : null;
+  const line = stateLine(stream, receivedThisMonth, usual);
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-    >
-      <View style={styles.top}>
-        <View style={styles.iconCircle}>
-          <Ionicons name={meta.icon as any} size={17} color={Corpus.income} />
+    <View style={styles.wrap}>
+      <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button"
+        accessibilityLabel={`${stream.name}: ${formatINR(receivedThisMonth)} this month. ${line.text}`}>
+        <View style={styles.top}>
+          <IconChip icon={meta.icon} color={streamColor(stream.type)} />
+          <View style={styles.middle}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>{stream.name}</Text>
+              <Text style={styles.amount}>{formatINR(receivedThisMonth)}</Text>
+            </View>
+            <View style={styles.subRow}>
+              {line.icon && <Ionicons name={line.icon as keyof typeof Ionicons.glyphMap} size={13} color={line.color} style={{ marginTop: 2 }} />}
+              <Text style={[styles.sub, line.color ? { color: line.color } : null]} numberOfLines={2}>{line.text}</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.middle}>
-          <Text style={styles.name}>{stream.name}</Text>
-          <Text style={styles.type}>{meta.label}</Text>
-        </View>
-        <Text style={styles.received}>{formatINR(receivedThisMonth)}</Text>
-      </View>
-
-      {expected ? (
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${percent}%` }]} />
-        </View>
-      ) : null}
-      <Text style={styles.progressText}>{progressText}</Text>
-    </Pressable>
+        {fixed ? (
+          <View style={styles.bar}>
+            <Bullet value={receivedThisMonth} limit={fixed} color={Corpus.income} height={6} appear={appear} />
+          </View>
+        ) : null}
+      </Pressable>
+      <Pressable onPress={onPaid} hitSlop={6} style={({ pressed }) => [styles.paid, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Got paid by ${stream.name}`}>
+        <Ionicons name="add" size={16} color={Corpus.text} />
+        <Text style={styles.paidText}>Got paid</Text>
+      </Pressable>
+    </View>
   );
 }

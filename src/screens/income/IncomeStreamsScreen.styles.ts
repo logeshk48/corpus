@@ -1,80 +1,21 @@
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
-import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Corpus.bg,
-  },
-  content: {
-    padding: Space.lg,
-    paddingBottom: 120,
-    gap: Space.md,
-    maxWidth: 640,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  summary: {
-    backgroundColor: Corpus.card,
-    borderRadius: Radius.lg,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    paddingVertical: Space.lg,
-    paddingHorizontal: Space.md,
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: Type.small,
-    color: Corpus.textMuted,
-    letterSpacing: 0.4,
-  },
-  summaryAmount: {
-    fontSize: Type.amount, fontFamily: Font.displayBold,
-    color: Corpus.income,
-    marginTop: 4,
-  },
-  summarySub: {
-    fontSize: Type.caption,
-    color: Corpus.textMuted,
-    marginTop: 6,
-  },
-  list: {
-    gap: Space.sm + 4,
-  },
-  unlinked: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: Space.xs,
-  },
-  unlinkedText: {
-    fontSize: Type.small,
-    color: Corpus.textMuted,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    gap: Space.sm,
-  },
-  emptyTitle: {
-    fontSize: Type.label,
-    color: Corpus.text,
-  },
-  emptyText: {
-    fontSize: Type.small,
-    color: Corpus.textMuted,
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  emptyButton: {
-    marginTop: Space.sm,
-    backgroundColor: Corpus.gold,
-    borderRadius: Radius.md,
-    paddingVertical: 12,
-    paddingHorizontal: Space.lg,
-  },
-  emptyButtonText: {
-    fontSize: Type.bodyLg,
-    fontWeight: '600',
-    color: Corpus.onGold,
-  },
+  skel: { backgroundColor: Corpus.card, borderRadius: 24 },
+  hero: { backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
+  label: { fontSize: Type.body, color: Corpus.textMuted },
+  big: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1, ...tabular },
+  sub: { fontSize: Type.bodyLg, color: Corpus.textMuted, lineHeight: 20, ...tabular },
+  chart: { marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Corpus.border },
+  strip: { flexDirection: 'row', marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Corpus.border },
+  stat: { flex: 1, gap: 2 },
+  rule: { width: StyleSheet.hairlineWidth, backgroundColor: Corpus.border, marginHorizontal: 12 },
+  statLabel: { fontSize: Type.small, color: Corpus.textMuted },
+  statValue: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  foot: { fontSize: Type.small, color: Corpus.textMuted, paddingHorizontal: 4 },
+  muted: { fontSize: Type.bodyLg, color: Corpus.textMuted },
+  empty: { borderRadius: 28, padding: 22, gap: 10, alignItems: 'flex-start', backgroundColor: Corpus.card },
+  emptyTitle: { fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.5, color: Corpus.text },
+  emptyText: { fontSize: Type.bodyLg, lineHeight: 21, color: Corpus.textMuted },
 });

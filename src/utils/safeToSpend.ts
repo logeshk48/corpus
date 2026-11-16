@@ -18,7 +18,8 @@ export type SafeToSpendResult =
       spent: number;
       spentToday: number;
       movedToJars: number;      // net: added − taken out, this month
-      plansDue: number;         // jar plans still needed this month
+      plansDue: number;         // jar plans still needed this month (only the ones you can afford)
+      plansPaused: { name: string; need: number }[]; // plans too big for this month's income: not set aside, flagged instead
       setAside: number;         // money you told Corpus not to count
       billsDue: number;         // recurring bills not yet paid this month
       investing: number;        // SIPs gone out this cycle + still due before pay day
@@ -36,6 +37,9 @@ type Input = {
   cycleStartDay?: number; // your month starts on this day (pay day)
   now?: Date;
 };
+
+// A jar plan is realistic only if it needs at most half of a month's income
+export const planTooBig = (perMonth: number, monthlyIncome: number) => monthlyIncome > 0 && perMonth > monthlyIncome * 0.5;
 
 // Your money month: pay day to pay day
 export function cycleBounds(now = new Date(), cycleStartDay = 1) {
@@ -70,13 +74,21 @@ export function computeSafeToSpend({
   }
 
   const movedToJars = jars.reduce((s, j) => s + j.addedThisMonth - j.takenThisMonth, 0);
-  const plansDue = jars.reduce((s, j) => {
+  // A savings plan must never turn the whole month red. A plan that needs more than half of this
+  // month's income is paused (not set aside, flagged on the jar and on Today); the rest are set aside
+  // only up to what is really left.
+  const plansPaused: { name: string; need: number }[] = [];
+  let plansWanted = 0;
+  for (const j of jars) {
     const p = jarPlan(j, now);
-    return p && p.status === 'behind' ? s + p.shortThisMonth : s; // overdue plans don't swallow the month
-  }, 0);
+    if (!p || p.status !== 'behind') continue; // overdue plans don't swallow the month
+    if (income > 0 && planTooBig(p.perMonth, income)) plansPaused.push({ name: j.name, need: p.shortThisMonth });
+    else plansWanted += p.shortThisMonth;
+  }
 
   // Unpaid bills are reserved in BOTH limits — that money is already promised
   const keep = Math.max(0, setAside);
+  const plansDue = Math.min(plansWanted, Math.max(0, income - spent - movedToJars - billsDue - investing - keep));
   // SIPs come out of income, not out of your spending budget
   const incomeBased = income > 0 ? income - spent - movedToJars - plansDue - billsDue - investing - keep : null;
   const budgetBased = monthlyBudget && monthlyBudget > 0 ? monthlyBudget - spent - billsDue - keep : null;
@@ -115,6 +127,7 @@ export function computeSafeToSpend({
     spentToday,
     movedToJars,
     plansDue,
+    plansPaused,
     billsDue,
     investing,
     setAside: keep,

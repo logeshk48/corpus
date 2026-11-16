@@ -1,280 +1,170 @@
-import { Button, ScreenHeader } from '@/components/ui';
-import { askWeb } from '@/services/confirm';
-import FilterChips, { ChipOption } from '@/components/FilterChips';
+import Bullet from '@/components/charts/Bullet';
+import MonthBars, { lastMonths } from '@/components/charts/MonthBars';
+import { Group, IconButton, Screen } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
+import { useToast } from '@/context/ToastContext';
+import { useEntrance } from '@/hooks/useEntrance';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useTween } from '@/hooks/useTween';
 import TransactionRow from '@/screens/home/components/TransactionRow';
+import { askWeb } from '@/services/confirm';
+import { addIncomeStream, deleteIncomeStream, updateIncomeStream } from '@/services/incomeStreams';
+import { streamTypeMeta, type NewIncomeStream } from '@/types/incomeStream';
 import { getRange, isInRange } from '@/utils/dates';
 import { formatINR } from '@/utils/format';
-import {
-  addIncomeStream,
-  deleteIncomeStream,
-  updateIncomeStream,
-} from '@/services/incomeStreams';
-import { STREAM_TYPES, type StreamType } from '@/types/incomeStream';
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { styles } from './StreamEditScreen.styles';
+import { useMemo, useState } from 'react';
+import { Alert, Platform, Text, View } from 'react-native';
+import { stateLine, streamColor } from './components/StreamCard';
+import GotPaidSheet from './components/GotPaidSheet';
+import { logPaid } from './logPaid';
+import { usualOf } from '@/utils/incomeUsual';
+import { useSettings } from '@/hooks/useSettings';
+import { Button } from '@/components/ui';
+import StreamSheet from './components/StreamSheet';
+import { styles } from './IncomeStreamsScreen.styles';
 
-const TYPE_OPTIONS: ChipOption<StreamType>[] = STREAM_TYPES.map((t) => ({ id: t.id, label: t.label }));
-
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Corpus', message);
-}
-
-function confirmDelete(name: string, onConfirm: () => void) {
-  const message = `Delete "${name}"? Past income stays in your history, just unlinked.`;
-  if (Platform.OS === 'web') {
-    askWeb(`Delete stream?\n\n${message}`, 'Delete').then((y) => { if (y) onConfirm(); });
-  } else {
-    Alert.alert('Delete stream', message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: onConfirm },
-    ]);
-  }
-}
-
+// One income source: what it paid this month, month by month, and each payment.
+// Opened with id "new" (from the Add screen's source picker) it goes straight to the new-source sheet.
 export default function StreamEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const isNew = id === 'new';
   const router = useRouter();
+  const { showToast } = useToast();
   const { streams, loading } = useIncomeStreams();
-  const existing = isNew ? undefined : streams.find((s) => s.id === id);
-
-  // Payments from this stream (this year, newest first)
   const { transactions: yearTx } = useTransactions('last12Months');
-  const payments = isNew
-    ? []
-    : yearTx.filter((t) => t.type === 'income' && t.streamId === id);
-  const monthRange = getRange('month');
-  const monthTotal = payments
-    .filter((t) => isInRange(t.date, monthRange))
-    .reduce((sum, t) => sum + t.amount, 0);
-  const yearRange = getRange('year');
-  const yearTotal = payments
-    .filter((t) => isInRange(t.date, yearRange))
-    .reduce((sum, t) => sum + t.amount, 0);
-  const shownPayments = payments.slice(0, 10);
+  const stream = isNew ? undefined : streams.find((s) => s.id === id);
+  const [editing, setEditing] = useState(isNew);
+  const [paying, setPaying] = useState(false);
+  const { settings } = useSettings();
+  const t = useEntrance(800, loading);
 
-  // Month-by-month totals for the last 12 months, newest first
-  const now = new Date();
-  const history = Array.from({ length: 12 }, (_, i) => {
-    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-    const total = payments
-      .filter((t) => isInRange(t.date, { start: monthStart, end: monthEnd }))
-      .reduce((sum, t) => sum + t.amount, 0);
-    return {
-      key: `${monthStart.getFullYear()}-${monthStart.getMonth()}`,
-      label: monthStart.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
-      total,
-    };
-  });
-  // Bars measure against the expected amount, or the best month if none is set
-  const barScale = Math.max(
-    existing?.expectedMonthly ?? 0,
-    ...history.map((h) => h.total),
-    1
-  );
-
-  const [name, setName] = useState('');
-  const [type, setType] = useState<StreamType>('salary');
-  const [expected, setExpected] = useState('');
-  const [prefilled, setPrefilled] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  // Fill the form once when editing an existing stream
-  useEffect(() => {
-    if (existing && !prefilled) {
-      setName(existing.name);
-      setType(existing.type);
-      setExpected(existing.expectedMonthly ? String(existing.expectedMonthly) : '');
-      setPrefilled(true);
-    }
-  }, [existing, prefilled]);
-
+  const payments = useMemo(() => (isNew ? [] : yearTx.filter((x) => x.type === 'income' && x.streamId === id)), [yearTx, id, isNew]);
+  const sum = (from: { start: Date; end: Date }) => payments.filter((x) => isInRange(x.date, from)).reduce((a, x) => a + x.amount, 0);
+  const monthTotal = sum(getRange('month'));
+  const yearTotal = sum(getRange('year'));
+  const bars = useMemo(() => lastMonths(12).map((m) => ({ ...m, value: payments.filter((x) => isInRange(x.date, m)).reduce((a, x) => a + x.amount, 0) })), [payments]);
+  const paid = bars.filter((b) => b.value > 0);
+  const avg = paid.length ? Math.round(paid.reduce((a, b) => a + b.value, 0) / paid.length) : 0;
+  const monthV = useTween(monthTotal);
+  const expected = stream?.fixed ? stream.expectedMonthly : undefined;
+  const usual = useMemo(() => usualOf(payments), [payments]);
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/income' as Href));
 
-  const expectedNumber = expected.trim() === '' ? undefined : Number(expected);
-  const expectedInvalid =
-    expectedNumber !== undefined && (!Number.isFinite(expectedNumber) || expectedNumber <= 0);
-  const canSave = name.trim().length > 0 && !expectedInvalid && !busy;
-
-  const handleSave = async () => {
-    if (!canSave) return;
-    setBusy(true);
+  const save = async (s: NewIncomeStream) => {
     try {
-      const data = { name: name.trim(), type, expectedMonthly: expectedNumber };
-      if (isNew) await addIncomeStream(data);
-      else await updateIncomeStream(id, data);
-      goBack();
+      if (isNew) await addIncomeStream(s);
+      else await updateIncomeStream(id, s);
+      showToast({ message: isNew ? `${s.name} added` : `${s.name} saved` });
+      if (isNew) goBack();
+      else setEditing(false);
     } catch (e) {
       console.error('Save stream failed:', e);
-      notify('Could not save the stream. Try again.');
-    } finally {
-      setBusy(false);
+      showToast({ message: 'Couldn’t save. Try again.' });
     }
   };
 
-  const handleDelete = () => {
-    if (!existing) return;
-    confirmDelete(existing.name, async () => {
-      setBusy(true);
+  const remove = () => {
+    if (!stream) return;
+    const msg = 'Past income stays in your history. It just won’t be linked to a source.';
+    const go = async () => {
       try {
-        await deleteIncomeStream(existing.id);
+        await deleteIncomeStream(stream.id);
+        showToast({ message: `${stream.name} deleted` });
         goBack();
       } catch (e) {
         console.error('Delete stream failed:', e);
-        notify('Could not delete. Try again.');
-      } finally {
-        setBusy(false);
+        showToast({ message: 'Couldn’t delete. Try again.' });
       }
-    });
+    };
+    if (Platform.OS === 'web') askWeb(`Delete ${stream.name}?\n\n${msg}`, 'Delete').then((y) => { if (y) go(); });
+    else Alert.alert(`Delete ${stream.name}?`, msg, [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: go }]);
   };
 
-  const header = (
-    <ScreenHeader title={isNew ? 'New income stream' : 'Edit stream'} onBack={goBack} />
-  );
-
-  if (!isNew && (loading || (!existing && !prefilled))) {
+  if (isNew || !stream) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.content}>
-          {header}
-          <View style={styles.center}>
-            {loading ? (
-              <ActivityIndicator color={Corpus.gold} />
-            ) : (
-              <Text style={styles.muted}>This stream no longer exists</Text>
-            )}
-          </View>
-        </View>
-      </SafeAreaView>
+      <>
+        <Screen title={isNew ? 'New source' : loading ? 'Income' : 'Not found'} onBack={goBack}>
+          {loading && !isNew ? <View style={[styles.skel, { height: 220 }]} accessibilityLabel="Loading" accessibilityState={{ busy: true }} />
+            : !isNew ? <Text style={styles.muted}>This income source was deleted.</Text> : null}
+        </Screen>
+        {isNew && editing && <StreamSheet onClose={goBack} onSave={save} />}
+      </>
     );
   }
 
+  const color = streamColor(stream.type);
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {header}
-
-        {!isNew && (
-          <>
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>This month</Text>
-                <Text style={styles.statValue}>{formatINR(monthTotal)}</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>This year</Text>
-                <Text style={styles.statValue}>{formatINR(yearTotal)}</Text>
-              </View>
+    <>
+      <Screen title={stream.name} subtitle={streamTypeMeta(stream.type).label} onBack={goBack} right={<IconButton icon="create-outline" label="Edit source" onPress={() => setEditing(true)} />}>
+        <View style={styles.hero}>
+          <Text style={styles.label}>This month</Text>
+          <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(monthV))}</Text>
+          {expected ? (
+            <View style={{ gap: 2 }} accessible accessibilityLabel={`${formatINR(monthTotal)} of ${formatINR(expected)} expected`}>
+              <Bullet value={monthTotal} limit={expected} color={Corpus.income} height={10} appear={t} />
+              <Text style={styles.sub}>{monthTotal >= expected ? `All ${formatINR(expected)} has come in` : `${formatINR(expected - monthTotal)} of ${formatINR(expected)} still to come`}</Text>
             </View>
-
-            <Text style={styles.label}>MONTHLY HISTORY</Text>
-            <View style={styles.history}>
-              {history.map((m) => (
-                <View key={m.key} style={styles.historyRow}>
-                  <Text style={styles.historyMonth}>{m.label}</Text>
-                  <View style={styles.historyTrack}>
-                    {m.total > 0 && (
-                      <View
-                        style={[
-                          styles.historyFill,
-                          { width: `${Math.min((m.total / barScale) * 100, 100)}%` },
-                        ]}
-                      />
-                    )}
-                  </View>
-                  <Text style={[styles.historyAmount, m.total === 0 && styles.historyNone]}>
-                    {m.total > 0 ? formatINR(m.total) : '—'}
-                  </Text>
-                </View>
-              ))}
+          ) : (
+            <Text style={styles.sub}>{stateLine(stream, monthTotal, usual).text}</Text>
+          )}
+          <View style={styles.strip}>
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>This year</Text>
+              <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formatINR(yearTotal)}</Text>
             </View>
-
-            <Text style={styles.label}>RECENT PAYMENTS</Text>
-            {shownPayments.length === 0 ? (
-              <Text style={styles.hint}>
-                No payments linked yet. When you add income, choose this stream under FROM.
+            <View style={styles.rule} />
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>Usual month</Text>
+              <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{avg ? formatINR(avg) : '–'}</Text>
+            </View>
+            <View style={styles.rule} />
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>Last paid</Text>
+              <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+                {payments[0] ? new Date(payments[0].date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '–'}
               </Text>
-            ) : (
-              <View style={styles.payments}>
-                {shownPayments.map((tx) => (
-                  <TransactionRow
-                    key={tx.id}
-                    tx={tx}
-                    onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })}
-                  />
-                ))}
-                {payments.length > shownPayments.length && (
-                  <Text style={styles.hint}>
-                    + {payments.length - shownPayments.length} older payments
-                  </Text>
-                )}
-              </View>
-            )}
-
-            <Text style={[styles.label, styles.detailsLabel]}>DETAILS</Text>
-          </>
-        )}
-
-        <Text style={styles.label}>NAME</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder={type === 'client' ? 'e.g. Zenith Studio' : 'e.g. Salary'}
-          placeholderTextColor={Corpus.textFaint}
-          maxLength={40}
-          autoFocus={isNew}
-        />
-
-        <Text style={styles.label}>TYPE</Text>
-        <FilterChips options={TYPE_OPTIONS} value={type} onChange={setType} />
-
-        <Text style={styles.label}>EXPECTED PER MONTH (OPTIONAL)</Text>
-        <View style={[styles.moneyRow, expectedInvalid && styles.inputError]}>
-          <Text style={styles.rupee}>₹</Text>
-          <TextInput
-            style={styles.moneyInput}
-            value={expected}
-            onChangeText={setExpected}
-            placeholder="e.g. 50000"
-            placeholderTextColor={Corpus.textFaint}
-            keyboardType="numeric"
-          />
+            </View>
+          </View>
         </View>
-        {expectedInvalid ? (
-          <Text style={styles.error}>Enter an amount greater than 0, or leave it empty</Text>
-        ) : (
-          <Text style={styles.hint}>Used to show how much of this month's income is still to come</Text>
+
+        <Button icon="add" label="Got paid" onPress={() => setPaying(true)} />
+
+        {paid.length > 0 && (
+          <View style={styles.hero}>
+            <Text style={styles.label}>Last 12 months</Text>
+            <MonthBars bars={bars} color={color} target={expected ?? (usual.months >= 2 ? usual.avg : undefined)} targetLabel={expected ? 'Expected' : 'Your average'} height={110} appear={t} />
+          </View>
         )}
 
-        <Button label={isNew ? 'Add stream' : 'Save changes'} onPress={handleSave} loading={busy} disabled={!canSave} />
-
-        {!isNew && (
-          <Button variant="danger" icon="trash-outline" label="Delete stream" onPress={handleDelete} disabled={busy} />
-        )}
-      </ScrollView>
-    </SafeAreaView>
+        <Group animate title="Payments">
+          {payments.length === 0
+            ? [<View key="none" style={{ padding: 16 }}><Text style={styles.muted}>Nothing yet. Tap “Got paid” when money comes in.</Text></View>]
+            : payments.slice(0, 10).map((tx) => (
+                <TransactionRow key={tx.id} tx={tx} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })} />
+              ))}
+        </Group>
+        {payments.length > 10 && <Text style={styles.foot}>And {payments.length - 10} older payments this year.</Text>}
+      </Screen>
+      {editing && <StreamSheet stream={stream} onClose={() => setEditing(false)} onSave={save} onDelete={remove} />}
+      {paying && (
+        <GotPaidSheet
+          stream={stream}
+          usual={usual}
+          onClose={() => setPaying(false)}
+          onSave={async (amount, date, note) => {
+            try {
+              await logPaid(stream, amount, date, note, settings.defaultAccountId);
+              setPaying(false);
+              showToast({ message: `${formatINR(amount)} from ${stream.name} added` });
+            } catch (e) {
+              console.error(e);
+              showToast({ message: 'Couldn’t save. Try again.' });
+            }
+          }}
+        />
+      )}
+    </>
   );
 }

@@ -4,7 +4,8 @@ export type IncomeStream = {
   id: string;
   name: string;              // e.g. "Salary", "Zenith Studio"
   type: StreamType;
-  expectedMonthly?: number;  // what you expect per month, in INR (optional)
+  fixed?: boolean;           // true = the same amount every month. Default: it varies (most salaries with incentives, freelance, clients)
+  expectedMonthly?: number;  // fixed: the monthly amount. Varying: only a starting guess until real payments teach the usual range
 };
 
 export type NewIncomeStream = Omit<IncomeStream, 'id'>;

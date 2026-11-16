@@ -117,3 +117,15 @@ One goal = one jar. A jar holds cash you put in AND can have investments linked 
 - Sort / "What is it for?" (JarPickerSheet) starts each holding on a suggested jar with the reason in words: liquid/gilt/debt/FD → Emergency fund, gold/silver → Savings, equity → the longest goal.
 - Each holding in Invest shows "For: Car" or "Not in a jar. Add to Car?".
 - Two jars with the same name → "You have two jars called Savings · Merge" (confirm first; history and investments move, nothing is lost).
+
+## Income that varies (product rule, step 8b)
+- A source is "Changes every month" by default; "Same every month" is opt-in and is the only kind with an expected amount and a "still to come" bar.
+- Never ask people to guess: `usualOf` learns the range, average and usual pay day from the last 6 full months of logged payments.
+- "Got paid" on every source row logs income in one step, with "Same as last time" and "Your usual" amounts one tap away.
+- Rows speak in words: "Not paid yet", "Usually paid by the 5th. Got it?", "A lower / usual / strong month. Usually ₹12K to ₹30K".
+- Safe to spend only ever counts income actually received, so varying income never inflates it.
+
+## A savings plan never turns Today red (product rule)
+- A jar plan needing more than half a month's income is paused: Safe to spend doesn't set it aside (`planTooBig`, `plansPaused`).
+- Other plans are set aside only up to what is really left, never below zero.
+- Today shows "Car plan paused this month"; the jar says why and offers "Move to <month>" (about a quarter of a usual month's income) or "Change goal".

@@ -118,12 +118,15 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
         <Rings used={used * t} through={through * t} tone={result.status} />
       </View>
 
-      {(result.spentToday > 0 || result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0) && (
+      {(result.spentToday > 0 || result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0 || result.plansPaused.length > 0) && (
         <View style={styles.chips}>
           {result.spentToday > 0 && <View style={styles.chip}><Text style={styles.chipText}>Spent today {formatINR(result.spentToday)}</Text></View>}
           {result.limitedByBudget && <View style={styles.chip}><Text style={styles.chipText}>Capped by your monthly budget</Text></View>}
           {result.billsDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.billsDue)} kept for bills</Text></View>}
           {result.plansDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.plansDue)} kept for jar goals</Text></View>}
+          {result.plansPaused.length > 0 && (
+            <View style={styles.chip}><Text style={styles.chipText}>{result.plansPaused.length === 1 ? `${result.plansPaused[0].name} plan paused this month` : `${result.plansPaused.length} jar plans paused this month`}</Text></View>
+          )}
         </View>
       )}
 

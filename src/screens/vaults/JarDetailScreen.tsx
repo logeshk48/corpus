@@ -15,6 +15,9 @@ import { compactINR } from '@/utils/format';
 import { sipAmount } from '@/utils/sip';
 import { formatYearMonth } from '@/utils/jarInsights';
 import LinkInvestmentsSheet from './components/LinkInvestmentsSheet';
+import { jarPlan, toYearMonth } from '@/utils/jarInsights';
+import { planTooBig } from '@/utils/safeToSpend';
+import { Ionicons } from '@expo/vector-icons';
 import { averageMonthlyExpenses, recommendedEmergencyMonths } from '@/utils/jarInsights';
 import { moneyMovedMessage } from './celebrate';
 import JarInsights from './components/JarInsights';
@@ -77,6 +80,17 @@ export default function JarDetailScreen() {
   const goalPercent = jar.goal ? Math.min((saved / jar.goal) * 100, 100) : 0;
   const reached = jar.goal !== undefined && saved >= jar.goal;
   const holdings = linkedTo(jar.id, investments);
+  // Does this plan fit what you earn? Usual month = average of the months with income in the last year
+  const byMonth = new Map<string, number>();
+  for (const x of yearTx) if (x.type === 'income') byMonth.set(x.date.slice(0, 7), (byMonth.get(x.date.slice(0, 7)) ?? 0) + x.amount);
+  const usualIncome = byMonth.size ? Math.round([...byMonth.values()].reduce((a, b) => a + b, 0) / byMonth.size) : 0;
+  const plan = jarPlan(jar);
+  const tooBig = !!plan && plan.status !== 'done' && planTooBig(plan.perMonth, usualIncome);
+  // A date that fits: putting in about a quarter of a usual month's income
+  const fitPerMonth = Math.max(500, Math.round((usualIncome * 0.25) / 100) * 100);
+  const fitMonths = jar.goal ? Math.ceil(Math.max(0, jar.goal - saved) / fitPerMonth) : 0;
+  const fitDate = toYearMonth(new Date(new Date().getFullYear(), new Date().getMonth() + fitMonths - 1, 1));
+  const fits = fitMonths > 0 && fitMonths <= 480;
   const forecast = investForecast(jar, investments);
 
   const saveLinks = async (ids: string[]) => {
@@ -205,6 +219,25 @@ export default function JarDetailScreen() {
           <Text style={[styles.foot, { color: forecast.onTrack ? Corpus.income : Corpus.textMuted }]}>
             {`With ${jar.sipMonthly ? `your ${compactINR(jar.sipMonthly)} a month in SIPs` : 'no SIP'} at about ${Math.round(forecast.rate)}% a year: around ${compactINR(forecast.projected)} by ${formatYearMonth(jar.targetDate!)}.${forecast.onTrack ? ' On track.' : ''}`}
           </Text>
+        )}
+
+        {tooBig && plan && (
+          <View style={styles.warn}>
+            <View style={styles.warnHead}>
+              <Ionicons name="alert-circle" size={18} color={Corpus.warning} />
+              <Text style={styles.warnTitle}>This plan doesn’t fit your income</Text>
+            </View>
+            <Text style={styles.warnText}>
+              It needs {formatINR(plan.perMonth)} a month, and a usual month brings you about {formatINR(usualIncome)}. So it’s paused: Today doesn’t set this money aside.
+              {fits ? ` Putting in ${formatINR(fitPerMonth)} a month gets you there by ${formatYearMonth(fitDate)}.` : ''}
+            </Text>
+            <View style={styles.actions}>
+              {fits && (
+                <Button style={{ flex: 1 }} size="sm" label={`Move to ${formatYearMonth(fitDate)}`} onPress={() => updateVault(jar.id, { targetDate: fitDate }).then(() => showToast({ message: `Target moved to ${formatYearMonth(fitDate)}` })).catch(() => showToast({ message: 'Couldn’t save. Try again.' }))} />
+              )}
+              <Button style={{ flex: 1 }} size="sm" variant="secondary" label="Change goal" onPress={() => setJarMode({ kind: 'edit', jar })} />
+            </View>
+          </View>
         )}
 
         <JarInsights jar={jar} entries={entries} context={context} onEdit={() => setJarMode({ kind: 'edit', jar })} />
