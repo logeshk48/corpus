@@ -1,15 +1,15 @@
-import { Button } from '@/components/ui';
+import { Button, Sheet } from '@/components/ui';
 import type { Category } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import { suggestLimit } from '@/utils/budgets';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
-import { styles } from './BudgetEditorSheet.styles';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-type BudgetEditorSheetProps = {
-  category: Category | null; // null = closed
+export const MONTHLY = '__monthly';
+
+type Props = {
+  category: Category | null; // null = closed; id MONTHLY = the overall monthly budget
   spent: number;
   currentLimit?: number;
   onClose: () => void;
@@ -17,111 +17,95 @@ type BudgetEditorSheetProps = {
   onRemove: () => Promise<void>;
 };
 
-const PRESETS = [1000, 2000, 3000, 5000, 10000];
+const CATEGORY_PRESETS = [1000, 2000, 3000, 5000, 10000];
+const MONTHLY_PRESETS = [20000, 30000, 40000, 50000, 75000];
 
-export default function BudgetEditorSheet({
-  category,
-  spent,
-  currentLimit,
-  onClose,
-  onSave,
-  onRemove,
-}: BudgetEditorSheetProps) {
+export default function BudgetEditorSheet({ category, spent, currentLimit, onClose, onSave, onRemove }: Props) {
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false);
 
-  // Each time the sheet opens for a category, start from its current limit
   useEffect(() => {
-    if (category) setAmount(currentLimit ? String(currentLimit) : '');
+    if (category) { setAmount(currentLimit ? String(currentLimit) : ''); setTried(false); }
   }, [category, currentLimit]);
 
   if (!category) return null;
-
+  const monthly = category.id === MONTHLY;
   const suggestion = suggestLimit(spent);
   const value = Number(amount);
-  const invalid = amount.trim() !== '' && (!Number.isFinite(value) || value <= 0);
-  const canSave = amount.trim() !== '' && !invalid && value !== currentLimit && !busy;
+  const invalid = !Number.isFinite(value) || value <= 0;
+  const presets = (monthly ? MONTHLY_PRESETS : CATEGORY_PRESETS).filter((p) => p !== suggestion);
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true);
-    try {
-      await action();
-    } finally {
-      setBusy(false);
-    }
+    try { await action(); } finally { setBusy(false); }
+  };
+  const save = () => {
+    setTried(true);
+    if (invalid || busy) return;
+    if (value === currentLimit) return onClose();
+    run(() => onSave(value));
   };
 
-  const presets = PRESETS.filter((p) => p !== suggestion);
-
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-
-          <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <Ionicons name={category.icon as any} size={18} color={Corpus.gold} />
-            </View>
-            <View style={styles.titleBlock}>
-              <Text style={styles.title}>{category.label} budget</Text>
-              <Text style={styles.subtitle}>
-                {spent > 0 ? `${formatINR(spent)} spent so far this month` : 'Nothing spent yet this month'}
-              </Text>
-            </View>
-            <Pressable style={styles.closeButton} onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={18} color={Corpus.textMuted} />
-            </Pressable>
-          </View>
-
-          <View style={styles.amountRow}>
-            <Text style={styles.rupee}>₹</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="0"
-              placeholderTextColor={Corpus.textFaint}
-              keyboardType="numeric"
-              autoFocus
-              onSubmitEditing={() => canSave && run(() => onSave(value))}
-            />
-          </View>
-          <Text style={styles.perMonth}>per month</Text>
-
-          <View style={styles.chips}>
-            {suggestion && (
-              <Pressable
-                style={[styles.chip, styles.chipSuggested]}
-                onPress={() => setAmount(String(suggestion))}
-              >
-                <Ionicons name="sparkles" size={12} color={Corpus.gold} />
-                <Text style={[styles.chipText, styles.chipTextSuggested]}>
-                  Suggested {formatINR(suggestion)}
-                </Text>
-              </Pressable>
-            )}
-            {presets.map((p) => (
-              <Pressable key={p} style={styles.chip} onPress={() => setAmount(String(p))}>
-                <Text style={styles.chipText}>{formatINR(p)}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {invalid ? (
-            <Text style={styles.error}>Enter an amount greater than 0</Text>
-          ) : suggestion ? (
-            <Text style={styles.hint}>Suggestion = your spending pace so far, projected to the full month</Text>
-          ) : null}
-
-          <Button label={currentLimit ? 'Update budget' : 'Set budget'} onPress={() => run(() => onSave(value))} loading={busy} disabled={!canSave} />
-
-          {currentLimit ? (
-            <Button variant="danger" icon="trash-outline" label="Remove limit" onPress={() => run(onRemove)} disabled={busy} />
-          ) : null}
+    <Sheet
+      title={monthly ? 'Monthly budget' : `${category.label} limit`}
+      subtitle={spent > 0 ? `${formatINR(spent)} spent so far this month` : 'Nothing spent yet this month'}
+      onClose={onClose}
+      footer={
+        <>
+          <Button label={currentLimit ? 'Update limit' : 'Set limit'} onPress={save} loading={busy} />
+          {currentLimit ? <Button variant="quiet" label="Remove limit" onPress={() => run(onRemove)} disabled={busy} /> : null}
+        </>
+      }
+    >
+      <View style={s.amountBox}>
+        <View style={s.amountRow}>
+          <Text style={s.rupee}>₹</Text>
+          <TextInput
+            style={[s.amount, { width: Math.max(90, (amount.length || 1) * 30 + 16) }]}
+            value={amount}
+            onChangeText={(t) => setAmount(t.replace(/[^0-9]/g, ''))}
+            placeholder="0"
+            placeholderTextColor={Corpus.textFaint}
+            keyboardType="number-pad"
+            autoFocus
+            selectTextOnFocus
+            accessibilityLabel={monthly ? 'Monthly budget amount' : `${category.label} limit per month`}
+            onSubmitEditing={save}
+          />
         </View>
+        <Text style={s.per}>a month</Text>
+        {tried && invalid && <Text style={s.error}>Enter an amount above ₹0</Text>}
       </View>
-    </Modal>
+
+      <View style={s.chips}>
+        {suggestion ? (
+          <Pressable style={({ pressed }) => [s.chip, s.chipOn, pressed && { opacity: 0.7 }]} onPress={() => setAmount(String(suggestion))} accessibilityRole="button">
+            <Text style={[s.chipText, { color: Corpus.onGold }]}>Your pace {formatINR(suggestion)}</Text>
+          </Pressable>
+        ) : null}
+        {presets.map((p) => (
+          <Pressable key={p} style={({ pressed }) => [s.chip, pressed && { opacity: 0.7 }]} onPress={() => setAmount(String(p))} accessibilityRole="button">
+            <Text style={s.chipText}>{formatINR(p)}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {suggestion ? <Text style={s.hint}>“Your pace” is this month’s spending so far, stretched to the full month.</Text> : null}
+    </Sheet>
   );
 }
+
+const s = StyleSheet.create({
+  amountBox: { alignItems: 'center', paddingVertical: 8, gap: 2 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  rupee: { fontSize: Type.h1, fontFamily: Font.display, color: Corpus.textMuted, marginRight: 4 },
+  amount: { fontSize: Type.entry, fontFamily: Font.displayBold, color: Corpus.text, textAlign: 'center', padding: 0, ...tabular, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+  per: { fontSize: Type.body, color: Corpus.textMuted },
+  error: { fontSize: Type.small, color: Corpus.danger, marginTop: 4 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.bg, justifyContent: 'center' },
+  chipOn: { backgroundColor: Corpus.gold },
+  chipText: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  hint: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center' },
+});

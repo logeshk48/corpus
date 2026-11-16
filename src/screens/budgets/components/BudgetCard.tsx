@@ -1,55 +1,49 @@
-import { Corpus } from '@/constants/theme';
-import { perDayLeft, type BudgetStatus } from '@/utils/budgets';
+import Bullet from '@/components/charts/Bullet';
+import { IconChip } from '@/components/ui';
+import { CategoryChip, Chip, Corpus } from '@/constants/theme';
+import { monthProgress, perDayLeft, type BudgetStatus } from '@/utils/budgets';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
 import { styles } from './BudgetCard.styles';
 
-const STATE_UI = {
-  ok: { color: Corpus.income, bg: Corpus.incomeTint },
-  warning: { color: Corpus.warning, bg: Corpus.warningTint },
-  over: { color: Corpus.danger, bg: Corpus.dangerTint },
+const STATE = {
+  ok: { color: Corpus.income, icon: null },
+  warning: { color: Corpus.warning, icon: 'alert-circle' },
+  over: { color: Corpus.danger, icon: 'alert-circle' },
 } as const;
 
-type BudgetCardProps = {
-  budget: BudgetStatus;
-  onPress: () => void;
-};
-
-export default function BudgetCard({ budget, onPress }: BudgetCardProps) {
-  const ui = STATE_UI[budget.state];
-  const width = Math.min(budget.percent, 100);
-
-  const status =
-    budget.state === 'over'
-      ? `Over by ${formatINR(-budget.remaining)}`
-      : `${formatINR(budget.remaining)} left · ${formatINR(Math.floor(perDayLeft(budget.remaining)))}/day`;
-
+// One category limit as a row: what's left on the right, a bullet bar underneath with today's even-pace tick.
+export default function BudgetCard({ budget, onPress, appear = 1 }: { budget: BudgetStatus; onPress: () => void; appear?: number }) {
+  const ui = STATE[budget.state];
+  const over = budget.state === 'over';
+  const day = Math.floor(perDayLeft(budget.remaining));
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${budget.label}: ${formatINR(budget.spent)} of ${formatINR(budget.limit)}. ${over ? `Over by ${formatINR(-budget.remaining)}` : `${formatINR(budget.remaining)} left`}`}
+      accessibilityHint="Edit this limit"
+    >
       <View style={styles.top}>
-        <View style={[styles.iconCircle, { backgroundColor: ui.bg }]}>
-          <Ionicons name={budget.icon as any} size={17} color={ui.color} />
-        </View>
+        <IconChip icon={budget.icon} color={CategoryChip[budget.categoryId] ?? Chip.gray} />
         <View style={styles.middle}>
-          <Text style={styles.name}>{budget.label}</Text>
-          <Text style={styles.amounts}>
-            {formatINR(budget.spent)} of {formatINR(budget.limit)}
-          </Text>
+          <Text style={styles.name} numberOfLines={1}>{budget.label}</Text>
+          <Text style={styles.meta}>{formatINR(budget.spent)} of {formatINR(budget.limit)}</Text>
         </View>
-        <Text style={[styles.percent, { color: ui.color }]}>{Math.round(budget.percent)}%</Text>
-      </View>
-
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${width}%`, backgroundColor: ui.color }]} />
-      </View>
-
-      <View style={styles.bottom}>
-        <Text style={[styles.status, { color: ui.color }]}>{status}</Text>
-        <View style={styles.editHint}>
-          <Ionicons name="create-outline" size={12} color={Corpus.textFaint} />
-          <Text style={styles.editText}>Edit</Text>
+        <View style={styles.right}>
+          <View style={styles.leftLine}>
+            {ui.icon && <Ionicons name={ui.icon} size={14} color={ui.color} />}
+            <Text style={[styles.left, budget.state !== 'ok' && { color: ui.color }]}>
+              {over ? `${formatINR(-budget.remaining)} over` : `${formatINR(budget.remaining)} left`}
+            </Text>
+          </View>
+          <Text style={styles.meta}>{over ? 'past the limit' : budget.state === 'warning' ? 'nearly used' : `${formatINR(day)} a day`}</Text>
         </View>
+      </View>
+      <View style={styles.bar}>
+        <Bullet value={budget.spent} limit={budget.limit} pace={monthProgress()} color={ui.color} height={8} appear={appear} />
       </View>
     </Pressable>
   );

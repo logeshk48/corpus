@@ -183,7 +183,7 @@ const s = StyleSheet.create({
   boxFocus: { borderColor: Corpus.text },
   boxError: { borderColor: Corpus.danger },
   prefix: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.textMuted },
-  input: { flex: 1, fontSize: Type.input, color: Corpus.text, paddingVertical: 12 },
+  input: { flex: 1, fontSize: Type.input, color: Corpus.text, paddingVertical: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
   money: { fontSize: Type.title, fontFamily: Font.display, ...tabular },
   msgRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   msg: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },

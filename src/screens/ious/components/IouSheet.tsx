@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui';
+import { Button, Choice, Field, Sheet, Toggle } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
 import type { Iou, IouDirection, IouKind, NewIou } from '@/types/iou';
@@ -7,8 +7,9 @@ import { remaining, repaid as repaidOf } from '@/utils/iou';
 import { interestStatus, yearlyRate } from '@/utils/interest';
 import { lendingWarnings } from '@/utils/instalments';
 import { Ionicons } from '@expo/vector-icons';
+import { Font, tabular, Type } from '@/constants/theme';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { styles } from './IouSheet.styles';
 
 export type IouSheetMode =
@@ -29,6 +30,7 @@ type Props = {
   onPayPerson: (open: Iou[], amount: number) => Promise<void>;
   onPayInterest: (iou: Iou, amount: number) => Promise<void>;
   onUpdate: (id: string, changes: Partial<NewIou>) => Promise<void>;
+  onDelete?: (iou: Iou) => void;
 };
 
 const DUE = [
@@ -38,7 +40,7 @@ const DUE = [
   { label: '1 month', days: 30 },
 ];
 
-export default function IouSheet({ mode, people, ious, onClose, onSave, onSaveChain, onRepay, onPayPerson, onPayInterest, onUpdate }: Props) {
+export default function IouSheet({ mode, people, ious, onClose, onSave, onSaveChain, onRepay, onPayPerson, onPayInterest, onUpdate, onDelete }: Props) {
   const editing = mode.kind === 'edit';
   const ed = mode.kind === 'edit' ? mode.iou : undefined;
   const repaying = mode.kind !== 'new' && mode.kind !== 'edit';
@@ -136,10 +138,10 @@ export default function IouSheet({ mode, people, ious, onClose, onSave, onSaveCh
     ? payDir === 'lent' ? `Interest from ${payWho}` : `Interest to ${payWho}`
     : repaying ? (payDir === 'lent' ? `${payWho} paid you` : `You paid ${payWho}`) : editing ? 'Edit entry' : 'Lent or borrowed';
   const subtitle = isInterest && ist
-    ? `${formatINR(ist.monthly)}/month${ist.pending ? ` · ${formatINR(ist.pending)} due now` : ' · nothing due now'}. This doesn’t reduce the ${formatINR(remaining(mode.iou))}`
+    ? `${formatINR(ist.monthly)} a month, ${ist.pending ? `${formatINR(ist.pending)} due now` : 'nothing due now'}. This doesn’t reduce the ${formatINR(remaining(mode.iou))}.`
     : repaying
-    ? `${formatINR(left)} still open${mode.kind === 'repay' && mode.iou.note ? ` · ${mode.iou.note}` : ''}. Enter any amount, it’s taken off`
-    : editing ? (minAmount > 0 ? `${formatINR(minAmount)} already paid back, so the amount can’t go below that` : 'Fix any detail') : 'Keep track of money between you and others';
+    ? `${formatINR(left)} still open${mode.kind === 'repay' && mode.iou.note ? ` for ${mode.iou.note}` : ''}. Any amount is taken off.`
+    : editing ? (minAmount > 0 ? `${formatINR(minAmount)} already paid back, so the amount can’t go below that` : 'Fix any detail') : 'Money between you and someone else';
   const quick: { label: string; v: number }[] = [];
   if (isInterest && ist) {
     quick.push({ label: `1 month ${formatINR(ist.monthly)}`, v: ist.monthly });
@@ -150,209 +152,181 @@ export default function IouSheet({ mode, people, ious, onClose, onSave, onSaveCh
     quick.push({ label: `All ${formatINR(left)}`, v: left });
   }
 
+  const chips = (items: { key: string; label: string; on?: boolean; onPress: () => void }[]) => (
+    <View style={sheet.chips}>
+      {items.map((c) => (
+        <Pressable key={c.key} style={({ pressed }) => [x.chip, c.on && x.chipOn, pressed && { opacity: 0.7 }]} onPress={c.onPress} accessibilityRole="button" accessibilityState={{ selected: !!c.on }}>
+          <Text style={[x.chipText, c.on && { color: Corpus.onGold }]}>{c.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+  const otherPeople = people.filter((p) => p !== person && (!other || p.toLowerCase().startsWith(other.toLowerCase())) && p !== other);
+  const saveLabel = editing ? 'Save changes'
+    : kind !== 'loan' && !repaying ? 'Save'
+    : isInterest ? `Record interest${value > 0 ? ` ${formatINR(value)}` : ''}`
+    : repaying ? (value > 0 ? `Record ${formatINR(value)}` : 'Record payback')
+    : direction === 'lent' ? 'Save, they owe me' : 'Save, I owe them';
+
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={sheet.sheet}>
-          <View style={sheet.handle} />
-          <View style={sheet.header}>
-            <View style={[sheet.iconCircle, { backgroundColor: Corpus.goldTint }]}>
-              <Ionicons name="swap-horizontal" size={18} color={Corpus.gold} />
-            </View>
-            <View style={sheet.titleBlock}>
-              <Text style={sheet.title}>{title}</Text>
-              <Text style={sheet.subtitle}>{subtitle}</Text>
-            </View>
-            <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={18} color={Corpus.textMuted} />
-            </Pressable>
-          </View>
+    <Sheet title={title} subtitle={subtitle} onClose={onClose} footer={<><Button label={saveLabel} onPress={submit} loading={busy} disabled={!valid} />{ed && onDelete ? <Button variant="quiet" icon="trash-outline" label="Delete entry" onPress={() => onDelete(ed)} /> : null}</>}>
+      {!repaying && (
+        <Choice
+          options={[
+            { value: 'lent' as IouDirection, label: kind !== 'loan' ? 'I gave' : 'I lent or paid' },
+            { value: 'borrowed' as IouDirection, label: kind !== 'loan' ? 'I received' : 'I borrowed' },
+          ]}
+          value={direction}
+          onChange={setDirection}
+          tiles
+        />
+      )}
+      {!repaying && (
+        <Choice
+          label="Kind"
+          options={[
+            { value: 'loan' as IouKind, label: 'Loan' },
+            { value: 'support' as IouKind, label: 'Family support' },
+            { value: 'gift' as IouKind, label: 'Gift or shagun' },
+          ]}
+          value={kind}
+          onChange={setKind}
+        />
+      )}
+      {!repaying && kind !== 'loan' && (
+        <Text style={x.hint}>Kept so you know what you {direction === 'lent' ? 'gave' : 'received'}. Never counted as owed.</Text>
+      )}
 
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-            {!repaying && (
-              <View style={styles.toggle}>
-                {(['lent', 'borrowed'] as const).map((d) => (
-                  <Pressable key={d} style={[styles.toggleBtn, direction === d && styles.toggleOn]} onPress={() => setDirection(d)}>
-                    <Text style={[styles.toggleText, direction === d && styles.toggleTextOn]}>
-                      {kind !== 'loan' ? (d === 'lent' ? 'I gave' : 'I received') : d === 'lent' ? 'I lent / paid for them' : 'I borrowed'}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-
-            {!repaying && (
-              <View style={sheet.chips}>
-                {(['loan', 'support', 'gift'] as const).map((k) => (
-                  <Pressable key={k} style={[sheet.chip, kind === k && sheet.chipSuggested]} onPress={() => setKind(k)}>
-                    <Text style={[sheet.chipText, kind === k && sheet.chipTextSuggested]}>
-                      {k === 'loan' ? 'Loan · expect it back' : k === 'support' ? 'Family support' : 'Gift / shagun'}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-            {!repaying && kind !== 'loan' && (
-              <Text style={sheet.hint}>Tracked so you know what you {direction === 'lent' ? 'gave' : 'received'}, but never counted as owed.</Text>
-            )}
-
-            {!repaying && (
-              <View style={styles.field}>
-                <Text style={styles.label}>{kind !== 'loan' ? (direction === 'lent' ? 'GIVEN TO' : 'RECEIVED FROM') : direction === 'lent' ? 'WHO OWES YOU?' : 'WHO DO YOU OWE?'}</Text>
-                <TextInput style={styles.input} value={person} onChangeText={setPerson} placeholder="Name" placeholderTextColor={Corpus.textFaint} maxLength={30} />
-                {matches.length > 0 && (
-                  <View style={sheet.chips}>
-                    {matches.slice(0, 5).map((p) => (
-                      <Pressable key={p} style={sheet.chip} onPress={() => setPerson(p)}>
-                        <Text style={sheet.chipText}>{p}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                )}
-              </View>
-            )}
-
-            <View style={sheet.amountRow}>
-              <Text style={sheet.rupee}>₹</Text>
-              <TextInput
-                style={sheet.amountInput}
-                value={amount}
-                onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
-                placeholder="0"
-                placeholderTextColor={Corpus.textFaint}
-                keyboardType="numeric"
-                autoFocus
-              />
-            </View>
-            {repaying && (
-              <View style={sheet.chips}>
-                {quick.map((q) => (
-                  <Pressable key={q.label} style={[sheet.chip, value === q.v && sheet.chipSuggested]} onPress={() => setAmount(String(q.v))}>
-                    <Text style={[sheet.chipText, value === q.v && sheet.chipTextSuggested]}>{q.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-            {!isInterest && repaying && value > 0 && value <= left && (
-              <Text style={sheet.hint}>{value === left ? 'This settles it fully ✓' : `${formatINR(left - value)} will still be open after this`}</Text>
-            )}
-            {repaying && value > left && <Text style={sheet.error}>That's more than the {formatINR(left)} still open</Text>}
-
-            {!repaying && (
-              <>
-                <View style={styles.field}>
-                  <Text style={styles.label}>WHAT FOR? (OPTIONAL)</Text>
-                  <TextInput style={styles.input} value={note} onChangeText={setNote} placeholder="e.g. Dinner, movie tickets" placeholderTextColor={Corpus.textFaint} maxLength={40} />
-                </View>
-                {kind === 'loan' && !editing && (
-                <Pressable style={styles.chainToggle} onPress={() => setChained(!chained)}>
-                  <Ionicons name={chained ? 'checkbox' : 'square-outline'} size={20} color={chained ? Corpus.gold : Corpus.textMuted} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.chainTitle}>
-                      {direction === 'borrowed' ? 'I gave this money to someone else' : 'I borrowed this money from someone'}
-                    </Text>
-                    <Text style={styles.chainHint}>
-                      {direction === 'borrowed'
-                        ? 'When they pay you back, Corpus reminds you to repay ' + (person.trim() || 'the lender')
-                        : 'When ' + (person.trim() || 'they') + ' pay you back, Corpus reminds you to repay that person'}
-                    </Text>
-                  </View>
-                </Pressable>
-                )}
-                {chained && kind === 'loan' && !editing && (
-                  <>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>{direction === 'borrowed' ? 'GAVE IT TO' : 'BORROWED IT FROM'}</Text>
-                      <TextInput style={styles.input} value={other} onChangeText={setOther} placeholder="Name" placeholderTextColor={Corpus.textFaint} maxLength={30} />
-                      {people.filter((p) => p !== person && (!other || p.toLowerCase().startsWith(other.toLowerCase())) && p !== other).length > 0 && (
-                        <View style={sheet.chips}>
-                          {people.filter((p) => p !== person && (!other || p.toLowerCase().startsWith(other.toLowerCase())) && p !== other).slice(0, 5).map((p) => (
-                            <Pressable key={p} style={sheet.chip} onPress={() => setOther(p)}>
-                              <Text style={sheet.chipText}>{p}</Text>
-                            </Pressable>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.field}>
-                      <Text style={styles.label}>HOW MUCH OF IT? (DEFAULT: ALL)</Text>
-                      <TextInput style={styles.input} value={otherAmount} onChangeText={(t) => setOtherAmount(t.replace(/[^0-9.]/g, ''))} placeholder={value > 0 ? String(value) : 'Same amount'} placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-                      {otherValue > value && <Text style={sheet.error}>Can’t be more than {formatINR(value)}</Text>}
-                    </View>
-                  </>
-                )}
-                {kind === 'loan' && (<>
-                <View style={styles.field}>
-                  <Text style={styles.label}>INTEREST (₹ PER ₹100 PER MONTH)</Text>
-                  <View style={sheet.chips}>
-                    {['', '1', '1.5', '2', '3'].map((r) => (
-                      <Pressable key={r || 'none'} style={[sheet.chip, rate === r && sheet.chipSuggested]} onPress={() => setRate(r)}>
-                        <Text style={[sheet.chipText, rate === r && sheet.chipTextSuggested]}>{r ? `₹${r}` : 'No interest'}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  <TextInput style={styles.input} value={rate} onChangeText={(t) => setRate(t.replace(/[^0-9.]/g, ''))} placeholder="Or type a rate, e.g. 2.5" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-                  {Number(rate) > 0 && (
-                    <Text style={sheet.hint}>
-                      = {yearlyRate(Number(rate))}% a year{value > 0 ? ` · ${formatINR(Math.round((value * Number(rate)) / 100))} interest every month on ${formatINR(value)}` : ''}. Paying interest doesn’t reduce the amount, only paying principal does
-                    </Text>
-                  )}
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>PAID BACK MONTHLY? (OPTIONAL)</Text>
-                  <TextInput style={styles.input} value={instalment} onChangeText={(t) => setInstalment(t.replace(/[^0-9]/g, ''))} placeholder="₹ per month, e.g. 2000" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-                  {Number(instalment) > 0 && value > 0 && (
-                    <Text style={sheet.hint}>{Math.ceil(value / Number(instalment))} instalments, monthly from next month. Corpus reminds you each time</Text>
-                  )}
-                  {Number(instalment) > 0 && direction === 'lent' && (
-                    <Pressable style={styles.chainToggle} onPress={() => setOnCard(!onCard)}>
-                      <Ionicons name={onCard ? 'checkbox' : 'square-outline'} size={20} color={onCard ? Corpus.gold : Corpus.textMuted} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.chainTitle}>It’s an EMI on my credit card</Text>
-                        <Text style={styles.chainHint}>You pay the bank, they pay you. Make sure their ₹{instalment} reaches you before your card bill</Text>
-                      </View>
-                    </Pressable>
-                  )}
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>PAY BACK BY</Text>
-                  <View style={sheet.chips}>
-                    {DUE.map((d) => (
-                      <Pressable key={d.label} style={[sheet.chip, dueDays === d.days && sheet.chipSuggested]} onPress={() => { setDueDays(d.days); setClearDue(d.days === 0); }}>
-                        <Text style={[sheet.chipText, dueDays === d.days && sheet.chipTextSuggested]}>{d.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  {editing && ed?.dueDate && !clearDue && dueDays === 0 && (
-                    <Text style={sheet.hint}>Currently due {new Date(ed.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Pick a new date or “No date” to remove it</Text>
-                  )}
-                </View>
-                </>)}
-              </>
-            )}
-
-            {!repaying && (
-              <View style={styles.field}>
-                <Text style={styles.label}>PROOF (OPTIONAL)</Text>
-                <TextInput style={styles.input} value={proofRef} onChangeText={setProofRef} placeholder="UPI ref no., cheque no., or a note" placeholderTextColor={Corpus.textFaint} maxLength={60} />
-              </View>
-            )}
-            {!repaying && !editing && kind === 'loan' && lendingWarnings(ious, person, value, direction).map((w) => (
-              <View key={w} style={styles.warn}>
-                <Ionicons name="alert-circle" size={16} color={Corpus.warning} />
-                <Text style={styles.warnText}>{w}</Text>
-              </View>
-            ))}
-            <Button
-              label={editing ? 'Save changes' : kind !== 'loan' && !repaying ? 'Save' : isInterest ? `Record interest ${value > 0 ? formatINR(value) : ''}` : repaying ? `Record ${value > 0 ? formatINR(value) : 'payback'}` : direction === 'lent' ? 'Save · they owe you' : 'Save · you owe them'}
-              onPress={submit}
-              loading={busy}
-              disabled={!valid}
-            />
-          </ScrollView>
+      {!repaying && (
+        <View style={{ gap: 8 }}>
+          <Field
+            label={kind !== 'loan' ? (direction === 'lent' ? 'Given to' : 'Received from') : direction === 'lent' ? 'Who owes you?' : 'Who do you owe?'}
+            value={person}
+            onChangeText={setPerson}
+            placeholder="Name"
+            maxLength={30}
+            autoCapitalize="words"
+          />
+          {matches.length > 0 && chips(matches.slice(0, 5).map((p) => ({ key: p, label: p, onPress: () => setPerson(p) })))}
         </View>
+      )}
+
+      <View style={x.amountBox}>
+        <View style={x.amountRow}>
+          <Text style={x.rupee}>₹</Text>
+          <TextInput
+            style={[x.amount, { width: Math.max(90, (amount.length || 1) * 30 + 16) }]}
+            value={amount}
+            onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
+            placeholder="0"
+            placeholderTextColor={Corpus.textFaint}
+            keyboardType="decimal-pad"
+            autoFocus
+            accessibilityLabel="Amount"
+          />
+        </View>
+        {!isInterest && repaying && value > 0 && value <= left && (
+          <Text style={x.hint}>{value === left ? 'This settles it fully' : `${formatINR(left - value)} stays open after this`}</Text>
+        )}
+        {repaying && value > left && <Text style={x.error}>That’s more than the {formatINR(left)} still open</Text>}
       </View>
-    </Modal>
+      {repaying && chips(quick.map((q) => ({ key: q.label, label: q.label, on: value === q.v, onPress: () => setAmount(String(q.v)) })))}
+
+      {!repaying && (
+        <>
+          <Field label="What for" hint="Optional" value={note} onChangeText={setNote} placeholder="Dinner, movie tickets" maxLength={40} />
+          {kind === 'loan' && !editing && (
+            <Toggle
+              icon="git-branch"
+              title={direction === 'borrowed' ? 'I gave this money to someone else' : 'I borrowed this money from someone'}
+              hint={direction === 'borrowed'
+                ? `When they pay you back, Corpus reminds you to repay ${person.trim() || 'the lender'}`
+                : `When ${person.trim() || 'they'} pay you back, Corpus reminds you to repay that person`}
+              value={chained}
+              onChange={setChained}
+            />
+          )}
+          {chained && kind === 'loan' && !editing && (
+            <>
+              <View style={{ gap: 8 }}>
+                <Field label={direction === 'borrowed' ? 'Gave it to' : 'Borrowed it from'} value={other} onChangeText={setOther} placeholder="Name" maxLength={30} autoCapitalize="words" />
+                {otherPeople.length > 0 && chips(otherPeople.slice(0, 5).map((p) => ({ key: p, label: p, onPress: () => setOther(p) })))}
+              </View>
+              <Field
+                money
+                label="How much of it"
+                hint="Leave empty for all of it"
+                value={otherAmount}
+                onChangeText={(t) => setOtherAmount(t.replace(/[^0-9.]/g, ''))}
+                placeholder={value > 0 ? String(value) : 'Same amount'}
+                error={otherValue > value ? `Can’t be more than ${formatINR(value)}` : undefined}
+              />
+            </>
+          )}
+          {kind === 'loan' && (
+            <>
+              <View style={{ gap: 8 }}>
+                <Text style={x.label}>Interest, ₹ per ₹100 a month</Text>
+                {chips(['', '1', '1.5', '2', '3'].map((r) => ({ key: r || 'none', label: r ? `₹${r}` : 'No interest', on: rate === r, onPress: () => setRate(r) })))}
+                <Field
+                  label="Or type a rate"
+                  value={rate}
+                  onChangeText={(t) => setRate(t.replace(/[^0-9.]/g, ''))}
+                  placeholder="2.5"
+                  keyboardType="decimal-pad"
+                  hint={Number(rate) > 0
+                    ? `${yearlyRate(Number(rate))}% a year${value > 0 ? `, ${formatINR(Math.round((value * Number(rate)) / 100))} interest a month on ${formatINR(value)}` : ''}. Interest doesn’t reduce the amount, only principal does.`
+                    : undefined}
+                />
+              </View>
+              <Field
+                money
+                label="Paid back monthly"
+                value={instalment}
+                onChangeText={(t) => setInstalment(t.replace(/[^0-9]/g, ''))}
+                placeholder="2,000"
+                hint={Number(instalment) > 0 && value > 0 ? `${Math.ceil(value / Number(instalment))} monthly instalments from next month. Corpus reminds you each time.` : 'Optional'}
+              />
+              {Number(instalment) > 0 && direction === 'lent' && (
+                <Toggle
+                  icon="card"
+                  title="It’s an EMI on my credit card"
+                  hint={`You pay the bank, they pay you. Make sure their ₹${instalment} reaches you before your card bill.`}
+                  value={onCard}
+                  onChange={setOnCard}
+                />
+              )}
+              <View style={{ gap: 8 }}>
+                <Text style={x.label}>Pay back by</Text>
+                {chips(DUE.map((d) => ({ key: d.label, label: d.label, on: dueDays === d.days, onPress: () => { setDueDays(d.days); setClearDue(d.days === 0); } })))}
+                {editing && ed?.dueDate && !clearDue && dueDays === 0 && (
+                  <Text style={x.hint}>Due {new Date(ed.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} now. Pick a new date or “No date” to remove it.</Text>
+                )}
+              </View>
+            </>
+          )}
+          <Field label="Proof" hint="Optional" value={proofRef} onChangeText={setProofRef} placeholder="UPI ref, cheque no. or a note" maxLength={60} />
+        </>
+      )}
+      {!repaying && !editing && kind === 'loan' && lendingWarnings(ious, person, value, direction).map((w) => (
+        <View key={w} style={styles.warn}>
+          <Ionicons name="alert-circle" size={16} color={Corpus.warning} />
+          <Text style={styles.warnText}>{w}</Text>
+        </View>
+      ))}
+    </Sheet>
   );
 }
+
+const x = StyleSheet.create({
+  label: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+  hint: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17, textAlign: 'center' },
+  error: { fontSize: Type.small, color: Corpus.danger, marginTop: 4 },
+  chip: { minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.bg, justifyContent: 'center' },
+  chipOn: { backgroundColor: Corpus.gold },
+  chipText: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  amountBox: { alignItems: 'center', gap: 4, paddingVertical: 4 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  rupee: { fontSize: Type.h1, fontFamily: Font.display, color: Corpus.textMuted, marginRight: 4 },
+  amount: { fontSize: Type.entry, fontFamily: Font.displayBold, color: Corpus.text, textAlign: 'center', padding: 0, ...tabular, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+});

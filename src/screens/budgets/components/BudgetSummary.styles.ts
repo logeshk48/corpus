@@ -1,100 +1,24 @@
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
-import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 
 export const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Corpus.card,
-    borderRadius: Radius.xl,
-    borderWidth: 0.5,
-    borderColor: Corpus.border,
-    padding: Space.lg,
-    gap: Space.md,
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  label: {
-    fontSize: Type.small,
-    color: Corpus.textMuted,
-    letterSpacing: 0.4,
-  },
-  bigNumber: {
-    fontSize: Type.amount, fontFamily: Font.displayBold,
-    color: Corpus.text,
-    marginTop: 4,
-  },
-  ofLimit: {
-    fontSize: Type.body,
-    color: Corpus.textMuted,
-    marginTop: 2,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 999,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-  },
-  badgeText: {
-    fontSize: Type.caption,
-    fontWeight: '600',
-  },
-  barWrap: {
-    gap: 6,
-  },
-  track: {
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Corpus.bg,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: 10,
-    borderRadius: 5,
-  },
-  marker: {
-    position: 'absolute',
-    top: -3,
-    width: 2,
-    height: 16,
-    borderRadius: 1,
-    backgroundColor: Corpus.goldSoft,
-  },
-  markerRow: {
-    position: 'relative',
-  },
-  markerHint: {
-    fontSize: Type.micro,
-    color: Corpus.textFaint,
-  },
-  stats: {
-    flexDirection: 'row',
-    borderTopWidth: 0.5,
-    borderTopColor: Corpus.border,
-    paddingTop: Space.md,
-  },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  statDivider: {
-    borderLeftWidth: 0.5,
-    borderLeftColor: Corpus.border,
-  },
-  statLabel: {
-    fontSize: Type.caption,
-    color: Corpus.textMuted,
-  },
-  statValue: {
-    fontSize: Type.label,
-    fontWeight: '500',
-    color: Corpus.text,
-  },
-  statGold: {
-    color: Corpus.gold,
-  },
+  card: { backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
+  top: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  label: { fontSize: Type.body, color: Corpus.textMuted },
+  big: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1, ...tabular },
+  of: { fontSize: Type.bodyLg, color: Corpus.textMuted },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  pillText: { fontSize: Type.small, fontFamily: Font.display },
+  paceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
+  tick: { width: 2, height: 12, borderRadius: 1, backgroundColor: Corpus.text },
+  paceText: { fontSize: Type.small, color: Corpus.textMuted },
+  strip: { flexDirection: 'row', marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Corpus.border },
+  stat: { flex: 1, gap: 2 },
+  rule: { width: StyleSheet.hairlineWidth, backgroundColor: Corpus.border, marginHorizontal: 12 },
+  statLabel: { fontSize: Type.small, color: Corpus.textMuted },
+  statValue: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  monthly: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, minHeight: 44, borderRadius: 14, backgroundColor: Corpus.bg, paddingHorizontal: 14 },
+  monthlyLabel: { flex: 1, fontSize: Type.bodyLg, color: Corpus.text },
+  monthlyValue: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  monthlyAction: { fontSize: Type.bodyLg, color: Corpus.textMuted },
 });

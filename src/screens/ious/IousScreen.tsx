@@ -1,35 +1,31 @@
-import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
-import { Corpus, Font, Type } from '@/constants/theme';
+import { Button, Group, GroupRow, IconChip, Screen } from '@/components/ui';
+import { Chip, Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
-import { useIous } from '@/hooks/useIous';
 import { useBills } from '@/hooks/useBills';
-import { addChain } from '@/services/iousChain';
-import { chainNudges, debtSummary } from '@/utils/debts';
-import type { Href } from 'expo-router';
-import { addIou, deleteIou, payInterest, repay, reopen, updateIou } from '@/services/ious';
+import { useEntrance } from '@/hooks/useEntrance';
+import { useIous } from '@/hooks/useIous';
 import { useSettings } from '@/hooks/useSettings';
-import { saveSettings } from '@/services/settings';
-import { interestStatus, yearlyRate } from '@/utils/interest';
-import { agingWarning, instalmentStatus } from '@/utils/instalments';
+import { useTween } from '@/hooks/useTween';
+import { addIou, deleteIou, payInterest, repay, reopen, updateIou } from '@/services/ious';
+import { addChain } from '@/services/iousChain';
 import type { Iou, NewIou } from '@/types/iou';
+import { chainNudges, debtSummary } from '@/utils/debts';
 import { formatINR } from '@/utils/format';
-import { allocatePayment, ageLabel, byPerson, givingSummary, personKey, progress, whatsappUrl, isOverdue, knownPeople, reminderText, remaining, totals, type PersonSummary } from '@/utils/iou';
-import { useRouter } from 'expo-router';
+import { ageLabel, allocatePayment, byPerson, givingSummary, knownPeople, reminderText, remaining, totals, whatsappUrl, type PersonSummary } from '@/utils/iou';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Linking, Platform, Pressable, Share, Text, View } from 'react-native';
+import Avatar from './components/Avatar';
 import IouSheet, { type IouSheetMode } from './components/IouSheet';
+import PersonSheet from './components/PersonSheet';
 import { styles } from './IousScreen.styles';
 
-const colorFor = (net: number) => (net > 0 ? Corpus.income : net < 0 ? Corpus.warning : Corpus.textMuted);
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 
 function confirm(title: string, message: string, onYes: () => void) {
-  if (Platform.OS === 'web') {
-    if (window.confirm(`${title}\n\n${message}`)) onYes();
-  } else {
-    Alert.alert(title, message, [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes', style: 'destructive', onPress: onYes }]);
-  }
+  if (Platform.OS === 'web') { if (window.confirm(`${title}\n\n${message}`)) onYes(); }
+  else Alert.alert(title, message, [{ text: 'Cancel', style: 'cancel' }, { text: 'Yes', style: 'destructive', onPress: onYes }]);
 }
 
 export default function IousScreen() {
@@ -39,404 +35,196 @@ export default function IousScreen() {
   const { bills } = useBills();
   const { settings } = useSettings();
   const phones = settings.phones ?? {};
-  const [phoneDraft, setPhoneDraft] = useState<{ key: string; value: string } | null>(null);
-  const [upiDraft, setUpiDraft] = useState<string | null>(null);
-  const [remindFor, setRemindFor] = useState<string | null>(null);
   const [mode, setMode] = useState<IouSheetMode | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [personKey, setPersonKey] = useState<string | null>(null);
   const [showSettled, setShowSettled] = useState(false);
+  const [allGifts, setAllGifts] = useState(false);
 
   const people = useMemo(() => byPerson(ious), [ious]);
-  const open = people.filter((p) => p.open.length > 0);
+  const owesYou = people.filter((p) => p.open.length > 0 && p.net >= 0);
+  const youOwe = people.filter((p) => p.open.length > 0 && p.net < 0);
   const settled = people.filter((p) => p.open.length === 0);
   const { toGet, toPay } = totals(people);
   const debts = useMemo(() => debtSummary(ious, bills), [ious, bills]);
   const nudges = useMemo(() => chainNudges(ious), [ious]);
   const giving = useMemo(() => givingSummary(ious), [ious]);
   const byId = useMemo(() => new Map(ious.map((i) => [i.id, i])), [ious]);
-  const [showDebts, setShowDebts] = useState(true);
+  const person = personKey ? people.find((p) => p.key === personKey) : undefined;
+  const t = useEntrance(800, loading);
+  const getV = useTween(loading ? 0 : toGet);
+  const payV = useTween(loading ? 0 : toPay);
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
-    try {
-      await fn();
-      showToast({ message: ok });
-      setMode(null);
-    } catch (e) {
-      console.error(e);
-      showToast({ message: 'That did not work. Try again.' });
-    }
+    try { await fn(); showToast({ message: ok }); setMode(null); }
+    catch (e) { console.error(e); showToast({ message: 'That didn’t save. Try again.' }); }
   };
-
-  const save = (iou: NewIou) =>
-    run(() => addIou(iou), iou.direction === 'lent' ? `${iou.person} owes you ${formatINR(iou.amount)}` : `You owe ${iou.person} ${formatINR(iou.amount)}`);
+  const save = (iou: NewIou) => run(() => addIou(iou), iou.direction === 'lent' ? `${iou.person} owes you ${formatINR(iou.amount)}` : `You owe ${iou.person} ${formatINR(iou.amount)}`);
   const payPerson = (openList: Iou[], amount: number) => {
     const { parts } = allocatePayment(openList, amount);
-    return run(() => Promise.all(parts.map((p) => repay(p.iou, p.amount))), `${formatINR(amount)} recorded`);
+    return run(() => Promise.all(parts.map((x) => repay(x.iou, x.amount))), `${formatINR(amount)} recorded`);
   };
   const doPayInterest = (iou: Iou, amount: number) => run(() => payInterest(iou, amount), `Interest ${formatINR(amount)} recorded`);
   const setReminder = (i: Iou, days: number) => {
-    setRemindFor(null);
     const at = days ? new Date(Date.now() + days * 86_400_000).toISOString() : undefined;
-    return run(() => updateIou(i.id, { remindAt: at }), days ? `I'll remind you on ${shortDate(at!)}` : 'Reminder off');
+    return run(() => updateIou(i.id, { remindAt: at }), days ? `Reminder set for ${shortDate(at!)}` : 'Reminder off');
   };
-  const update = (id: string, changes: Partial<NewIou>) => run(() => updateIou(id, changes), 'Updated');
-  const savePhone = (key: string, value: string) =>
-    run(() => saveSettings({ phones: { ...phones, [key]: value.trim() } }), value.trim() ? 'Number saved' : 'Number removed').then(() => setPhoneDraft(null));
-  const saveUpi = (value: string) => run(() => saveSettings({ upiId: value.trim() || undefined }), 'UPI ID saved').then(() => setUpiDraft(null));
-  const saveChain = (borrowed: NewIou, lent: NewIou) =>
-    run(() => addChain(borrowed, lent), `Linked: ${borrowed.person} → you → ${lent.person}`);
-  const doRepay = (iou: Iou, amount: number) =>
-    run(() => repay(iou, amount), amount >= remaining(iou) ? 'Settled ✓' : `${formatINR(amount)} recorded`);
-
+  const update = (id: string, changes: Partial<NewIou>) => run(() => updateIou(id, changes), 'Saved');
+  const saveChain = (borrowed: NewIou, lent: NewIou) => run(() => addChain(borrowed, lent), `Linked: ${borrowed.person} to you to ${lent.person}`);
+  const doRepay = (iou: Iou, amount: number) => run(() => repay(iou, amount), amount >= remaining(iou) ? 'Settled' : `${formatINR(amount)} recorded`);
   const settleAll = (p: PersonSummary) =>
     confirm(`Settle up with ${p.person}?`, `Marks all ${p.open.length} open entries as paid back.`, () =>
-      run(() => Promise.all(p.open.map((i) => repay(i, remaining(i)))), `All settled with ${p.person} ✓`)
-    );
+      run(() => Promise.all(p.open.map((i) => repay(i, remaining(i)))), `All settled with ${p.person}`));
+  const remove = (i: Iou) =>
+    confirm('Delete this entry?', `${formatINR(i.amount)}${i.note ? ` for ${i.note}` : ''}. This can’t be undone.`, () => run(() => deleteIou(i.id), 'Deleted'));
 
   const remind = async (p: PersonSummary) => {
     const message = reminderText(p, settings.upiId);
     const phone = phones[p.key];
-    if (phone) {
-      Linking.openURL(whatsappUrl(phone, message));
-      return;
-    }
+    if (phone) return Linking.openURL(whatsappUrl(phone, message));
     try {
       if (Platform.OS === 'web' && navigator.clipboard && !navigator.share) {
         await navigator.clipboard.writeText(message);
         showToast({ message: 'Reminder copied. Paste it in WhatsApp' });
-      } else {
-        await Share.share({ message });
-      }
-    } catch {
-      // user closed the share sheet
-    }
+      } else await Share.share({ message });
+    } catch { /* share sheet closed */ }
   };
 
-  const remove = (i: Iou) =>
-    confirm('Delete this entry?', `${formatINR(i.amount)}${i.note ? ` · ${i.note}` : ''}`, () => run(() => deleteIou(i.id), 'Deleted'));
-
-  const renderPerson = (p: PersonSummary) => {
-    const isOpen = expanded === p.key;
-    const label = p.net > 0 ? `owes you ${formatINR(p.net)}` : p.net < 0 ? `you owe ${formatINR(-p.net)}` : p.open.length ? 'evens out to ₹0' : 'all settled';
-    const entries = isOpen ? [...p.open, ...p.settled.slice(0, 5)] : [];
+  const personRow = (p: PersonSummary) => {
+    const owe = p.net < 0;
     return (
-      <Pressable key={p.key} style={styles.card} onPress={() => setExpanded(isOpen ? null : p.key)}>
-        <View style={styles.cardTop}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{p.person.charAt(0).toUpperCase()}</Text>
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.name}>{p.person}</Text>
-            {p.overdue ? (
-              <Text style={styles.overdue}>Overdue</Text>
-            ) : p.oldestOpen ? (
-              <Text style={styles.meta}>Open since {ageLabel(p.oldestOpen)}</Text>
-            ) : (
-              <Text style={styles.meta}>{p.settled.length} settled</Text>
-            )}
-          </View>
-          <Text style={[styles.net, { color: colorFor(p.net) }]}>{label}</Text>
+      <Pressable key={p.key} onPress={() => setPersonKey(p.key)} style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button"
+        accessibilityLabel={`${p.person}, ${p.net > 0 ? `owes you ${formatINR(p.net)}` : owe ? `you owe ${formatINR(-p.net)}` : p.open.length ? 'evens out' : 'settled'}${p.overdue ? ', overdue' : ''}`}>
+        <Avatar name={p.person} />
+        <View style={styles.rowBody}>
+          <Text style={styles.name} numberOfLines={1}>{p.person}</Text>
+          {p.overdue ? (
+            <View style={styles.metaRow}>
+              <Ionicons name="alert-circle" size={13} color={Corpus.danger} />
+              <Text style={[styles.meta, { color: Corpus.danger }]}>Overdue</Text>
+            </View>
+          ) : (
+            <Text style={styles.meta}>{p.oldestOpen ? `Opened ${ageLabel(p.oldestOpen)}` : `${p.settled.length} settled`}</Text>
+          )}
         </View>
-
-        {entries.map((i) => {
-          const left = remaining(i);
-          const done = left === 0 || !!i.settledAt;
-          return (
-            <View key={i.id}>
-            <View style={styles.entry}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.entryText, done && { color: Corpus.textFaint, textDecorationLine: 'line-through' }]}>
-                  {i.direction === 'lent' ? 'You lent' : 'You borrowed'}
-                  {i.note ? ` · ${i.note}` : ''}
-                  {i.linkedId && byId.get(i.linkedId)
-                    ? i.direction === 'borrowed'
-                      ? ` · gave to ${byId.get(i.linkedId)!.person}`
-                      : ` · from ${byId.get(i.linkedId)!.person}’s money`
-                    : ''}
-                </Text>
-                <Text style={[styles.entrySub, isOverdue(i) && { color: Corpus.danger }]}>
-                  {shortDate(i.date)}
-                  {left !== i.amount && !done ? ` · ${formatINR(i.amount - left)} paid back` : ''}
-                  {i.dueDate && !done ? ` · due ${shortDate(i.dueDate)}` : ''}
-                </Text>
-                {(() => {
-                  const st = !done ? interestStatus(i) : null;
-                  if (!st) return null;
-                  return (
-                    <Text style={[styles.entrySub, { color: st.pending > 0 ? Corpus.danger : Corpus.goldSoft }]}>
-                      ₹{i.ratePerHundred}/₹100 ({yearlyRate(i.ratePerHundred!)}% a year) · {formatINR(st.monthly)}/month ·{' '}
-                      {st.pending > 0 ? `${formatINR(st.pending)} interest due` : `next due ${shortDate(st.nextDue.toISOString())}`}
-                    </Text>
-                  );
-                })()}
-                {(() => {
-                  const ins = !done ? instalmentStatus(i) : null;
-                  if (!ins) return null;
-                  return (
-                    <View style={{ gap: 4, marginTop: 2 }}>
-                      <Text style={[styles.entrySub, { color: ins.behind ? Corpus.danger : Corpus.goldSoft }]}>
-                        {i.onCard ? '💳 EMI on your card · ' : ''}{formatINR(ins.per)}/month · {ins.paidCount} of {ins.total} paid
-                        {ins.behind ? ` · ${ins.behind} behind` : ins.nextDue ? ` · next ${shortDate(ins.nextDue.toISOString())}` : ''}
-                      </Text>
-                      <Pressable style={styles.remindChip} onPress={() => doRepay(i, ins.thisPayment)}>
-                        <Text style={styles.remindChipText}>
-                          {i.direction === 'lent' ? `Got ${formatINR(ins.thisPayment)} this month` : `Paid ${formatINR(ins.thisPayment)} this month`}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  );
-                })()}
-                {!done && agingWarning(i) && <Text style={[styles.history, { color: Corpus.warning }]}>⚠️ {agingWarning(i)}</Text>}
-                {i.proofRef ? <Text style={styles.history}>🧾 {i.proofRef}</Text> : null}
-                {(i.interestPayments ?? []).map((r, k) => (
-                  <Text key={`i${k}`} style={styles.history}>
-                    ↳ Interest {i.direction === 'lent' ? 'received' : 'paid'} {formatINR(r.amount)} · {shortDate(r.date)}
-                  </Text>
-                ))}
-                {(() => {
-                  const pr = progress(i);
-                  if (done || pr.paid === 0) return null;
-                  return (
-                    <View style={{ marginTop: 4, gap: 3 }}>
-                      <View style={styles.bar}>
-                        <View style={[styles.barFill, { width: `${pr.pct}%` }]} />
-                      </View>
-                      <Text style={styles.entrySub}>
-                        {formatINR(pr.paid)} of {formatINR(i.amount)} paid · {pr.pct}%
-                        {pr.doneBy ? ` · done by ${pr.doneBy.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} at this pace` : ''}
-                      </Text>
-                    </View>
-                  );
-                })()}
-                {(i.repayments ?? []).map((r, k) => (
-                  <Text key={k} style={styles.history}>
-                    ↳ {i.direction === 'lent' ? 'Got' : 'Paid'} {formatINR(r.amount)} · {shortDate(r.date)}
-                  </Text>
-                ))}
-              </View>
-              <Text style={[styles.entryAmount, { color: done ? Corpus.textFaint : i.direction === 'lent' ? Corpus.income : Corpus.warning }]}>
-                {formatINR(done ? i.amount : left)}
-              </Text>
-              {done ? (
-                <Pressable onPress={() => run(() => reopen(i), 'Reopened')} hitSlop={6}>
-                  <Text style={styles.link}>Undo</Text>
-                </Pressable>
-              ) : (
-                <View style={{ alignItems: 'flex-end' }}>
-                  {i.ratePerHundred ? (
-                    <Pressable onPress={() => setMode({ kind: 'payInterest', iou: i })} hitSlop={6}>
-                      <Text style={styles.link}>{i.direction === 'lent' ? 'Got interest' : 'Pay interest'}</Text>
-                    </Pressable>
-                  ) : null}
-                  <Pressable onPress={() => setMode({ kind: 'repay', iou: i })} hitSlop={6}>
-                    <Text style={styles.link}>{i.ratePerHundred ? 'Pay principal' : 'Paid back'}</Text>
-                  </Pressable>
-                </View>
-              )}
-              {!done && (
-                <Pressable onPress={() => setRemindFor(remindFor === i.id ? null : i.id)} hitSlop={6}>
-                  <Text style={[styles.link, { color: i.remindAt ? Corpus.gold : Corpus.textMuted }]}>⏰</Text>
-                </Pressable>
-              )}
-              <Pressable onPress={() => setMode({ kind: 'edit', iou: i })} hitSlop={6}>
-                <Text style={[styles.link, { color: Corpus.textMuted }]}>✎</Text>
-              </Pressable>
-              <Pressable onPress={() => remove(i)} hitSlop={6}>
-                <Text style={[styles.link, { color: Corpus.textFaint }]}>✕</Text>
-              </Pressable>
-            </View>
-            {remindFor === i.id && (
-              <View style={styles.remindRow}>
-                <Text style={styles.entrySub}>
-                  {i.remindAt ? `Reminding you ${shortDate(i.remindAt)}. Change:` : `Remind me to ${i.direction === 'lent' ? 'ask' : 'pay'}:`}
-                </Text>
-                {[['Tomorrow', 1], ['3 days', 3], ['1 week', 7], ['2 weeks', 14]].map(([label, d]) => (
-                  <Pressable key={label} style={styles.remindChip} onPress={() => setReminder(i, d as number)}>
-                    <Text style={styles.remindChipText}>{label}</Text>
-                  </Pressable>
-                ))}
-                {i.remindAt && (
-                  <Pressable style={styles.remindChip} onPress={() => setReminder(i, 0)}>
-                    <Text style={[styles.remindChipText, { color: Corpus.textMuted }]}>Off</Text>
-                  </Pressable>
-                )}
-              </View>
-            )}
-            {i.remindAt && remindFor !== i.id && !done && (
-              <Text style={[styles.history, { color: Corpus.gold }]}>⏰ Reminder {shortDate(i.remindAt)}</Text>
-            )}
-            </View>
-          );
-        })}
-
-        {isOpen && (
-          <View style={styles.actions}>
-            {p.theyOwe > 0 && (
-              <Button size="sm" icon="cash-outline" label="They paid me" onPress={() => setMode({ kind: 'payPerson', person: p.person, direction: 'lent', open: p.open.filter((x) => x.direction === 'lent') })} />
-            )}
-            {p.youOwe > 0 && (
-              <Button size="sm" icon="cash-outline" label={`I paid ${p.person.split(' ')[0]}`} onPress={() => setMode({ kind: 'payPerson', person: p.person, direction: 'borrowed', open: p.open.filter((x) => x.direction === 'borrowed') })} />
-            )}
-            {p.open.length > 0 && <Button size="sm" variant="secondary" icon="checkmark-done" label="Settle all" onPress={() => settleAll(p)} />}
-            <Button size="sm" variant="secondary" icon="add" label="Add" onPress={() => setMode({ kind: 'new', person: p.person })} />
-          </View>
-        )}
+        <Text style={[styles.amount, { color: p.open.length === 0 ? Corpus.textMuted : p.net > 0 ? Corpus.income : owe ? Corpus.warning : Corpus.textMuted }]}>
+          {p.open.length === 0 ? 'Settled' : p.net === 0 ? '₹0' : formatINR(Math.abs(p.net))}
+        </Text>
+        <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
       </Pressable>
     );
   };
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader
-          title="Lent, borrowed & debts"
-          onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-          right={<Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} />}
-        />
+  const total = toGet + toPay;
+  const net = toGet - toPay;
 
+  return (
+    <>
+      <Screen title="People" subtitle="Money you lent and borrowed" right={<Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} />}>
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Corpus.gold} />
+          <View style={{ gap: 14 }} accessibilityLabel="Loading" accessibilityState={{ busy: true }}>
+            <View style={[styles.skel, { height: 150 }]} />
+            <View style={[styles.skel, { height: 200 }]} />
           </View>
         ) : ious.length === 0 && debts.total === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold }}>🤝</Text>
+          <View style={styles.empty}>
+            <IconChip icon="people" color={Chip.indigo} size={44} />
             <Text style={styles.emptyTitle}>Nobody owes anybody</Text>
-            <Text style={styles.emptyText}>
-              Paid for a friend’s dinner? Borrowed from a flatmate? Note it here so nothing is forgotten — Corpus reminds you when it’s due.
-            </Text>
-            <Button label="Add the first one" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch', marginTop: 12 }} />
+            <Text style={styles.emptyText}>Paid for a friend’s dinner or borrowed from a flatmate? Note it here and Corpus reminds you when it’s due.</Text>
+            <Button label="Add the first one" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch', marginTop: 6 }} />
           </View>
         ) : (
           <>
+            {(toGet > 0 || toPay > 0) && (
+              <View style={styles.summary} accessible accessibilityLabel={`You'll get back ${formatINR(toGet)}. You owe ${formatINR(toPay)}.`}>
+                <View style={styles.sides}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sideLabel}>You’ll get back</Text>
+                    <Text style={[styles.sideValue, { color: toGet > 0 ? Corpus.income : Corpus.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(getV))}</Text>
+                  </View>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Text style={styles.sideLabel}>You owe</Text>
+                    <Text style={[styles.sideValue, { color: toPay > 0 ? Corpus.warning : Corpus.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(payV))}</Text>
+                  </View>
+                </View>
+                <View style={styles.split}>
+                  {toGet > 0 && <View style={[styles.splitSeg, { flex: (toGet / total) * t + 0.001, backgroundColor: Corpus.income }]} />}
+                  {toPay > 0 && <View style={[styles.splitSeg, { flex: (toPay / total) * t + 0.001, backgroundColor: Corpus.warning }]} />}
+                </View>
+                <Text style={styles.net}>
+                  {net > 0 ? `${formatINR(net)} more coming in than going out` : net < 0 ? `${formatINR(-net)} more to pay than to get` : 'It evens out'}
+                </Text>
+              </View>
+            )}
+
             {nudges.map((n) => (
               <View key={n.borrowed.id} style={styles.nudge}>
-                <Text style={styles.nudgeTitle}>🔁 Repay {n.borrowed.person} {formatINR(n.repayNow)}</Text>
-                <Text style={styles.nudgeText}>
-                  {n.lent.person} has paid you back {formatINR(n.receivedBack)} of the {formatINR(n.lent.amount)} that came from {n.borrowed.person}.
-                </Text>
-                <View style={styles.actions}>
-                  <Button size="sm" icon="checkmark" label={`I repaid ${formatINR(n.repayNow)}`} onPress={() => doRepay(n.borrowed, n.repayNow)} />
+                <IconChip icon="git-branch" color={Chip.orange} size={34} />
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.nudgeTitle}>Repay {n.borrowed.person} {formatINR(n.repayNow)}</Text>
+                  <Text style={styles.nudgeText}>{n.lent.person} paid you back {formatINR(n.receivedBack)} of the {formatINR(n.lent.amount)} that came from {n.borrowed.person}.</Text>
+                  <Button size="sm" icon="checkmark" label={`I repaid ${formatINR(n.repayNow)}`} onPress={() => doRepay(n.borrowed, n.repayNow)} style={{ alignSelf: 'flex-start', marginTop: 4 }} />
                 </View>
               </View>
             ))}
 
-            <View style={styles.summary}>
-              <View style={styles.tile}>
-                <Text style={styles.tileLabel}>You’ll get back</Text>
-                <Text style={[styles.tileValue, { color: Corpus.income }]}>{formatINR(toGet)}</Text>
-              </View>
-              <View style={styles.tile}>
-                <Text style={styles.tileLabel}>You owe</Text>
-                <Text style={[styles.tileValue, { color: toPay > 0 ? Corpus.warning : Corpus.textMuted }]}>{formatINR(toPay)}</Text>
-              </View>
-            </View>
+            {owesYou.length > 0 && <Group animate title="Owes you">{owesYou.map(personRow)}</Group>}
+            {youOwe.length > 0 && <Group animate title="You owe">{youOwe.map(personRow)}</Group>}
 
             {debts.total > 0 && (
-              <Pressable onPress={() => router.push('/debts' as Href)} hitSlop={6}>
-                <Text style={[styles.meta, { color: Corpus.gold, fontWeight: '600', textAlign: 'right' }]}>All debts incl. credit cards · payoff plan →</Text>
-              </Pressable>
+              <Group>
+                <GroupRow icon="mci:bank-transfer-out" color={Chip.red} title="All your debts" subtitle="Loans, EMIs and cards, with a payoff plan" value={formatINR(debts.total)} onPress={() => router.push('/debts' as Href)} />
+              </Group>
             )}
-            {debts.total > 0 && (
-              <Pressable style={styles.card} onPress={() => setShowDebts(!showDebts)}>
-                <Text style={styles.tileLabel}>Total debt</Text>
-                <Text style={[styles.debtTotal]}>{formatINR(debts.total)}</Text>
-                <Text style={styles.meta}>
-                  {[
-                    debts.owedToPeople ? `${formatINR(debts.owedToPeople)} to people` : '',
-                    debts.owedOnLoans ? `${formatINR(debts.owedOnLoans)} on loans & EMIs` : '',
-                    debts.monthlyEmi ? `${formatINR(debts.monthlyEmi)}/month in EMIs` : '',
-                    debts.monthlyInterest ? `${formatINR(debts.monthlyInterest)}/month interest` : '',
-                    debts.interestPending ? `${formatINR(debts.interestPending)} interest due now` : '',
-                    debts.interestPaid ? `${formatINR(debts.interestPaid)} interest paid so far` : '',
-                  ].filter(Boolean).join(' · ')}
-                </Text>
-                {showDebts && (
-                  <>
-                    {debts.people.map((d) => (
-                      <Pressable
-                        key={d.id}
-                        style={styles.entry}
-                        onPress={() => {
-                          const iou = byId.get(d.id);
-                          if (iou) setMode({ kind: 'repay', iou });
-                        }}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.entryText}>{d.person}{d.note ? ` · ${d.note}` : ''}</Text>
-                          <Text style={[styles.entrySub, d.overdue && { color: Corpus.danger }]}>
-                            {d.monthlyInterest
-                              ? `${formatINR(d.monthlyInterest)}/month interest${d.interestPending ? ` · ${formatINR(d.interestPending)} due now` : d.nextInterestDue ? ` · next ${shortDate(d.nextInterestDue.toISOString())}` : ''}`
-                              : d.dueDate ? `${d.overdue ? 'Overdue · was due' : 'Due'} ${shortDate(d.dueDate)}` : 'No due date'}
-                          </Text>
-                        </View>
-                        <Text style={[styles.entryAmount, { color: Corpus.warning }]}>{formatINR(d.amount)}</Text>
-                        <Text style={styles.link}>Pay</Text>
-                      </Pressable>
-                    ))}
-                    {debts.emis.map((e) => (
-                      <Pressable key={e.billId} style={styles.entry} onPress={() => router.push(`/bill/${e.billId}` as Href)}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.entryText}>{e.name}</Text>
-                          <Text style={styles.entrySub}>
-                            {formatINR(e.emi)}/month{e.paymentsLeft != null ? ` · ${e.paymentsLeft} EMIs left` : ''}
-                            {e.exact ? ' · loan balance' : ' · EMIs left × amount'}
-                          </Text>
-                        </View>
-                        <Text style={[styles.entryAmount, { color: Corpus.warning }]}>{formatINR(e.outstanding)}</Text>
-                      </Pressable>
-                    ))}
-                  </>
-                )}
-              </Pressable>
-            )}
-
-            {open.length > 0 && <SectionLabel right="Tap a name for details">OPEN</SectionLabel>}
-            {open.map(renderPerson)}
 
             {giving.items.length > 0 && (
-              <>
-                <SectionLabel right={`${formatINR(giving.givenThisYear)} given this year`}>SUPPORT & GIFTS</SectionLabel>
-                <View style={styles.card}>
-                  {giving.topPeople.length > 0 && (
-                    <Text style={styles.meta}>
-                      This year: {giving.topPeople.slice(0, 3).map((t) => `${t.person} ${formatINR(t.given)}`).join(' · ')}
-                      {giving.receivedThisYear ? ` · received ${formatINR(giving.receivedThisYear)}` : ''}
-                    </Text>
-                  )}
-                  {giving.items.slice(0, 12).map((g) => (
-                    <View key={g.id} style={styles.entry}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.entryText}>
-                          {g.kind === 'gift' ? '🎁' : '🤲'} {g.direction === 'lent' ? 'To' : 'From'} {g.person}
-                          {g.note ? ` · ${g.note}` : ''}
-                        </Text>
-                        <Text style={styles.entrySub}>{shortDate(g.date)} · {g.kind === 'gift' ? 'Gift' : 'Support'}</Text>
-                      </View>
-                      <Text style={[styles.entryAmount, { color: Corpus.text }]}>{formatINR(g.amount)}</Text>
-                      <Pressable onPress={() => setMode({ kind: 'edit', iou: g })} hitSlop={6}>
-                        <Text style={[styles.link, { color: Corpus.textMuted }]}>✎</Text>
-                      </Pressable>
-                      <Pressable onPress={() => remove(g)} hitSlop={6}>
-                        <Text style={[styles.link, { color: Corpus.textFaint }]}>✕</Text>
-                      </Pressable>
-                    </View>
+              <View style={{ gap: 6 }}>
+                <Group animate title="Support and gifts" action={giving.items.length > 4 ? (allGifts ? 'Less' : 'See all') : undefined} onAction={() => setAllGifts(!allGifts)}>
+                  {giving.items.slice(0, allGifts ? 30 : 4).map((g) => (
+                    <GroupRow
+                      key={g.id}
+                      icon={g.kind === 'gift' ? 'gift' : 'heart'}
+                      color={g.kind === 'gift' ? Chip.pink : Chip.purple}
+                      title={`${g.direction === 'lent' ? 'To' : 'From'} ${g.person}`}
+                      subtitle={`${g.note ? `${g.note}, ` : ''}${shortDate(g.date)}`}
+                      value={formatINR(g.amount)}
+                      valueColor={Corpus.text}
+                      onPress={() => setMode({ kind: 'edit', iou: g })}
+                    />
                   ))}
-                </View>
-              </>
+                </Group>
+                <Text style={styles.foot}>
+                  {formatINR(giving.givenThisYear)} given this year{giving.receivedThisYear ? `, ${formatINR(giving.receivedThisYear)} received` : ''}
+                </Text>
+              </View>
             )}
 
             {settled.length > 0 && (
-              <Pressable onPress={() => setShowSettled(!showSettled)}>
-                <SectionLabel right={showSettled ? 'Hide' : 'Show'}>{`SETTLED (${settled.length})`}</SectionLabel>
-              </Pressable>
+              <Group animate title="Settled" action={showSettled ? 'Hide' : `Show ${settled.length}`} onAction={() => setShowSettled(!showSettled)}>
+                {showSettled ? settled.map(personRow) : [<GroupRow key="hint" icon="checkmark-done" color={Chip.green} title={`${settled.length} ${settled.length === 1 ? 'person' : 'people'} all square`} onPress={() => setShowSettled(true)} />]}
+              </Group>
             )}
-            {showSettled && settled.map(renderPerson)}
           </>
         )}
-      </ScrollView>
+      </Screen>
 
-      {mode && <IouSheet mode={mode} people={knownPeople(ious)} ious={ious} onClose={() => setMode(null)} onSave={save} onSaveChain={saveChain} onRepay={doRepay} onPayPerson={payPerson} onPayInterest={doPayInterest} onUpdate={update} />}
-    </SafeAreaView>
+      {person && (
+        <PersonSheet
+          p={person}
+          byId={byId}
+          onClose={() => setPersonKey(null)}
+          onMode={setMode}
+          onRepay={doRepay}
+          onReopen={(i) => run(() => reopen(i), 'Reopened')}
+          onReminder={setReminder}
+          onDelete={remove}
+          onSettleAll={() => settleAll(person)}
+          onRemind={() => remind(person)}
+        />
+      )}
+      {mode && (
+        <IouSheet mode={mode} people={knownPeople(ious)} ious={ious} onClose={() => setMode(null)} onSave={save} onSaveChain={saveChain} onRepay={doRepay}
+          onPayPerson={payPerson} onPayInterest={doPayInterest} onUpdate={update} onDelete={(i) => { setMode(null); remove(i); }} />
+      )}
+    </>
   );
 }
