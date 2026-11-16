@@ -1,4 +1,5 @@
 import { Button, Group, GroupRow, IconChip, Screen } from '@/components/ui';
+import Shine from '@/components/fx/Shine';
 import { askWeb } from '@/services/confirm';
 import { Chip, Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
@@ -56,7 +57,7 @@ export default function IousScreen() {
   const payV = useTween(loading ? 0 : toPay);
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
-    try { await fn(); showToast({ message: ok }); setMode(null); }
+    try { await fn(); showToast({ message: ok, celebrate: /^(Settled|All settled)/.test(ok) }); setMode(null); }
     catch (e) { console.error(e); showToast({ message: 'That didn’t save. Try again.' }); }
   };
   const save = (iou: NewIou) => run(() => addIou(iou), iou.direction === 'lent' ? `${iou.person} owes you ${formatINR(iou.amount)}` : `You owe ${iou.person} ${formatINR(iou.amount)}`);
@@ -137,6 +138,7 @@ export default function IousScreen() {
           <>
             {(toGet > 0 || toPay > 0) && (
               <View style={styles.summary} accessible accessibilityLabel={`You'll get back ${formatINR(toGet)}. You owe ${formatINR(toPay)}.`}>
+              <Shine />
                 <View style={styles.sides}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.sideLabel}>You’ll get back</Text>

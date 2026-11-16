@@ -76,7 +76,7 @@ export function computeSafeToSpend({
   const movedToJars = jars.reduce((s, j) => s + j.addedThisMonth - j.takenThisMonth, 0);
   // A savings plan must never turn the whole month red. A plan that needs more than half of this
   // month's income is paused (not set aside, flagged on the jar and on Today); the rest are set aside
-  // only up to what is really left.
+  // only up to half of what is really left.
   const plansPaused: { name: string; need: number }[] = [];
   let plansWanted = 0;
   for (const j of jars) {
@@ -88,7 +88,8 @@ export function computeSafeToSpend({
 
   // Unpaid bills are reserved in BOTH limits — that money is already promised
   const keep = Math.max(0, setAside);
-  const plansDue = Math.min(plansWanted, Math.max(0, income - spent - movedToJars - billsDue - investing - keep));
+  // Saving comes out of what's left, but never more than half of it: you still need money to live on this month
+  const plansDue = Math.min(plansWanted, Math.floor(Math.max(0, income - spent - movedToJars - billsDue - investing - keep) / 2));
   // SIPs come out of income, not out of your spending budget
   const incomeBased = income > 0 ? income - spent - movedToJars - plansDue - billsDue - investing - keep : null;
   const budgetBased = monthlyBudget && monthlyBudget > 0 ? monthlyBudget - spent - billsDue - keep : null;

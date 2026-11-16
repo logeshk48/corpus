@@ -1,70 +1,68 @@
+import { IconChip } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
-import { Corpus } from '@/constants/theme';
+import { CategoryChip, Chip, Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import type { Bill } from '@/types/bill';
-import { formatINR } from '@/utils/format';
 import { endLabel, isPaidThisMonth, remainingPayments } from '@/utils/bills';
+import { compactINR, formatINR } from '@/utils/format';
 import { loanStatus } from '@/utils/loan';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
-import { styles } from './BillRow.styles';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Props = {
   bill: Bill;
-  status: { text: string; color: string };
-  first: boolean;
+  status: { text: string; color?: string; icon?: string };
+  first?: boolean;
   action?: { label: string; filled?: boolean; onPress: () => void };
   onOpen: () => void;
 };
 
-export default function BillRow({ bill, status, first, action, onOpen }: Props) {
+// One bill: what it is, where it stands this month (in words), the amount, and a pay button when it's due
+export default function BillRow({ bill, status, action, onOpen }: Props) {
   const cat = findCategory('expense', bill.category);
   const freq = bill.frequency ?? 'monthly';
+  const left = remainingPayments(bill);
+  const owed = bill.loan && left ? loanStatus(bill.loan, isPaidThisMonth(bill)).outstanding : null;
+  const tags = [freq === 'yearly' ? 'Yearly' : freq === 'quarterly' ? 'Every 3 months' : null, bill.variable ? 'Amount varies' : null].filter(Boolean).join(', ');
   return (
-    <Pressable onPress={onOpen} style={({ pressed }) => [styles.row, !first && styles.divider, pressed && styles.pressed]}>
-      <View style={styles.iconCircle}>
-        <Ionicons
-          name={(bill.variable ? 'flash' : cat?.icon ?? 'receipt') as any}
-          size={16}
-          color={bill.active ? Corpus.textMuted : Corpus.textFaint}
-        />
-      </View>
-      <View style={styles.body}>
-        <View style={styles.nameRow}>
-          <Text style={[styles.name, !bill.active && { color: Corpus.textFaint }]}>{bill.name}</Text>
-          {freq !== 'monthly' && <Text style={styles.tag}>{freq === 'yearly' ? 'YEARLY' : 'QUARTERLY'}</Text>}
-          {bill.variable && <Text style={styles.tag}>VARIES</Text>}
-        </View>
-        <Text style={[styles.meta, { color: status.color }]}>{status.text}</Text>
-        {(() => {
-          const left = remainingPayments(bill);
-          if (left === null || left === 0) return null;
-          const owed = bill.loan ? loanStatus(bill.loan, isPaidThisMonth(bill)).outstanding : null;
-          return (
-            <Text style={styles.loan}>
-              {owed !== null ? `${formatINR(Math.round(owed))} owed · ` : ''}
-              {left} payment{left === 1 ? '' : 's'} left · ends {endLabel(bill)}
+    <View style={s.wrap}>
+      <Pressable onPress={onOpen} style={({ pressed }) => [s.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button"
+        accessibilityLabel={`${bill.name}, ${formatINR(bill.amount)}. ${status.text}`}>
+        <IconChip icon={(bill.variable ? 'flash' : cat?.icon ?? 'receipt')} color={bill.active ? CategoryChip[bill.category] ?? Chip.red : Chip.gray} />
+        <View style={s.body}>
+          <View style={s.top}>
+            <Text style={[s.name, !bill.active && { color: Corpus.textMuted }]} numberOfLines={1}>{bill.name}</Text>
+            <Text style={[s.amount, !bill.active && { color: Corpus.textMuted }]}>{bill.variable ? 'about ' : ''}{formatINR(bill.amount)}</Text>
+          </View>
+          <View style={s.statusRow}>
+            {status.icon && <Ionicons name={status.icon as keyof typeof Ionicons.glyphMap} size={13} color={status.color ?? Corpus.textMuted} style={{ marginTop: 2 }} />}
+            <Text style={[s.meta, status.color ? { color: status.color } : null]} numberOfLines={2}>{status.text}{tags ? `. ${tags}` : ''}</Text>
+          </View>
+          {left ? (
+            <Text style={s.meta} numberOfLines={1}>
+              {owed !== null ? `${compactINR(Math.round(owed))} owed, ` : ''}{left} payment{left === 1 ? '' : 's'} left, ends {endLabel(bill)}
             </Text>
-          );
-        })()}
-      </View>
-      <View style={styles.right}>
-        <Text style={[styles.amount, !bill.active && { color: Corpus.textFaint }]}>
-          {bill.variable ? '~' : ''}
-          {formatINR(bill.amount)}
-        </Text>
-        {action && (
-          <Pressable
-            onPress={action.onPress}
-            hitSlop={6}
-            style={[
-              styles.action,
-              action.filled ? { backgroundColor: Corpus.gold } : { borderWidth: 0.5, borderColor: Corpus.gold },
-            ]}
-          >
-            <Text style={[styles.actionText, { color: action.filled ? Corpus.onGold : Corpus.gold }]}>{action.label}</Text>
-          </Pressable>
-        )}
-      </View>
-    </Pressable>
+          ) : null}
+        </View>
+      </Pressable>
+      {action && (
+        <Pressable onPress={action.onPress} hitSlop={6} style={({ pressed }) => [s.action, action.filled && s.actionOn, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`${action.label} ${bill.name}`}>
+          <Text style={[s.actionText, action.filled && { color: Corpus.onGold }]}>{action.label}</Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
+
+const s = StyleSheet.create({
+  wrap: { flexDirection: 'row', alignItems: 'center', paddingRight: Space.md },
+  row: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62, paddingVertical: 10, paddingLeft: Space.md, paddingRight: 10 },
+  body: { flex: 1, gap: 1 },
+  top: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  name: { flex: 1, fontSize: Type.input, color: Corpus.text },
+  amount: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  statusRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
+  meta: { flexShrink: 1, fontSize: Type.body, color: Corpus.textMuted, lineHeight: 18, ...tabular },
+  action: { minHeight: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: Corpus.cardAlt, justifyContent: 'center' },
+  actionOn: { backgroundColor: Corpus.gold },
+  actionText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+});

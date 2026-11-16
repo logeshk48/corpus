@@ -2,7 +2,7 @@ import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  summary: { backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 12 },
+  summary: { overflow: 'hidden', backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 12 },
   sides: { flexDirection: 'row', gap: 12 },
   sideLabel: { fontSize: Type.body, color: Corpus.textMuted },
   sideValue: { fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.6, ...tabular },

@@ -127,5 +127,31 @@ One goal = one jar. A jar holds cash you put in AND can have investments linked 
 
 ## A savings plan never turns Today red (product rule)
 - A jar plan needing more than half a month's income is paused: Safe to spend doesn't set it aside (`planTooBig`, `plansPaused`).
-- Other plans are set aside only up to what is really left, never below zero.
+- Other plans are set aside only up to half of what is left this month, so there is always money to live on.
 - Today shows "Car plan paused this month"; the jar says why and offers "Move to <month>" (about a quarter of a usual month's income) or "Change goal".
+
+## Net worth (step 9)
+- Signature: "You own" and "You owe" as two bars on one shared scale, each split by kind with every part named. The gap between them is the net worth.
+- One identity colour + icon per kind (cash, gold, investments, loans…) reused in bars, legend and rows.
+- Confidence in words on the row ("Old value", "Estimate", "Your value"), never a coloured pill alone.
+
+## Atmosphere and effects (step 9b, replaces the earlier "no glow" rule)
+Cards and text stay clean; the life is in the background and in moments.
+- `Aura` (components/fx): two soft lights drifting slowly behind the title. Each screen has its colour (Accounts blue, Budgets orange, People pink, Jars yellow, Income green, Net worth indigo; a jar or income source uses its own colour). Today's light is your money status: green, amber or red.
+- `Shine`: one sweep of light across the main card when a screen opens. Once, then gone.
+- Sections arrive one after another (55 ms apart) on every `Screen`.
+- `celebrate()` / toast `celebrate: true`: a short burst of coloured pieces for real wins only (got paid, jar milestone or goal, all settled).
+- Tab icon hops when chosen.
+- All of it is decoration: hidden from screen readers and switched off by Reduce Motion.
+
+## Net worth v2 (researched: INDmoney, Kubera, Monarch, Copilot, Freenance + ui-ux-pro-max)
+- Hero: number + `TrendLine` (line through the months, pulsing latest point, tap to read a month).
+- "The balance": own vs owe on one scale. "Where your wealth sits": `Treemap`, with a plain-words warning when 60%+ is in one kind.
+- "How long it lasts": 12 month-blocks filled by how many months of spending ready cash, and everything after debts, would cover.
+- "Next stop": a path from the last milestone to the next with a marker where you are.
+
+## Bills (step 10a; researched Monarch, Simplifi, Rocket Money, Origin + ui-ux-pro-max)
+- Hero: paid this month, with a month rail (a dot per bill placed on its due day, sized by amount, filled = paid, today marked).
+- Cash context card: what's due in the next 7 days against what's in your accounts.
+- Calendar: each due day carries a symbol (tick paid, dot due, alert overdue); tap a day to list its bills.
+- Still to do (10b): BillSheet, LoanSheet and LoanPanel on the shared Sheet; bill detail sections.

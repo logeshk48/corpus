@@ -1,11 +1,9 @@
-import { Button } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
+import { Button, Sheet } from '@/components/ui';
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import type { Bill } from '@/types/bill';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 type Props = {
   bill: Bill | null; // null = closed
@@ -14,75 +12,66 @@ type Props = {
   onSkip: (bill: Bill) => Promise<void>;
 };
 
+// Record this month's payment of a bill (or skip it)
 export default function PayBillSheet({ bill, onClose, onPay, onSkip }: Props) {
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false);
 
   useEffect(() => {
-    if (bill) setAmount(bill.variable ? '' : String(bill.amount));
+    if (bill) { setAmount(bill.variable ? '' : String(bill.amount)); setTried(false); }
   }, [bill]);
 
   if (!bill) return null;
   const value = Number(amount);
   const valid = amount.trim() !== '' && Number.isFinite(value) && value > 0;
   const month = new Date().toLocaleDateString('en-IN', { month: 'long' });
-
-  const run = async (fn: () => Promise<void>) => {
-    setBusy(true);
-    try {
-      await fn();
-    } finally {
-      setBusy(false);
-    }
-  };
+  const run = async (fn: () => Promise<void>) => { setBusy(true); try { await fn(); } finally { setBusy(false); } };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={sheet.sheet}>
-          <View style={sheet.handle} />
-          <View style={sheet.header}>
-            <View style={sheet.iconCircle}>
-              <Ionicons name={bill.variable ? 'flash' : 'checkmark-done'} size={18} color={Corpus.gold} />
-            </View>
-            <View style={sheet.titleBlock}>
-              <Text style={sheet.title}>{bill.name} · {month}</Text>
-              <Text style={sheet.subtitle}>
-                {bill.variable
-                  ? `How much was it this time? Usually about ${formatINR(bill.amount)}`
-                  : 'Record this payment now'}
-              </Text>
-            </View>
-            <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={18} color={Corpus.textMuted} />
-            </Pressable>
-          </View>
-
-          <View style={sheet.amountRow}>
-            <Text style={sheet.rupee}>₹</Text>
-            <TextInput
-              style={sheet.amountInput}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder={String(bill.amount)}
-              placeholderTextColor={Corpus.textFaint}
-              keyboardType="numeric"
-              autoFocus
-            />
-          </View>
-          {bill.variable && (
-            <View style={sheet.chips}>
-              <Pressable style={sheet.chip} onPress={() => setAmount(String(bill.amount))}>
-                <Text style={sheet.chipText}>Same as usual {formatINR(bill.amount)}</Text>
-              </Pressable>
-            </View>
-          )}
-
-          <Button label={`Record payment${valid ? ` · ${formatINR(value)}` : ''}`} onPress={() => valid && run(() => onPay(bill, value))} loading={busy} disabled={!valid} />
+    <Sheet
+      title={`${bill.name} for ${month}`}
+      subtitle={bill.variable ? `How much was it this time? Usually about ${formatINR(bill.amount)}` : 'Record this payment'}
+      onClose={onClose}
+      footer={
+        <>
+          <Button label={valid ? `Mark ${formatINR(value)} paid` : 'Mark paid'} icon="checkmark" onPress={() => { setTried(true); if (valid) run(() => onPay(bill, value)); }} loading={busy} />
           <Button variant="quiet" label="Skip this month" onPress={() => run(() => onSkip(bill))} disabled={busy} />
+        </>
+      }
+    >
+      <View style={s.box}>
+        <View style={s.row}>
+          <Text style={s.rupee}>₹</Text>
+          <TextInput
+            style={[s.amount, { width: Math.max(90, (amount.length || 1) * 30 + 16) }]}
+            value={amount}
+            onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
+            placeholder={String(bill.amount)}
+            placeholderTextColor={Corpus.textFaint}
+            keyboardType="decimal-pad"
+            autoFocus
+            selectTextOnFocus
+            accessibilityLabel="Amount paid"
+          />
         </View>
+        {tried && !valid && <Text style={s.error}>Enter the amount you paid</Text>}
       </View>
-    </Modal>
+      {bill.variable && (
+        <Pressable style={({ pressed }) => [s.chip, pressed && { opacity: 0.7 }]} onPress={() => setAmount(String(bill.amount))} accessibilityRole="button">
+          <Text style={s.chipText}>Same as usual {formatINR(bill.amount)}</Text>
+        </Pressable>
+      )}
+    </Sheet>
   );
 }
+
+const s = StyleSheet.create({
+  box: { alignItems: 'center', gap: 4, paddingVertical: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  rupee: { fontSize: Type.h1, fontFamily: Font.display, color: Corpus.textMuted, marginRight: 4 },
+  amount: { fontSize: Type.entry, fontFamily: Font.displayBold, color: Corpus.text, textAlign: 'center', padding: 0, ...tabular, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+  error: { fontSize: Type.small, color: Corpus.danger },
+  chip: { alignSelf: 'center', minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.bg, justifyContent: 'center' },
+  chipText: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
+});

@@ -31,6 +31,11 @@ export const styles = StyleSheet.create({
   needsTitle: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text },
   needsBadge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: Corpus.gold, alignItems: 'center', justifyContent: 'center' },
   needsBadgeText: { fontSize: Type.small, fontFamily: Font.displayBold, color: Corpus.onGold },
+  pausedCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Corpus.card, borderRadius: 22, padding: 14, borderWidth: 1.5, borderColor: Corpus.warning },
+  pausedTitle: { fontSize: Type.label, fontFamily: Font.display, color: Corpus.text },
+  pausedText: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 18 },
+  pausedBtn: { minHeight: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: Corpus.gold, justifyContent: 'center' },
+  pausedBtnText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.onGold },
   linkCard: {
     flexDirection: 'row',
     alignItems: 'center',

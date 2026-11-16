@@ -7,18 +7,18 @@ export type MonthBar = { key: string; label: string; full: string; value: number
 
 // Month-by-month columns (ui-ux-pro-max: bar chart for discrete periods, direct labels).
 // Tap a column to read it; the reading sits above in words. A dashed line marks the monthly target if given.
-export default function MonthBars({ bars, color, target, targetLabel = 'Expected', height = 96, appear = 1 }: {
-  bars: MonthBar[]; color: string; target?: number; targetLabel?: string; height?: number; appear?: number;
+export default function MonthBars({ bars, color, target, targetLabel = 'Expected', zeroLabel = 'Nothing', height = 96, appear = 1 }: {
+  bars: MonthBar[]; color: string; target?: number; targetLabel?: string; zeroLabel?: string; height?: number; appear?: number;
 }) {
   const [sel, setSel] = useState(bars.length - 1);
   const i = Math.min(sel, bars.length - 1);
-  const max = Math.max(target ?? 0, ...bars.map((b) => b.value), 1);
+  const max = Math.max(target ?? 0, ...bars.map((b) => Math.abs(b.value)), 1);
   const cur = bars[i];
   return (
     <View style={{ gap: 8 }}>
       <View style={s.read}>
         <Text style={s.readLabel}>{cur.full}</Text>
-        <Text style={s.readValue}>{cur.value > 0 ? formatINR(Math.round(cur.value)) : 'Nothing'}</Text>
+        <Text style={[s.readValue, cur.value < 0 && { color: Corpus.danger }]}>{cur.value !== 0 ? formatINR(Math.round(cur.value)) : zeroLabel}</Text>
       </View>
       <View style={{ height }}>
         {target !== undefined && target > 0 && (
@@ -29,8 +29,8 @@ export default function MonthBars({ bars, color, target, targetLabel = 'Expected
             const on = k === i;
             return (
               <Pressable key={b.key} style={s.col} onPress={() => setSel(k)} accessibilityRole="button" accessibilityState={{ selected: on }}
-                accessibilityLabel={`${b.full}: ${b.value > 0 ? formatINR(Math.round(b.value)) : 'nothing'}`}>
-                <View style={{ height: Math.max(3, (b.value / max) * height * appear), width: '100%', maxWidth: 26, borderRadius: 6, backgroundColor: b.value > 0 ? color : Corpus.cardAlt, opacity: on ? 1 : 0.4 }} />
+                accessibilityLabel={`${b.full}: ${b.value !== 0 ? formatINR(Math.round(b.value)) : zeroLabel}`}>
+                <View style={{ height: Math.max(3, (Math.abs(b.value) / max) * height * appear), width: '100%', maxWidth: 26, borderRadius: 6, backgroundColor: b.value > 0 ? color : b.value < 0 ? Corpus.danger : Corpus.cardAlt, opacity: on ? 1 : 0.4 }} />
               </Pressable>
             );
           })}

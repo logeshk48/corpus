@@ -1,5 +1,11 @@
-import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
+import Bullet from '@/components/charts/Bullet';
+import Shine from '@/components/fx/Shine';
+import { Button, Group, IconChip, Screen } from '@/components/ui';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useEntrance } from '@/hooks/useEntrance';
+import { useTween } from '@/hooks/useTween';
+import { accountBalances, accountTotals } from '@/utils/accounts';
+import { Chip, Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -22,6 +28,8 @@ import {
   monthlyBillsTotal,
   needsAmount,
   nextDue,
+  thisMonthBills,
+  upcomingBills,
   ordinal,
   unpaidThisMonth,
   yearlyBillsTotal,
@@ -32,8 +40,7 @@ import { loanStatus } from '@/utils/loan';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, Text, View } from 'react-native';
 import BillCalendar from './components/BillCalendar';
 import BillRow from './components/BillRow';
 import BillSheet, { BILL_TEMPLATES, type BillSheetMode } from './components/BillSheet';
@@ -43,10 +50,10 @@ import { styles } from './BillsScreen.styles';
 const shortDate = (d: Date) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 
 function whenText(daysAway: number) {
-  if (daysAway < 0) return `${-daysAway} day${daysAway === -1 ? '' : 's'} overdue`;
+  if (daysAway < 0) return `${-daysAway} day${daysAway === -1 ? '' : 's'} late`;
   if (daysAway === 0) return 'Due today';
   if (daysAway === 1) return 'Due tomorrow';
-  return `in ${daysAway} days`;
+  return `Due in ${daysAway} days`;
 }
 
 // Average monthly income over the last 3 months that had income
@@ -104,7 +111,6 @@ export default function BillsScreen() {
   const later = active.filter((b) => !dueThisMonth(b));
   const paused = bills.filter((b) => !b.active && !isFinished(b));
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const openBill = (b: Bill) => router.push(`/bill/${b.id}` as Href);
 
   // ── Actions ──
@@ -112,7 +118,7 @@ export default function BillsScreen() {
     try {
       if (mode?.kind === 'edit') {
         await updateBill(mode.bill.id, bill);
-        showToast({ message: `${bill.name} updated` });
+        showToast({ message: `${bill.name} saved` });
       } else {
         await addBill(paidThisMonth ? { ...bill, lastLoggedMonth: yearMonth(new Date()) } : bill);
         showToast({ message: `${bill.name} added` });
@@ -120,7 +126,7 @@ export default function BillsScreen() {
       setMode(null);
     } catch (e) {
       console.error('Save bill failed:', e);
-      showToast({ message: 'Could not save the bill. Try again.' });
+      showToast({ message: 'Couldn’t save the bill. Try again.' });
     }
   };
 
@@ -131,7 +137,7 @@ export default function BillsScreen() {
       showToast({ message: `${bill.name} deleted` });
     } catch (e) {
       console.error('Delete bill failed:', e);
-      showToast({ message: 'Could not delete. Try again.' });
+      showToast({ message: 'Couldn’t delete. Try again.' });
     }
   };
 
@@ -140,13 +146,13 @@ export default function BillsScreen() {
       await logBillForThisMonth(bill, amount);
       setPaying(null);
       showToast({
-        message: `${bill.name} ${formatINR(amount)} recorded`,
+        message: `${bill.name} paid, ${formatINR(amount)}`,
         actionLabel: 'Undo',
         onAction: () => undoBillPayment(bill),
       });
     } catch (e) {
       console.error('Pay bill failed:', e);
-      showToast({ message: 'Could not record the payment. Try again.' });
+      showToast({ message: 'Couldn’t record the payment. Try again.' });
     }
   };
 
@@ -157,174 +163,166 @@ export default function BillsScreen() {
       showToast({ message: `${bill.name} skipped this month`, actionLabel: 'Undo', onAction: () => restoreBillState(bill) });
     } catch (e) {
       console.error('Skip bill failed:', e);
-      showToast({ message: 'Could not skip. Try again.' });
+      showToast({ message: 'Couldn’t skip. Try again.' });
     }
   };
 
-  // ── Section renderer ──
-  const section = (
+  // ── Cash context: can you cover what's coming? ──
+  const { accounts } = useAccounts();
+  const have = accounts.length ? accountTotals(accountBalances(accounts, yearTx)).have : null;
+  const week = upcomingBills(bills, 7).filter(({ bill }) => dueThisMonth(bill) && !isPaidThisMonth(bill));
+  const weekTotal = week.reduce((s, x) => s + x.bill.amount, 0);
+  const short = have !== null && weekTotal > have;
+  const t = useEntrance(800, loading);
+  const paidV = useTween(loading ? 0 : paidAmount);
+  const monthName = now.toLocaleDateString('en-IN', { month: 'long' });
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const rail = thisMonthBills(bills, now);
+  const maxAmt = Math.max(...rail.map((r) => r.bill.amount), 1);
+
+  const group = (
     title: string,
     list: Bill[],
-    status: (b: Bill) => { text: string; color: string },
+    status: (b: Bill) => { text: string; color?: string; icon?: string },
     action?: (b: Bill) => { label: string; filled?: boolean; onPress: () => void } | undefined
   ) =>
     list.length > 0 && (
-      <>
-        <SectionLabel>{title}</SectionLabel>
-        <View style={styles.group}>
-          {list.map((b, i) => (
-            <BillRow
-              key={b.id}
-              bill={b}
-              first={i === 0}
-              status={status(b)}
-              action={action?.(b)}
-              onOpen={() => openBill(b)}
-            />
-          ))}
-        </View>
-      </>
+      <Group animate title={title}>
+        {list.map((b) => <BillRow key={b.id} bill={b} status={status(b)} action={action?.(b)} onOpen={() => openBill(b)} />)}
+      </Group>
     );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title="Recurring bills" right={bills.length > 0 ? <Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} /> : undefined} onBack={goBack} />
-
+    <>
+      <Screen title="Bills" subtitle="Rent, EMIs and anything that repeats" right={bills.length > 0 ? <Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} /> : undefined}>
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Corpus.gold} />
+          <View style={{ gap: 14 }} accessibilityLabel="Loading bills" accessibilityState={{ busy: true }}>
+            <View style={[styles.skel, { height: 230 }]} />
+            <View style={[styles.skel, { height: 300 }]} />
           </View>
         ) : bills.length === 0 ? (
-          <View style={styles.welcome}>
-            <Text style={styles.welcomeTitle}>Never type your rent again</Text>
-            <Text style={styles.welcomeText}>
-              Add costs that repeat — monthly, every 3 months or yearly. Corpus logs fixed bills on
-              their due day, asks you for variable ones like electricity, and keeps the money aside
-              in Safe-to-Spend until then.
-            </Text>
+          <View style={styles.empty}>
+            <IconChip icon="repeat" color={Chip.red} size={44} />
+            <Text style={styles.emptyTitle}>Never type your rent again</Text>
+            <Text style={styles.emptyText}>Add costs that repeat. Corpus records fixed ones on their due day, asks you for ones that change like electricity, and keeps the money aside until then.</Text>
             <View style={styles.templates}>
-              {BILL_TEMPLATES.map((t) => (
-                <Pressable key={t.name} style={styles.template} onPress={() => setMode({ kind: 'new', template: t })}>
-                  <Ionicons name={t.icon as any} size={13} color={Corpus.gold} />
-                  <Text style={styles.templateText}>{t.name}</Text>
+              {[...BILL_TEMPLATES.map((tp) => ({ key: tp.name, label: tp.name, icon: tp.icon, go: () => setMode({ kind: 'new', template: tp }) })), { key: 'other', label: 'Something else', icon: 'add', go: () => setMode({ kind: 'new' }) }].map((x) => (
+                <Pressable key={x.key} style={({ pressed }) => [styles.template, pressed && { opacity: 0.7 }]} onPress={x.go} accessibilityRole="button">
+                  <Ionicons name={x.icon as keyof typeof Ionicons.glyphMap} size={15} color={Corpus.text} />
+                  <Text style={styles.templateText}>{x.label}</Text>
                 </Pressable>
               ))}
-              <Pressable style={styles.template} onPress={() => setMode({ kind: 'new' })}>
-                <Ionicons name="add" size={13} color={Corpus.gold} />
-                <Text style={styles.templateText}>Other</Text>
-              </Pressable>
             </View>
           </View>
         ) : (
           <>
-            {/* ── Insights hero ── */}
             <View style={styles.hero}>
-              <Text style={styles.heroLabel}>FIXED COSTS</Text>
-              <Text style={styles.heroAmount}>{formatINR(monthly)}</Text>
-              <Text style={styles.heroPer}>per month on average</Text>
-              <Text style={styles.heroYear}>{formatINR(yearly)} a year</Text>
-              {dueTotal > 0 && (
-                <View style={styles.progressWrap}>
-                  <View style={styles.progressRow}>
-                    <Text style={styles.progressLabel}>{now.toLocaleDateString('en-IN', { month: 'long' })}</Text>
-                    <Text style={styles.progressValue}>
-                      {formatINR(paidAmount)} paid · {formatINR(unpaid)} to go
-                    </Text>
+              <Shine />
+              <Text style={styles.label}>Paid in {monthName}</Text>
+              <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(paidV))}</Text>
+              <Text style={styles.sub}>
+                {dueTotal === 0 ? 'Nothing due this month' : unpaid > 0 ? `of ${formatINR(dueTotal)}. ${formatINR(unpaid)} still to pay` : `All ${formatINR(dueTotal)} paid for this month`}
+              </Text>
+
+              {rail.length > 0 && (
+                <View style={styles.railWrap} accessible accessibilityLabel={`${rail.filter((r) => r.paid).length} of ${rail.length} bills paid this month`}>
+                  <View style={styles.rail}>
+                    <View style={styles.railLine} />
+                    <View style={[styles.railDone, { width: `${((now.getDate() - 1) / (daysInMonth - 1)) * 100 * t}%` }]} />
+                    {rail.map((r) => {
+                      const size = 10 + Math.round((r.bill.amount / maxAmt) * 10);
+                      const late = !r.paid && r.date.getDate() < now.getDate();
+                      return (
+                        <View key={r.bill.id} style={[styles.railDot, { left: `${((r.date.getDate() - 1) / (daysInMonth - 1)) * 100}%`, width: size, height: size, borderRadius: size / 2, marginLeft: -size / 2,
+                          backgroundColor: r.paid ? Corpus.income : late ? Corpus.danger : Corpus.card, borderColor: r.paid ? Corpus.income : late ? Corpus.danger : Corpus.text }]} />
+                      );
+                    })}
+                    <View style={[styles.today, { left: `${((now.getDate() - 1) / (daysInMonth - 1)) * 100}%` }]} />
                   </View>
-                  <View style={styles.track}>
-                    <View style={[styles.fill, { width: `${Math.min((paidAmount / dueTotal) * 100, 100)}%` }]} />
+                  <View style={styles.railEnds}>
+                    <Text style={styles.railText}>1 {monthName.slice(0, 3)}</Text>
+                    <Text style={styles.railText}>Filled: paid. Hollow: to pay</Text>
+                    <Text style={styles.railText}>{daysInMonth}</Text>
                   </View>
                 </View>
               )}
+
+              <View style={styles.strip}>
+                <View style={styles.stat}>
+                  <Text style={styles.statLabel}>A usual month</Text>
+                  <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(monthly))}</Text>
+                </View>
+                <View style={[styles.stat, styles.statRule]}>
+                  <Text style={styles.statLabel}>A year</Text>
+                  <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(yearly))}</Text>
+                </View>
+              </View>
             </View>
 
-            {ratio !== null && (
-              <View
-                style={[
-                  styles.insight,
-                  ratio <= 50
-                    ? { backgroundColor: Corpus.incomeTint, borderColor: Corpus.incomeLine }
-                    : { backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine },
-                ]}
-              >
-                <Ionicons name="pie-chart-outline" size={17} color={ratio <= 50 ? Corpus.income : Corpus.warning} />
-                <Text style={styles.insightText}>
-                  Fixed bills take <Text style={{ fontWeight: '700' }}>{ratio}%</Text> of your income.{' '}
-                  <Text style={styles.insightMuted}>
-                    {ratio <= 50
-                      ? 'Healthy — a common guideline (50/30/20) keeps needs under 50%.'
-                      : 'Above the common 50% guideline for needs — worth reviewing subscriptions.'}
+            {weekTotal > 0 && (
+              <View style={[styles.card, short && styles.cardWarn]}>
+                <View style={styles.notice}>
+                  <Ionicons name={short ? 'alert-circle' : 'calendar'} size={18} color={short ? Corpus.warning : Corpus.text} />
+                  <Text style={styles.noticeText}>
+                    <Text style={styles.strong}>{formatINR(weekTotal)}</Text> is due in the next 7 days ({week.map((x) => x.bill.name).slice(0, 3).join(', ')}{week.length > 3 ? ` and ${week.length - 3} more` : ''}).
+                    {have !== null ? (short ? ` You have ${formatINR(have)} in your accounts, ${formatINR(weekTotal - have)} short.` : ` You have ${formatINR(have)}, so it’s covered.`) : ''}
                   </Text>
-                </Text>
+                </View>
               </View>
             )}
-            {subscriptionsYearly > 0 && (
-              <View style={[styles.insight, { backgroundColor: Corpus.card, borderColor: Corpus.border }]}>
-                <Ionicons name="tv-outline" size={17} color={Corpus.gold} />
-                <Text style={styles.insightText}>
-                  Entertainment subscriptions cost <Text style={{ fontWeight: '700' }}>{formatINR(subscriptionsYearly)}</Text> a
-                  year. <Text style={styles.insightMuted}>Still using all of them?</Text>
+
+            {ratio !== null && (
+              <View style={styles.card}>
+                <View style={styles.cardHead}>
+                  <Text style={styles.cardTitle} accessibilityRole="header">Share of your income</Text>
+                  <Text style={[styles.cardSide, ratio > 50 && { color: Corpus.warning }]}>{ratio}%</Text>
+                </View>
+                <Bullet value={Math.min(ratio, 100)} limit={100} pace={0.5} color={ratio > 50 ? Corpus.warning : Corpus.income} height={10} appear={t} />
+                <Text style={styles.rowNote}>
+                  {ratio <= 50 ? 'Healthy. The tick marks 50%, a common upper limit for fixed costs.' : 'Above 50%, the common upper limit for fixed costs (the tick). Worth reviewing subscriptions.'}
+                  {subscriptionsYearly > 0 ? ` Entertainment subscriptions cost ${formatINR(subscriptionsYearly)} a year.` : ''}
                 </Text>
               </View>
             )}
 
             {loans.length > 0 && (
-              <View style={[styles.insight, { backgroundColor: Corpus.goldTint, borderColor: Corpus.goldLine }]}>
-                <Ionicons name="business-outline" size={17} color={Corpus.gold} />
-                <Text style={styles.insightText}>
-                  You owe <Text style={{ fontWeight: '700' }}>{formatINR(Math.round(totalOwed))}</Text> across{' '}
-                  {loans.length} loan{loans.length === 1 ? '' : 's'}.{' '}
-                  <Text style={styles.insightMuted}>
-                    {formatINR(Math.round(interestAhead))} of interest is still ahead — open a loan to see how
-                    prepaying could cut it.
+              <View style={styles.card}>
+                <View style={styles.notice}>
+                  <IconChip icon="document-text" color={Chip.orange} />
+                  <Text style={styles.noticeText}>
+                    You owe <Text style={styles.strong}>{formatINR(Math.round(totalOwed))}</Text> across {loans.length} loan{loans.length === 1 ? '' : 's'}, with {formatINR(Math.round(interestAhead))} of interest still ahead. Open a loan to see how paying early cuts it.
                   </Text>
-                </Text>
+                </View>
               </View>
             )}
 
-            <BillCalendar bills={bills} />
+            {group('Needs your amount', attention,
+              (b) => ({ text: `Due ${shortDate(nextDue(b).date)}. Enter this month’s amount`, color: Corpus.warning, icon: 'create' }),
+              (b) => ({ label: 'Enter', filled: true, onPress: () => setPaying(b) }))}
+            {group('Due this week', thisWeek,
+              (b) => { const d = nextDue(b).daysAway; return { text: `${whenText(d)}, the ${ordinal(b.dayOfMonth)}`, color: d < 0 ? Corpus.danger : d <= 1 ? Corpus.warning : undefined, icon: d < 0 ? 'alert-circle' : d <= 1 ? 'time' : undefined }; },
+              (b) => ({ label: 'Pay', filled: nextDue(b).daysAway <= 1, onPress: () => setPaying(b) }))}
+            {group('Later this month', laterThisMonth,
+              (b) => ({ text: `${whenText(nextDue(b).daysAway)}, the ${ordinal(b.dayOfMonth)}` }),
+              (b) => ({ label: 'Pay', onPress: () => setPaying(b) }))}
 
-            {section(
-              '⚠️ NEEDS YOUR INPUT',
-              attention,
-              (b) => ({ text: `Due ${shortDate(nextDue(b).date)} · enter this month's amount`, color: Corpus.warning }),
-              (b) => ({ label: 'Enter amount', filled: true, onPress: () => setPaying(b) })
-            )}
-            {section(
-              'DUE THIS WEEK',
-              thisWeek,
-              (b) => {
-                const d = nextDue(b).daysAway;
-                return { text: `${ordinal(b.dayOfMonth)} · ${whenText(d)}`, color: d <= 1 ? Corpus.warning : Corpus.textMuted };
-              },
-              (b) => ({ label: 'Pay now', onPress: () => setPaying(b) })
-            )}
-            {section(
-              'LATER THIS MONTH',
-              laterThisMonth,
-              (b) => ({ text: `${ordinal(b.dayOfMonth)} · ${whenText(nextDue(b).daysAway)}`, color: Corpus.textMuted }),
-              (b) => ({ label: 'Pay now', onPress: () => setPaying(b) })
-            )}
-            {section('PAID THIS MONTH', paid, (b) =>
+            <BillCalendar bills={bills} onOpen={openBill} />
+
+            {group('Paid this month', paid, (b) =>
               isSkippedThisMonth(b)
-                ? { text: `Skipped · next ${shortDate(nextDue(b).date)}`, color: Corpus.textFaint }
-                : { text: `✓ Paid · next ${shortDate(nextDue(b).date)}`, color: Corpus.income }
-            )}
-            {section('COMING LATER', later, (b) => ({ text: `Next ${shortDate(nextDue(b).date)}`, color: Corpus.textMuted }))}
-            {section('🎉 COMPLETED', completed, (b) => ({ text: `All payments done · last one ${endLabel(b)}`, color: Corpus.income }))}
-            {section('PAUSED', paused, () => ({ text: 'Paused — not logged or reserved', color: Corpus.textFaint }))}
+                ? { text: `Skipped. Next ${shortDate(nextDue(b).date)}`, icon: 'remove-circle-outline' }
+                : { text: `Paid. Next ${shortDate(nextDue(b).date)}`, color: Corpus.income, icon: 'checkmark-circle' })}
+            {group('Coming later', later, (b) => ({ text: `Next ${shortDate(nextDue(b).date)}` }))}
+            {group('Finished', completed, (b) => ({ text: `All payments done. Last one ${endLabel(b)}`, color: Corpus.income, icon: 'checkmark-done' }))}
+            {group('Paused', paused, () => ({ text: 'Paused. Not recorded or kept aside', icon: 'pause' }))}
 
-            <Text style={styles.note}>
-              Fixed bills are recorded automatically on their due day; variable ones wait for your
-              amount. Until a bill is paid, its money is kept aside in Safe-to-Spend.
-            </Text>
+            <Text style={styles.note}>Fixed bills are recorded by themselves on their due day. Ones that change wait for your amount. Until a bill is paid, its money is kept out of Safe to spend.</Text>
           </>
         )}
-      </ScrollView>
+      </Screen>
 
       <BillSheet mode={mode} onClose={() => setMode(null)} onSave={save} onDelete={remove} />
       <PayBillSheet bill={paying} onClose={() => setPaying(null)} onPay={pay} onSkip={skip} />
-    </SafeAreaView>
+    </>
   );
 }

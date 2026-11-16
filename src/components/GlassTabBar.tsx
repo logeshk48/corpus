@@ -4,7 +4,7 @@ import { useRouter, type Href } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
 import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { Spring } from '@/constants/motion';
 import Tap from '@/components/ui/Tap';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +19,21 @@ const TABS: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap
 
 // Real blur on the web; on phones the bar is frosted white until a native blur is added
 const blur = Platform.OS === 'web' ? ({ backdropFilter: 'blur(24px) saturate(180%)' } as object) : null;
+
+// The icon gives a small hop when its tab is chosen
+function TabIcon({ name, focused }: { name: keyof typeof Ionicons.glyphMap; focused: boolean }) {
+  const reduce = useReducedMotion();
+  const k = useSharedValue(1);
+  useEffect(() => {
+    if (focused && !reduce) k.value = withSequence(withTiming(1.25, { duration: 110 }), withSpring(1, Spring.press));
+  }, [focused, reduce, k]);
+  const st = useAnimatedStyle(() => ({ transform: [{ scale: k.value }, { translateY: (1 - k.value) * 10 }] }));
+  return (
+    <Animated.View style={st}>
+      <Ionicons name={name} size={22} color={focused ? Corpus.gold : Corpus.text} />
+    </Animated.View>
+  );
+}
 
 export const TAB_BAR_SPACE = 96; // leave this much room at the bottom of tab screens
 
@@ -70,7 +85,7 @@ export default function GlassTabBar({ state, navigation }: BottomTabBarProps) {
               }}
               style={s.tab}
             >
-              <Ionicons name={focused ? t.on : t.icon} size={22} color={focused ? Corpus.gold : Corpus.text} />
+              <TabIcon name={focused ? t.on : t.icon} focused={focused} />
               <Text style={[s.label, focused && s.labelOn]}>{t.label}</Text>
             </Tap>
           );

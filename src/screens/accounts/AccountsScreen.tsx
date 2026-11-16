@@ -1,4 +1,5 @@
 import CandleChart from '@/components/charts/CandleChart';
+import Shine from '@/components/fx/Shine';
 import { askWeb } from '@/services/confirm';
 import Spark from '@/components/charts/Spark';
 import { Button, Group, IconChip, Screen } from '@/components/ui';
@@ -152,6 +153,7 @@ export default function AccountsScreen() {
 
   const hero = (
     <View style={styles.summary}>
+              <Shine />
       <Text style={styles.label}>{scrubbing && cur ? `Closed ${candleLabel(cur) === 'Today' ? 'today' : candleLabel(cur)} at` : 'You have'}</Text>
       <Text
         style={[styles.big, { fontSize: formatINR(shown).length > 10 ? Type.amount : Type.hero }, shown < 0 && { color: Corpus.danger }]}

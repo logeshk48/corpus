@@ -54,6 +54,7 @@ import WeekCard from './components/WeekCard';
 import { moneyCandles } from '@/utils/candles';
 import { billsNeedingAttention } from '@/utils/bills';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
+import Aura from '@/components/fx/Aura';
 import AffordSheet from './components/AffordSheet';
 import { monthlyFlow } from '@/utils/afford';
 import { upcomingBills } from '@/utils/moneyHealth';
@@ -373,8 +374,10 @@ export default function HomeScreen() {
   };
   const { review } = useLocalSearchParams<{ review?: string }>();
   const showMonth = mReport.hasData && (review === '1' || (new Date().getDate() <= 7 && !(settings.dismissedInsights ?? []).includes(`mreport:${lmKey}`)));
+  // Jar plans too big for this month's income: paused, and shown as a card you can act on
+  const pausedPlans = safe.status === 'noData' ? [] : safe.plansPaused.map((pp) => ({ ...pp, jar: vaults.find((v) => v.name === pp.name) })).filter((x) => x.jar);
   // Time-sensitive things you can act on, gathered under one "Needs you" heading right below the actions
-  const needsCount = billsNeedingAttention(bills, 3).slice(0, 3).length + (smsWaiting > 0 ? 1 : 0) + (behind ? 1 : 0) + (showMonth ? 1 : 0) + (reminders.length > 0 ? 1 : 0);
+  const needsCount = billsNeedingAttention(bills, 3).slice(0, 3).length + (smsWaiting > 0 ? 1 : 0) + (behind ? 1 : 0) + (showMonth ? 1 : 0) + (reminders.length > 0 ? 1 : 0) + pausedPlans.length;
   const gold = useGoldRate();
   const nwItems = netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null });
   const nwTotals = netWorthTotals(nwItems);
@@ -427,6 +430,9 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
+      <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, opacity: scrollY.interpolate({ inputRange: [0, 260], outputRange: [1, 0.25], extrapolate: 'clamp' }) }}>
+        <Aura color={loading || safe.status === 'noData' ? Chip.gray : safe.status === 'ok' ? Chip.green : safe.status === 'tight' ? Chip.orange : Chip.red} second={Chip.blue} />
+      </Animated.View>
       <Animated.ScrollView
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
@@ -472,6 +478,16 @@ export default function HomeScreen() {
             <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
           </Pressable>
         )}
+        {pausedPlans.map((pp) => (
+          <Pressable key={pp.jar!.id} style={({ pressed }) => [styles.pausedCard, pressed && { opacity: 0.85 }]} onPress={() => router.push({ pathname: '/vault/[id]', params: { id: pp.jar!.id } })} accessibilityRole="button">
+            <IconChip icon="pause" color={Chip.orange} size={38} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={styles.pausedTitle}>{pp.name} plan is paused</Text>
+              <Text style={styles.pausedText}>It needs {formatINR(pp.need)} this month, more than you can spare. Pick a date that fits.</Text>
+            </View>
+            <View style={styles.pausedBtn}><Text style={styles.pausedBtnText}>Fix</Text></View>
+          </Pressable>
+        ))}
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
         {showMonth && (
           <MonthReportCard

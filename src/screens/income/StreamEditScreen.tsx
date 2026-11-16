@@ -97,7 +97,7 @@ export default function StreamEditScreen() {
   const color = streamColor(stream.type);
   return (
     <>
-      <Screen title={stream.name} subtitle={streamTypeMeta(stream.type).label} onBack={goBack} right={<IconButton icon="create-outline" label="Edit source" onPress={() => setEditing(true)} />}>
+      <Screen title={stream.name} tone={color} subtitle={streamTypeMeta(stream.type).label} onBack={goBack} right={<IconButton icon="create-outline" label="Edit source" onPress={() => setEditing(true)} />}>
         <View style={styles.hero}>
           <Text style={styles.label}>This month</Text>
           <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(monthV))}</Text>
@@ -157,7 +157,7 @@ export default function StreamEditScreen() {
             try {
               await logPaid(stream, amount, date, note, settings.defaultAccountId);
               setPaying(false);
-              showToast({ message: `${formatINR(amount)} from ${stream.name} added` });
+              showToast({ message: `${formatINR(amount)} from ${stream.name} added`, celebrate: true });
             } catch (e) {
               console.error(e);
               showToast({ message: 'Couldn’t save. Try again.' });

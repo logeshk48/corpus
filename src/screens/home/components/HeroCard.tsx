@@ -1,3 +1,4 @@
+import Shine from '@/components/fx/Shine';
 import { Tap } from '@/components/ui';
 import { ActivityRing } from '@/components/ui';
 import { useEntrance } from '@/hooks/useEntrance';
@@ -104,6 +105,7 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
 
   return (
     <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" style={[styles.card, styles.cardCol]}>
+      <Shine />
       <View style={styles.top}>
         <View style={styles.left}>
           <View style={styles.labelRow}>

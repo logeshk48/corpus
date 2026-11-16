@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   skel: { backgroundColor: Corpus.card, borderRadius: 24 },
-  hero: { backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
+  hero: { overflow: 'hidden', backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
   label: { fontSize: Type.body, color: Corpus.textMuted },
   big: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1, ...tabular },
   sub: { fontSize: Type.bodyLg, color: Corpus.textMuted, lineHeight: 20, ...tabular },

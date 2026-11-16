@@ -1,5 +1,6 @@
 import AuthGate from '@/components/AuthGate';
 import ConfirmHost from '@/components/ConfirmHost';
+import CelebrateHost from '@/components/fx/Celebrate';
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { isDark } from '@/constants/theme';
@@ -54,6 +55,7 @@ export default function RootLayout() {
             <Stack.Screen name="tax" />
           </Stack>
           <ConfirmHost />
+          <CelebrateHost />
         </AuthGate>
       </ToastProvider>
     </AuthProvider>

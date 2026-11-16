@@ -1,4 +1,5 @@
 import Bullet from '@/components/charts/Bullet';
+import Shine from '@/components/fx/Shine';
 import { askWeb } from '@/services/confirm';
 import { Button, Group, IconChip, Screen } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
@@ -134,7 +135,8 @@ export default function VaultsScreen() {
     try {
       await addVaultEntry({ vaultId: moneyJar.id, type, amount, note, date: new Date().toISOString() });
       setMoney(null);
-      showToast({ message: moneyMovedMessage(moneyJar, type, amount) });
+      const msg = moneyMovedMessage(moneyJar, type, amount);
+      showToast({ message: msg, celebrate: /Goal reached|% full/.test(msg) });
     } catch (e) {
       console.error('Move money failed:', e);
       showToast({ message: 'Could not save. Check your connection.' });
@@ -186,6 +188,7 @@ export default function VaultsScreen() {
         ) : (
           <>
             <View style={styles.hero}>
+              <Shine />
               <Text style={styles.heroLabel}>Saved for your goals</Text>
               <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(totalV))}</Text>
               <View style={styles.heroLine}>

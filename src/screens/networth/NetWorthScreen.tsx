@@ -1,7 +1,13 @@
-import { Button, ScreenHeader, SectionLabel } from '@/components/ui';
+import Bullet from '@/components/charts/Bullet';
+import Shine from '@/components/fx/Shine';
+import TrendLine from '@/components/charts/TrendLine';
+import Treemap from '@/components/charts/Treemap';
+import { Button, Field, Group, IconChip, Screen, Segmented } from '@/components/ui';
+import { useEntrance } from '@/hooks/useEntrance';
+import { useTween } from '@/hooks/useTween';
+import { Ionicons } from '@expo/vector-icons';
 import { askWeb } from '@/services/confirm';
-import { Corpus } from '@/constants/theme';
-import { ChartColors } from '@/constants/chartColors';
+import { Chip, Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
@@ -14,43 +20,40 @@ import { useInvestments } from '@/hooks/useInvestments';
 import { addAsset, deleteAsset, saveMonthSnapshot, updateAsset } from '@/services/assets';
 import type { ManualAsset, NewManualAsset } from '@/types/asset';
 import { accountBalances } from '@/utils/accounts';
-import { compactINR, formatINR, formatINRLong } from '@/utils/format';
+import { compactINR, formatINR } from '@/utils/format';
 import { composition, explainChange, healthRatios, jarsCheck, monthlyPace, netWorthHistory, netWorthItems, netWorthTotals, nextMilestone, staleItems, type Confidence, type NwGroup, type NwItem } from '@/utils/netWorth';
 import { monthlySpend } from '@/utils/moneyHealth';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 import AssetSheet from './AssetSheet';
 import { styles } from './NetWorthScreen.styles';
 
 type ViewKey = 'total' | 'withoutHome' | 'liquid';
 const VIEWS: { key: ViewKey; label: string; hint: string }[] = [
-  { key: 'total', label: 'Net worth', hint: 'Everything you own − everything you owe' },
-  { key: 'withoutHome', label: 'Without home', hint: 'Leaves out the home you live in and its loan' },
-  { key: 'liquid', label: 'Liquid', hint: 'Cash and bank you could use now − all your debts' },
+  { key: 'total', label: 'Net worth', hint: 'Everything you own minus everything you owe' },
+  { key: 'withoutHome', label: 'Without your home', hint: 'Leaves out the home you live in and its loan' },
+  { key: 'liquid', label: 'Ready cash', hint: 'Cash and bank you could use now, minus all your debts' },
 ];
-const GROUP: Record<NwGroup, { label: string; color: string }> = {
-  cash: { label: 'Cash & bank', color: Corpus.income },
-  investment: { label: 'Investments', color: ChartColors.netWorth.investment },
-  retirement: { label: 'EPF / PPF / NPS', color: ChartColors.netWorth.retirement },
-  receivable: { label: 'Owed to you', color: ChartColors.netWorth.receivable },
-  home: { label: 'Home', color: ChartColors.netWorth.home },
-  property: { label: 'Property', color: ChartColors.netWorth.property },
-  vehicle: { label: 'Vehicles', color: ChartColors.netWorth.vehicle },
-  gold: { label: 'Gold', color: Corpus.gold },
-  other: { label: 'Other', color: Corpus.textMuted },
-  card: { label: 'Credit cards', color: Corpus.danger },
-  loan: { label: 'Loans', color: Corpus.warning },
-  homeLoan: { label: 'Home loan', color: ChartColors.netWorth.home },
-  people: { label: 'Owed to people', color: ChartColors.netWorth.people },
+// One identity colour + icon per kind of thing (same in the bars, the legend and the rows)
+const GROUP: Record<NwGroup, { label: string; color: string; icon: string }> = {
+  cash: { label: 'Cash and bank', color: Chip.green, icon: 'mci:bank' },
+  investment: { label: 'Investments', color: Chip.indigo, icon: 'trending-up' },
+  retirement: { label: 'EPF, PPF, NPS', color: Chip.blue, icon: 'shield-checkmark' },
+  receivable: { label: 'Owed to you', color: Chip.teal, icon: 'people' },
+  home: { label: 'Home', color: Chip.purple, icon: 'home' },
+  property: { label: 'Property', color: Chip.pink, icon: 'business' },
+  vehicle: { label: 'Vehicles', color: Chip.orange, icon: 'car' },
+  gold: { label: 'Gold', color: Chip.yellow, icon: 'diamond' },
+  other: { label: 'Other', color: Chip.gray, icon: 'cube' },
+  card: { label: 'Credit cards', color: Chip.red, icon: 'card' },
+  loan: { label: 'Loans', color: Chip.orange, icon: 'document-text' },
+  homeLoan: { label: 'Home loan', color: Chip.purple, icon: 'home' },
+  people: { label: 'Owed to people', color: Chip.pink, icon: 'people' },
 };
-const PILL: Record<Confidence, { label: string; color: string }> = {
-  verified: { label: 'VERIFIED', color: Corpus.income },
-  manual: { label: 'YOUR VALUE', color: Corpus.textMuted },
-  estimated: { label: 'ESTIMATE', color: Corpus.gold },
-  stale: { label: 'OLD', color: Corpus.warning },
-};
+// How sure the number is, in words
+const SURE: Record<Confidence, string | null> = { verified: null, manual: 'Your value', estimated: 'Estimate', stale: 'Old value' };
+const VIEW_OPTIONS = [{ value: 'total', label: 'Everything' }, { value: 'withoutHome', label: 'Without home' }, { value: 'liquid', label: 'Ready cash' }] as const;
 
 export default function NetWorthScreen() {
   const router = useRouter();
@@ -106,7 +109,7 @@ export default function NetWorthScreen() {
     if (!r) return;
     await gold.setCustom(r);
     setGoldRate(null);
-    showToast({ message: `Using your price ${formatINR(r)}/g for all gold` });
+    showToast({ message: `Using your price of ${formatINR(r)} a gram for all gold` });
   };
 
   const change = prev ? totals[view] - prev.totals[view] : null;
@@ -116,11 +119,11 @@ export default function NetWorthScreen() {
     try {
       if (sheet?.editing) await updateAsset(sheet.editing.id, a);
       else await addAsset(a);
-      showToast({ message: sheet?.editing ? 'Updated' : `${a.name} added` });
+      showToast({ message: sheet?.editing ? `${a.name} saved` : `${a.name} added` });
       setSheet(null);
     } catch (e) {
       console.error(e);
-      showToast({ message: 'Could not save. Try again.' });
+      showToast({ message: 'Couldn’t save. Try again.' });
     }
   };
   const removeAsset = (a: ManualAsset) => {
@@ -133,252 +136,298 @@ export default function NetWorthScreen() {
     else Alert.alert(`Remove ${a.name}?`, '', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: go }]);
   };
 
-  const renderRow = (i: NwItem, k: number) => {
+  const t = useEntrance(900, loading);
+  const totalV = useTween(loading ? 0 : totals[view]);
+  const assetsList = items.filter((i) => i.side === 'asset').sort((a, b) => b.value - a.value);
+  const debtsList = items.filter((i) => i.side === 'liability').sort((a, b) => b.value - a.value);
+  const v = VIEWS.find((x) => x.key === view)!;
+  const own = composition(items, 'asset');
+  const owe = composition(items, 'liability');
+  const scale = Math.max(totals.assets, totals.liabilities, 1);
+  const bars = history.map((h) => ({ key: h.key, label: h.label.slice(0, history.length > 6 ? 1 : 3), full: h.label, value: Math.round(h.totals[view]) }));
+
+  const row = (i: NwItem) => {
     const asset = assets.find((a) => `asset:${a.id}` === i.id);
-    const pill = PILL[i.confidence];
+    const g = GROUP[i.group];
+    const sure = SURE[i.confidence];
+    const tappable = !!asset || !!i.link;
     return (
-      <Pressable
-        key={i.id}
-        style={[styles.row, k > 0 && styles.rowBorder]}
-        onPress={() => (asset ? setSheet({ editing: asset }) : i.link && router.push(i.link as Href))}
-      >
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <Text style={styles.rowLabel}>{i.label}</Text>
-            <View style={[styles.pill, { borderColor: pill.color }]}>
-              <Text style={[styles.pillText, { color: pill.color }]}>{pill.label}</Text>
-            </View>
+      <Pressable key={i.id} disabled={!tappable} onPress={() => (asset ? setSheet({ editing: asset }) : i.link && router.push(i.link as Href))}
+        style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole={tappable ? 'button' : undefined}
+        accessibilityLabel={`${i.label}, ${i.side === 'liability' ? 'you owe ' : ''}${formatINR(i.value)}${sure ? `, ${sure}` : ''}`}>
+        <IconChip icon={g.icon} color={g.color} />
+        <View style={styles.rowBody}>
+          <Text style={styles.rowLabel} numberOfLines={1}>{i.label}</Text>
+          <View style={styles.rowSub}>
+            {i.confidence === 'stale' && <Ionicons name="time" size={12} color={Corpus.warning} style={{ marginTop: 2 }} />}
+            <Text style={[styles.rowNote, i.confidence === 'stale' && { color: Corpus.warning }]} numberOfLines={2}>
+              {[sure, i.note?.replace(/ · /g, ', ').replace(/\/g\b/, ' a gram')].filter(Boolean).join('. ') || g.label}
+            </Text>
           </View>
-          {!!i.note && <Text style={[styles.rowNote, i.confidence === 'stale' && { color: Corpus.warning }]}>{i.note}</Text>}
         </View>
-        <Text style={[styles.rowValue, { color: i.side === 'asset' ? Corpus.text : Corpus.warning }]}>
-          {i.side === 'liability' ? '−' : ''}{formatINR(i.value)}
-        </Text>
+        <Text style={styles.rowValue}>{i.side === 'liability' ? '−' : ''}{formatINR(i.value)}</Text>
+        {tappable && <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />}
       </Pressable>
     );
   };
 
-  const assetsList = items.filter((i) => i.side === 'asset').sort((a, b) => b.value - a.value);
-  const debtsList = items.filter((i) => i.side === 'liability').sort((a, b) => b.value - a.value);
-  const v = VIEWS.find((x) => x.key === view)!;
+  // One side of the balance: a bar on the shared scale, split by kind, with every part named
+  const side = (title: string, total: number, parts: typeof own, minus?: boolean) => (
+    <View style={{ gap: 6 }}>
+      <View style={styles.sideHead}>
+        <Text style={styles.sideTitle}>{title}</Text>
+        <Text style={styles.sideTotal}>{minus && total > 0 ? '−' : ''}{formatINR(total)}</Text>
+      </View>
+      <View style={styles.scale} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={[styles.stack, { width: `${Math.max(total > 0 ? 2 : 0, (total / scale) * 100 * t)}%` }]}>
+          {parts.map((p) => <View key={p.group} style={{ flex: Math.max(p.share, 0.02), backgroundColor: GROUP[p.group].color }} />)}
+        </View>
+      </View>
+      {parts.length === 0 ? (
+        <Text style={styles.rowNote}>{minus ? 'Nothing. You owe no one.' : 'Nothing added yet'}</Text>
+      ) : (
+        <View style={styles.legend}>
+          {parts.slice(0, 5).map((p) => (
+            <View key={p.group} style={styles.legendItem} accessible accessibilityLabel={`${GROUP[p.group].label}: ${formatINR(p.value)}, ${Math.round(p.share * 100)} percent`}>
+              <View style={[styles.dot, { backgroundColor: GROUP[p.group].color }]} />
+              <Text style={styles.legendText}>{GROUP[p.group].label} {compactINR(p.value)}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+
+  const up = (change ?? 0) >= 0;
+  // Where the wealth sits + is too much of it in one place?
+  const tree = own.map((p) => ({ key: p.group, label: GROUP[p.group].label, value: p.value, color: GROUP[p.group].color }));
+  const top = own[0];
+  const concentrated = top && top.share >= 0.6 && own.length >= 1 && totals.assets > 0;
+  // How long it lasts: months of your usual spending covered
+  const readyCash = items.filter((i) => i.side === 'asset' && i.liquid).reduce((a, i) => a + i.value, 0);
+  const lasts = (amount: number) => (spend > 0 ? Math.max(0, amount) / spend : null);
+  const span = (m: number | null) => (m === null ? '–' : m >= 24 ? `${(m / 12).toFixed(1)} years` : m >= 1 ? `${m.toFixed(1)} months` : `${Math.round(m * 30)} days`);
+  const cells = (m: number | null, color: string) => (
+    <View style={styles.cells} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {Array.from({ length: 12 }, (_, k) => {
+        const fill = m === null ? 0 : Math.max(0, Math.min(1, m - k)) * t;
+        return (
+          <View key={k} style={styles.cell}>
+            <View style={{ width: `${fill * 100}%`, height: '100%', backgroundColor: color }} />
+          </View>
+        );
+      })}
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader
-          title="Net worth"
-          onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
-          right={<Button size="sm" icon="add" label="Add asset" onPress={() => setSheet({})} />}
-        />
-
+    <>
+      <Screen title="Net worth" subtitle="What you own minus what you owe" right={<Button size="sm" icon="add" label="Add" onPress={() => setSheet({})} />}>
         {loading ? (
-          <ActivityIndicator color={Corpus.gold} style={{ paddingVertical: 60 }} />
+          <View style={{ gap: 14 }} accessibilityLabel="Loading net worth" accessibilityState={{ busy: true }}>
+            <View style={[styles.skel, { height: 330 }]} />
+            <View style={[styles.skel, { height: 200 }]} />
+          </View>
         ) : (
           <>
             <View style={styles.hero}>
-              <Text style={styles.heroLabel}>{v.label.toUpperCase()}</Text>
-              <Text style={[styles.heroValue, totals[view] < 0 && { color: Corpus.danger }]}>{formatINRLong(totals[view])}</Text>
-              <Text style={styles.heroSub}>{v.hint}</Text>
-              {change !== null && prev && (
-                <Text style={[styles.heroSub, { color: change >= 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
-                  {change >= 0 ? '▲' : '▼'} {formatINR(Math.abs(change))} since end of {prev.label}
+              <Shine />
+              {totals.hasHome || totals.liquid !== totals.total ? (
+                <Segmented options={VIEW_OPTIONS.filter((o) => o.value !== 'withoutHome' || totals.hasHome)} value={view} onChange={(k) => setView(k as ViewKey)} />
+              ) : null}
+              <View style={{ gap: 2, marginTop: 6 }}>
+                <Text style={styles.heroLabel}>{v.label}</Text>
+                <Text style={[styles.heroValue, totals[view] < 0 && { color: Corpus.danger }]} numberOfLines={1} adjustsFontSizeToFit
+                  accessibilityLabel={`${v.label}: ${formatINR(totals[view])}`}>
+                  {formatINR(Math.round(totalV))}
+                </Text>
+                {change !== null && prev ? (
+                  <View style={[styles.change, { backgroundColor: change === 0 ? Corpus.cardAlt : up ? Corpus.incomeTint : Corpus.dangerTint }]}>
+                    <Ionicons name={change === 0 ? 'remove' : up ? 'trending-up' : 'trending-down'} size={15} color={change === 0 ? Corpus.textMuted : up ? Corpus.income : Corpus.danger} />
+                    <Text style={[styles.changeText, { color: change === 0 ? Corpus.textMuted : up ? Corpus.income : Corpus.danger }]}>
+                      {change === 0 ? `Same as end of ${prev.label}` : `${up ? 'Up' : 'Down'} ${formatINR(Math.abs(change))} since end of ${prev.label}`}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.heroSub}>{v.hint}</Text>
+                )}
+              </View>
+
+              {bars.length >= 2 && (
+                <View style={styles.trend}>
+                  <TrendLine points={bars} color={totals[view] < 0 ? Corpus.danger : Corpus.income} appear={t} />
+                </View>
+              )}
+            </View>
+
+            {(old.length > 0 || !jars.ok) && (
+              <View style={styles.card}>
+                {old.length > 0 && (
+                  <Pressable style={styles.notice} onPress={() => router.push('/accounts' as Href)} accessibilityRole="button">
+                    <Ionicons name="time" size={18} color={Corpus.warning} />
+                    <Text style={styles.noticeText}>
+                      {old.length} value{old.length > 1 ? 's are' : ' is'} old: {old.slice(0, 3).map((o) => o.label).join(', ')}{old.length > 3 ? ` and ${old.length - 3} more` : ''}. Update them so this number is right.
+                    </Text>
+                  </Pressable>
+                )}
+                {!jars.ok && (
+                  <View style={styles.notice}>
+                    <Ionicons name="alert-circle" size={18} color={Corpus.warning} />
+                    <Text style={styles.noticeText}>
+                      Your jars hold {formatINR(jars.jarsTotal)} in cash, more than your cash and bank ({formatINR(jars.cash)}). Jar money lives inside your bank balance, so update your balances or take money out of a jar.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitle} accessibilityRole="header">The balance</Text>
+              {side('You own', totals.assets, own)}
+              {side('You owe', totals.liabilities, owe, true)}
+              {totals.assets > 0 && totals.liabilities > 0 && (
+                <Text style={styles.rowNote}>
+                  Debt is {ratios.debtToAssets > 1 ? `${ratios.debtToAssets.toFixed(1)} times` : `${Math.round(ratios.debtToAssets * 100)}% of`} what you own. {ratios.debtToAssets > 0.5 ? 'That’s high.' : ratios.debtToAssets > 0.3 ? 'Keep an eye on it.' : 'That’s healthy.'} Under 30% is good.
                 </Text>
               )}
             </View>
 
-            <View style={styles.views}>
-              {VIEWS.filter((x) => x.key !== 'withoutHome' || totals.hasHome).map((x) => (
-                <Pressable key={x.key} style={[styles.view, view === x.key && styles.viewOn]} onPress={() => setView(x.key)}>
-                  <Text style={styles.viewLabel}>{x.label}</Text>
-                  <Text style={[styles.viewValue, totals[x.key] < 0 && { color: Corpus.danger }]}>{compactINR(totals[x.key])}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Next milestone */}
-            <View style={styles.chart}>
-              <Text style={styles.rowLabel}>
-                {milestone.debtFree ? '🎯 Next: owe nothing (₹0)' : `🎯 Next: ${compactINR(milestone.target)}`}
-              </Text>
-              <View style={styles.track}>
-                <View style={[styles.trackFill, { width: `${Math.round(milestone.progress * 100)}%` }]} />
+            {tree.length > 0 && (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle} accessibilityRole="header">Where your wealth sits</Text>
+                <Treemap items={tree} appear={t} />
+                {concentrated && (
+                  <View style={styles.notice}>
+                    <Ionicons name="alert-circle" size={18} color={Corpus.warning} />
+                    <Text style={styles.noticeText}>
+                      {Math.round(top.share * 100)}% of what you own is {GROUP[top.group].label.toLowerCase()}. If its value falls 10%, your net worth drops about {formatINR(Math.round(top.value * 0.1))}. Building up {top.group === 'cash' ? 'investments' : 'cash and investments'} alongside makes you steadier.
+                    </Text>
+                  </View>
+                )}
               </View>
-              <Text style={styles.chartNote}>
-                {formatINR(Math.max(0, milestone.target - totals.total))} to go
-                {milestone.months ? ` · at your pace about ${milestone.months} month${milestone.months > 1 ? 's' : ''} (estimate)` : pace !== null && pace <= 0 ? ' · net worth went down recently, so no estimate yet' : ' · a pace estimate appears after 2 months of history'}
+            )}
+
+            {spend > 0 && (
+              <View style={styles.card}>
+                <View style={styles.cardHead}>
+                  <Text style={styles.cardTitle} accessibilityRole="header">How long it lasts</Text>
+                  <Text style={styles.cardSide}>at {compactINR(spend)} a month</Text>
+                </View>
+                <View style={{ gap: 4 }} accessible accessibilityLabel={`Ready cash covers ${span(lasts(readyCash))} of your spending`}>
+                  <View style={styles.line}>
+                    <Text style={styles.lastName}>Ready cash</Text>
+                    <Text style={[styles.lastValue, (lasts(readyCash) ?? 9) < 1 && { color: Corpus.warning }]}>{span(lasts(readyCash))}</Text>
+                  </View>
+                  {cells(lasts(readyCash), (lasts(readyCash) ?? 9) < 3 ? Corpus.warning : Corpus.income)}
+                </View>
+                <View style={{ gap: 4 }} accessible accessibilityLabel={`Everything you own minus debts covers ${span(lasts(totals.total))}`}>
+                  <View style={styles.line}>
+                    <Text style={styles.lastName}>Everything, after debts</Text>
+                    <Text style={styles.lastValue}>{span(lasts(totals.total))}</Text>
+                  </View>
+                  {cells(lasts(totals.total), Chip.indigo)}
+                </View>
+                <Text style={styles.rowNote}>Each block is one month of your usual spending. Aim for 3 to 6 months in ready cash.</Text>
+              </View>
+            )}
+
+            <View style={styles.card}>
+              <View style={styles.cardHead}>
+                <Text style={styles.cardTitle} accessibilityRole="header">{milestone.debtFree ? 'Next stop: owe nothing' : `Next stop: ${compactINR(milestone.target)}`}</Text>
+                <Text style={styles.cardSide}>{formatINR(Math.max(0, milestone.target - totals.total))} to go</Text>
+              </View>
+              <View style={styles.ladder} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <View style={styles.ladderTrack} />
+                <View style={[styles.ladderFill, { width: `${milestone.progress * 100 * t}%` }]} />
+                <View style={[styles.stop, { left: 0 }]} />
+                <View style={[styles.stop, styles.stopEnd]} />
+                <View style={[styles.you, { left: `${milestone.progress * 100 * t}%` }]}><View style={styles.youDot} /></View>
+              </View>
+              <View style={styles.line}>
+                <Text style={styles.rowNote}>{compactINR(milestone.from)}</Text>
+                <Text style={styles.rowNote}>{compactINR(milestone.target)}</Text>
+              </View>
+              <Text style={styles.rowNote}>
+                {milestone.months ? `At your pace, about ${milestone.months} month${milestone.months > 1 ? 's' : ''} away (estimate)` : pace !== null && pace <= 0 ? 'Net worth went down lately, so there’s no estimate yet' : 'An estimate appears after 2 months of history'}
               </Text>
             </View>
 
-            {/* What changed */}
             {changes && changes.lines.length > 0 && prev && (
-              <View style={styles.chart}>
-                <Text style={styles.rowLabel}>What changed since end of {prev.label}</Text>
-                <View style={styles.views}>
-                  {[
-                    { l: 'Cash & owed to you', v: changes.saved },
-                    { l: 'Debt', v: changes.debtPaid },
-                    { l: 'Things you own', v: changes.valueChange },
-                  ].map((c) => (
-                    <View key={c.l} style={styles.view}>
-                      <Text style={styles.viewLabel}>{c.l}</Text>
-                      <Text style={[styles.viewValue, { color: c.v > 0 ? Corpus.income : c.v < 0 ? Corpus.danger : Corpus.textMuted }]}>
+              <View style={styles.card}>
+                <Text style={styles.cardTitle} accessibilityRole="header">What changed since {prev.label}</Text>
+                <View style={styles.strip}>
+                  {[{ l: 'Cash', v: changes.saved }, { l: 'Debt', v: changes.debtPaid }, { l: 'Things you own', v: changes.valueChange }].map((c, k) => (
+                    <View key={c.l} style={[styles.stat, k > 0 && styles.statRule]}>
+                      <Text style={styles.statLabel}>{c.l}</Text>
+                      <Text style={[styles.statValue, { color: c.v > 0 ? Corpus.income : c.v < 0 ? Corpus.danger : Corpus.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>
                         {c.v > 0 ? '+' : ''}{compactINR(c.v)}
                       </Text>
                     </View>
                   ))}
                 </View>
                 {changes.lines.slice(0, 5).map((l) => (
-                  <View key={l.id} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={styles.chartNote}>
-                      {l.label}
-                      {l.kind === 'debt' && l.delta > 0 ? ' · paid down' : l.kind === 'debt' ? ' · grew' : l.kind === 'new' ? ' · added' : l.kind === 'value' ? ' · value changed' : ''}
+                  <View key={l.id} style={styles.line}>
+                    <Text style={styles.lineName} numberOfLines={1}>
+                      {l.label}{l.kind === 'debt' && l.delta > 0 ? ', paid down' : l.kind === 'debt' ? ', grew' : l.kind === 'new' ? ', added' : l.kind === 'value' ? ', value changed' : ''}
                     </Text>
-                    <Text style={[styles.chartNote, { color: l.delta > 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
-                      {l.delta > 0 ? '+' : ''}{formatINR(l.delta)}
-                    </Text>
+                    <Text style={[styles.lineAmt, { color: l.delta > 0 ? Corpus.income : Corpus.danger }]}>{l.delta > 0 ? '+' : ''}{formatINR(l.delta)}</Text>
                   </View>
                 ))}
               </View>
             )}
 
-            {history.length >= 2 && (
-              <View style={styles.chart}>
-                <View style={styles.bars}>
-                  {history.map((h, k) => {
-                    const val = h.totals[view];
-                    const last = k === history.length - 1;
-                    return (
-                      <View key={h.key} style={styles.col}>
-                        <View style={[styles.bar, { height: Math.max(3, (Math.abs(val) / max) * 90), backgroundColor: val < 0 ? Corpus.danger : last ? Corpus.gold : Corpus.cardAlt }]} />
-                        <Text style={styles.colLabel}>{h.label}</Text>
-                      </View>
-                    );
-                  })}
+            {golds.length > 0 && (
+              <View style={styles.card}>
+                <View style={styles.cardHead}>
+                  <Text style={styles.cardTitle} accessibilityRole="header">Gold price</Text>
+                  <Text style={styles.cardSide}>{gold.rate ? `${formatINR(gold.rate)} a gram` : gold.fetching ? 'Getting it…' : 'Not available offline'}</Text>
                 </View>
-                <Text style={styles.chartNote}>
-                  Month-end values{history.length < 12 ? ', built from your balance check-ins and loan schedules' : ''}. Red = you owed more than you had.
+                <Text style={styles.rowNote}>
+                  {gold.mode === 'live'
+                    ? `24K market price${gold.liveAt ? `, ${new Date(gold.liveAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : ''}. International price plus 15% import duty, before GST and making charges.`
+                    : 'Your own 24K price, used for all your gold.'}
                 </Text>
-              </View>
-            )}
-
-            {!jars.ok && (
-              <View style={styles.warn}>
-                <Text style={styles.warnText}>
-                  ⚠️ Your jars ({formatINR(jars.jarsTotal)}) add up to more than your cash and bank ({formatINR(jars.cash)}). Jar money lives inside your bank balance, so update your balances or take money out of a jar.
-                </Text>
-              </View>
-            )}
-
-            {/* Health numbers */}
-            {totals.assets + totals.liabilities > 0 && (
-            <>
-            <View style={styles.views}>
-              <View style={styles.view}>
-                <Text style={styles.viewLabel}>Debt vs assets</Text>
-                <Text style={[styles.viewValue, { color: ratios.debtToAssets > 0.5 ? Corpus.danger : ratios.debtToAssets > 0.3 ? Corpus.warning : Corpus.income }]}>
-                  {!Number.isFinite(ratios.debtToAssets) ? 'All debt' : ratios.debtToAssets > 1 ? `${ratios.debtToAssets.toFixed(1)}× assets` : `${Math.round(ratios.debtToAssets * 100)}%`}
-                </Text>
-              </View>
-              <View style={styles.view}>
-                <Text style={styles.viewLabel}>Cash covers</Text>
-                <Text style={[styles.viewValue, { color: (ratios.monthsCovered ?? 0) < 1 ? Corpus.warning : Corpus.text }]}>
-                  {ratios.monthsCovered === null ? '—' : `${ratios.monthsCovered.toFixed(1)} mo`}
-                </Text>
-              </View>
-              <View style={styles.view}>
-                <Text style={styles.viewLabel}>Worth in income</Text>
-                <Text style={[styles.viewValue, { color: (ratios.monthsOfIncome ?? 0) < 0 ? Corpus.danger : Corpus.text }]}>
-                  {ratios.monthsOfIncome === null ? '—' : `${ratios.monthsOfIncome < 0 ? '−' : ''}${Math.abs(ratios.monthsOfIncome).toFixed(1)} mo`}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.note}>
-              Debt vs assets under 30% is comfortable. "Cash covers" = months your cash and bank pay your usual spending. "Worth in income" = your net worth in months of income.
-            </Text>
-            </>
-            )}
-
-            {/* Composition */}
-            {(['asset', 'liability'] as const).map((side) => {
-              const parts = composition(items, side);
-              if (parts.length === 0) return null;
-              return (
-                <View key={side} style={styles.chart}>
-                  <Text style={styles.rowLabel}>{side === 'asset' ? 'What you own is made of' : 'What you owe is made of'}</Text>
-                  <View style={styles.stack}>
-                    {parts.map((p) => (
-                      <View key={p.group} style={{ flex: Math.max(p.share, 0.02), backgroundColor: GROUP[p.group].color }} />
-                    ))}
+                {goldRate === null ? (
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <Button size="sm" variant="secondary" label={gold.mode === 'custom' ? 'Change my price' : 'Use my own price'} onPress={() => setGoldRate(String(gold.rate ?? ''))} />
+                    {gold.mode === 'custom' && <Button size="sm" variant="secondary" label="Use market price" onPress={() => gold.useLive()} />}
                   </View>
-                  <View style={styles.legend}>
-                    {parts.map((p) => (
-                      <Text key={p.group} style={styles.chartNote}>
-                        <Text style={{ color: GROUP[p.group].color }}>● </Text>
-                        {GROUP[p.group].label} {Math.round(p.share * 100)}%
-                      </Text>
-                    ))}
-                  </View>
-                </View>
-              );
-            })}
-
-            {/* Old values + one gold rate for all gold */}
-            {(old.length > 0 || golds.length > 0) && (
-              <View style={[styles.chart, old.length > 0 && { borderColor: Corpus.warningLine, borderWidth: 1 }]}>
-                {old.length > 0 && (
+                ) : (
                   <>
-                    <Text style={styles.rowLabel}>⏳ {old.length} value{old.length > 1 ? 's are' : ' is'} old</Text>
-                    <Text style={styles.chartNote}>{old.map((o) => o.label).join(' · ')}. Tap each below to update, or update balances in Accounts.</Text>
+                    <Field money label="Your jeweller’s 24K rate per gram" value={goldRate} onChangeText={(x) => setGoldRate(x.replace(/[^0-9.]/g, ''))} autoFocus />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Button size="sm" label="Save" onPress={updateGold} />
+                      <Button size="sm" variant="secondary" label="Cancel" onPress={() => setGoldRate(null)} />
+                    </View>
                   </>
                 )}
-                {golds.length > 0 && (
-                  <View style={{ gap: 6 }}>
-                    <Text style={[styles.chartNote, { color: Corpus.gold }]}>
-                      💰 Gold 24K: {gold.rate ? `${formatINR(gold.rate)}/g` : gold.fetching ? 'getting today’s price…' : 'price unavailable offline'}
-                      {gold.mode === 'live'
-                        ? gold.liveAt ? ` · live market price, ${new Date(gold.liveAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : ''
-                        : ' · your own price'}
-                    </Text>
-                    {gold.mode === 'live' && (
-                      <Text style={styles.chartNote}>International price + 15% import duty, before GST and making charges. Updates every 30 min.</Text>
-                    )}
-                    {goldRate === null ? (
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <Button size="sm" variant="secondary" icon="create-outline" label={gold.mode === 'custom' ? 'Change my price' : 'Use my own price'} onPress={() => setGoldRate(String(gold.rate ?? ''))} />
-                        {gold.mode === 'custom' && <Button size="sm" icon="pulse" label="Use live price" onPress={() => gold.useLive()} />}
-                      </View>
-                    ) : (
-                      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                        <TextInput style={styles.rateInput} value={goldRate} onChangeText={(t) => setGoldRate(t.replace(/[^0-9.]/g, ''))} keyboardType="numeric" placeholder="Your jeweller's 24K rate per gram" placeholderTextColor={Corpus.textFaint} autoFocus />
-                        <Button size="sm" label="Save" onPress={updateGold} />
-                      </View>
-                    )}
-                  </View>
-                )}
               </View>
             )}
 
-            <SectionLabel right={formatINR(totals.assets)}>WHAT YOU OWN</SectionLabel>
-            <View style={styles.card}>
-              {assetsList.length ? assetsList.map(renderRow) : <Text style={styles.empty}>Nothing yet. Add your bank balance in Accounts.</Text>}
-            </View>
-            <Button variant="secondary" icon="add" label="Add home, vehicle, gold…" onPress={() => setSheet({})} />
+            <Group title="What you own">
+              {assetsList.length
+                ? assetsList.map(row)
+                : [<Pressable key="none" style={styles.row} onPress={() => router.push('/accounts' as Href)} accessibilityRole="button">
+                    <IconChip icon="mci:bank" color={Chip.green} />
+                    <View style={styles.rowBody}><Text style={styles.rowLabel}>Add your bank and cash</Text><Text style={styles.rowNote}>Start in Accounts</Text></View>
+                    <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+                  </Pressable>]}
+            </Group>
+            <Button variant="secondary" icon="add" label="Add a home, vehicle or gold" onPress={() => setSheet({})} />
 
-            <SectionLabel right={totals.liabilities ? `−${formatINR(totals.liabilities)}` : undefined}>WHAT YOU OWE</SectionLabel>
-            <View style={styles.card}>
-              {debtsList.length ? debtsList.map(renderRow) : <Text style={styles.empty}>No debts. 🎉</Text>}
-            </View>
+            <Group title="What you owe">
+              {debtsList.length
+                ? debtsList.map(row)
+                : [<View key="none" style={styles.row}><IconChip icon="checkmark" color={Chip.green} /><View style={styles.rowBody}><Text style={styles.rowLabel}>No debts</Text><Text style={styles.rowNote}>You owe no one</Text></View></View>]}
+            </Group>
 
             <Text style={styles.note}>
-              ℹ️ Jars aren't added separately because they're inside your bank balance. Paying a card bill or lending money back and forth doesn't change your net worth. Money owed to you counts less the longer it's overdue. Loans count at the principal left, not total EMIs.
+              Jars and investments in jars are counted once, inside your bank and Invest. Paying a card bill doesn’t change net worth. Money owed to you counts for less the longer it’s overdue. Loans count at the principal left.
             </Text>
-            {accounts.length === 0 && (
-              <Button label="Add your bank & cash first" icon="wallet-outline" onPress={() => router.push('/accounts' as Href)} />
-            )}
           </>
         )}
-      </ScrollView>
+      </Screen>
       {sheet && <AssetSheet editing={sheet.editing} onClose={() => setSheet(null)} onSave={saveAsset} onDelete={sheet.editing ? () => removeAsset(sheet.editing!) : undefined} />}
-    </SafeAreaView>
+    </>
   );
 }

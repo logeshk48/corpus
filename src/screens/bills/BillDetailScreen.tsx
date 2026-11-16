@@ -1,4 +1,7 @@
-import { IconButton, ScreenHeader, SectionLabel } from '@/components/ui';
+import { IconButton, IconChip, Screen, SectionLabel } from '@/components/ui';
+import { CategoryChip, Chip } from '@/constants/theme';
+import { findCategory } from '@/constants/categories';
+import Shine from '@/components/fx/Shine';
 import { Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
@@ -29,8 +32,7 @@ import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, Text, View } from 'react-native';
 import BillSheet, { type BillSheetMode } from './components/BillSheet';
 import PayBillSheet from './components/PayBillSheet';
 import LoanPanel from './components/LoanPanel';
@@ -55,14 +57,9 @@ export default function BillDetailScreen() {
 
   if (loading || !bill) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.content}>
-          <ScreenHeader onBack={goBack} />
-          <View style={styles.center}>
-            {loading ? <ActivityIndicator color={Corpus.gold} /> : <Text style={styles.muted}>This bill no longer exists</Text>}
-          </View>
-        </View>
-      </SafeAreaView>
+      <Screen title={loading ? 'Bill' : 'Not found'} onBack={goBack}>
+        {loading ? <View style={{ height: 200, borderRadius: 24, backgroundColor: Corpus.card }} accessibilityLabel="Loading" accessibilityState={{ busy: true }} /> : <Text style={styles.muted}>This bill was deleted.</Text>}
+      </Screen>
     );
   }
 
@@ -182,21 +179,18 @@ export default function BillDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title={bill.name} right={<IconButton icon="create-outline" label="Edit" onPress={() => setMode({ kind: 'edit', bill })} />} onBack={goBack} />
-
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}>
-            <Ionicons name={bill.variable ? 'flash' : 'repeat'} size={24} color={Corpus.violet} />
-          </View>
+    <>
+      <Screen title={bill.name} tone={CategoryChip[bill.category] ?? Chip.red} right={<IconButton icon="create-outline" label="Edit bill" onPress={() => setMode({ kind: 'edit', bill })} />} onBack={goBack}>
+        <View style={[styles.hero, { overflow: 'hidden' }]}>
+          <Shine />
+          <IconChip icon={bill.variable ? 'flash' : findCategory('expense', bill.category)?.icon ?? 'repeat'} color={CategoryChip[bill.category] ?? Chip.red} size={44} />
           <Text style={styles.heroAmount}>
-            {bill.variable ? '~' : ''}
+            {bill.variable ? 'about ' : ''}
             {formatINR(bill.amount)}
           </Text>
           <Text style={styles.heroFreq}>
-            {frequencyLabel(bill)} · on the {ordinal(bill.dayOfMonth)}
-            {bill.variable ? ' · amount varies' : ''}
+            {frequencyLabel(bill)}, on the {ordinal(bill.dayOfMonth)}
+            {bill.variable ? '. The amount varies' : ''}
           </Text>
           <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
             <Text style={[styles.statusText, { color: status.color }]}>{status.text}</Text>
@@ -262,7 +256,7 @@ export default function BillDetailScreen() {
           )}
         </View>
 
-        <SectionLabel>PAYMENT HISTORY · LAST 12 MONTHS</SectionLabel>
+        <SectionLabel>Payments in the last 12 months</SectionLabel>
         <View style={styles.group}>
           {payments.length === 0 ? (
             <View style={styles.empty}>
@@ -289,7 +283,7 @@ export default function BillDetailScreen() {
                     <Text style={styles.rowAmount}>{formatINR(t.amount)}</Text>
                     {diff !== 0 && (
                       <Text style={[styles.change, { color: diff > 0 ? Corpus.danger : Corpus.income }]}>
-                        {diff > 0 ? '↑' : '↓'} {formatINR(Math.abs(diff))} vs last time
+                        {formatINR(Math.abs(diff))} {diff > 0 ? 'more' : 'less'} than last time
                       </Text>
                     )}
                   </View>
@@ -298,7 +292,7 @@ export default function BillDetailScreen() {
             })
           )}
         </View>
-      </ScrollView>
+      </Screen>
 
       <BillSheet mode={mode} onClose={() => setMode(null)} onSave={(b) => save(b)} onDelete={remove} />
       <PayBillSheet bill={paying} onClose={() => setPaying(null)} onPay={pay} onSkip={skip} />
@@ -308,6 +302,6 @@ export default function BillDetailScreen() {
         onSave={saveLoan}
         onRemove={removeLoan}
       />
-    </SafeAreaView>
+    </>
   );
 }

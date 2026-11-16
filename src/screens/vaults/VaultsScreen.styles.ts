@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   lead: { fontSize: Type.bodyLg, color: Corpus.textMuted, lineHeight: 21, paddingHorizontal: 4 },
   skel: { backgroundColor: Corpus.card, borderRadius: 24 },
-  hero: { backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
+  hero: { overflow: 'hidden', backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
   heroLabel: { fontSize: Type.body, color: Corpus.textMuted },
   heroAmount: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1, ...tabular },
   heroLine: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },

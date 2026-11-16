@@ -1,18 +1,17 @@
-import { Button } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
-import { styles as f } from '@/screens/ious/components/IouSheet.styles';
+import { Button, Choice, Field, Sheet } from '@/components/ui';
+import { Corpus, Font, Type } from '@/constants/theme';
+import { useGoldRate } from '@/hooks/useGoldRate';
 import { ASSET_KINDS, assetKindMeta, type AssetKind, type ManualAsset, type NewManualAsset } from '@/types/asset';
 import { formatINR } from '@/utils/format';
 import { goldValue, vehicleValue } from '@/utils/netWorth';
-import { Ionicons } from '@expo/vector-icons';
-import { useGoldRate } from '@/hooks/useGoldRate';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 type Props = { editing?: ManualAsset; onClose: () => void; onSave: (a: NewManualAsset) => Promise<void>; onDelete?: () => void };
 const digits = (t: string) => t.replace(/[^0-9.]/g, '');
+const KINDS = ASSET_KINDS.map((k) => ({ value: k.id, label: k.id === 'home' ? 'Home' : k.id === 'property' ? 'Property' : k.id === 'other' ? 'Other' : k.label, icon: k.icon }));
 
+// Add or edit something you own that isn't money: a home, a vehicle, gold
 export default function AssetSheet({ editing, onClose, onSave, onDelete }: Props) {
   const [kind, setKind] = useState<AssetKind>(editing?.kind ?? 'home');
   const [name, setName] = useState(editing?.name ?? '');
@@ -20,23 +19,25 @@ export default function AssetSheet({ editing, onClose, onSave, onDelete }: Props
   const [price, setPrice] = useState(editing?.purchasePrice ? String(editing.purchasePrice) : '');
   const [year, setYear] = useState(editing?.purchaseDate ? String(new Date(editing.purchaseDate).getFullYear()) : '');
   const [grams, setGrams] = useState(editing?.grams ? String(editing.grams) : '');
-  const [karat, setKarat] = useState<24 | 22 | 18>(editing?.karat ?? 22);
+  const [karat, setKarat] = useState<'24' | '22' | '18'>(String(editing?.karat ?? 22) as '24' | '22' | '18');
   const [rate, setRate] = useState(editing?.rate24k ? String(editing.rate24k) : '');
   const gold = useGoldRate();
   // gold uses today's live (or your own) rate; typing one here is only needed offline
   const effectiveRate = gold.rate ?? (Number(rate) || 0);
   const [busy, setBusy] = useState(false);
+  const [tried, setTried] = useState(false);
 
   const purchaseDate = year.length === 4 ? new Date(Number(year), 6, 1).toISOString() : undefined;
   const preview =
     kind === 'vehicle' && Number(price) > 0 && purchaseDate
       ? vehicleValue(Number(price), purchaseDate)
       : kind === 'gold' && Number(grams) > 0 && effectiveRate > 0
-        ? goldValue(Number(grams), karat, effectiveRate)
+        ? goldValue(Number(grams), Number(karat) as 24 | 22 | 18, effectiveRate)
         : Number(value) || 0;
   const valid = name.trim().length > 0 && preview > 0;
 
   const save = async () => {
+    setTried(true);
     if (!valid || busy) return;
     setBusy(true);
     const now = new Date().toISOString();
@@ -50,7 +51,7 @@ export default function AssetSheet({ editing, onClose, onSave, onDelete }: Props
         purchasePrice: kind === 'vehicle' && Number(price) > 0 ? Number(price) : undefined,
         purchaseDate: kind === 'vehicle' ? purchaseDate : undefined,
         grams: kind === 'gold' && Number(grams) > 0 ? Number(grams) : undefined,
-        karat: kind === 'gold' ? karat : undefined,
+        karat: kind === 'gold' ? (Number(karat) as 24 | 22 | 18) : undefined,
         rate24k: kind === 'gold' && effectiveRate > 0 ? effectiveRate : undefined,
       });
     } finally {
@@ -59,86 +60,50 @@ export default function AssetSheet({ editing, onClose, onSave, onDelete }: Props
   };
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={sheet.sheet}>
-          <View style={sheet.handle} />
-          <View style={sheet.header}>
-            <View style={[sheet.iconCircle, { backgroundColor: Corpus.goldTint }]}>
-              <Ionicons name={assetKindMeta(kind).icon as keyof typeof Ionicons.glyphMap} size={18} color={Corpus.gold} />
-            </View>
-            <View style={sheet.titleBlock}>
-              <Text style={sheet.title}>{editing ? `Edit ${editing.name}` : 'Add something you own'}</Text>
-              <Text style={sheet.subtitle}>{assetKindMeta(kind).hint}</Text>
-            </View>
-            <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={18} color={Corpus.textMuted} />
-            </Pressable>
-          </View>
+    <Sheet
+      title={editing ? editing.name : 'Something you own'}
+      subtitle={assetKindMeta(kind).hint.replace(' — ', '. ')}
+      onClose={onClose}
+      footer={
+        <>
+          <Button label={editing ? 'Save changes' : preview > 0 ? `Add, worth ${formatINR(preview)}` : 'Add'} onPress={save} loading={busy} />
+          {editing && onDelete && <Button variant="quiet" icon="trash-outline" label="Remove" onPress={onDelete} />}
+        </>
+      }
+    >
+      <Choice label="What is it" options={KINDS} value={kind} onChange={setKind} />
+      <Field label="Name" value={name} onChangeText={setName} placeholder={kind === 'vehicle' ? 'Activa, Swift' : kind === 'gold' ? 'Wedding gold' : 'Our flat'} maxLength={30}
+        error={tried && !name.trim() ? 'Give it a name' : undefined} />
 
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
-            <View style={sheet.chips}>
-              {ASSET_KINDS.map((k) => (
-                <Pressable key={k.id} style={[sheet.chip, kind === k.id && sheet.chipSuggested]} onPress={() => setKind(k.id)}>
-                  <Text style={[sheet.chipText, kind === k.id && sheet.chipTextSuggested]}>{k.label}</Text>
-                </Pressable>
-              ))}
-            </View>
+      {kind === 'vehicle' ? (
+        <>
+          <Field money label="Price you paid, on-road" value={price} onChangeText={(t) => setPrice(digits(t))} placeholder="95,000" />
+          <Field label="Year bought" value={year} onChangeText={(t) => setYear(t.replace(/\D/g, '').slice(0, 4))} placeholder="2023" keyboardType="number-pad"
+            hint="The value drops every year the way insurers count it, down to half by year 5." />
+        </>
+      ) : kind === 'gold' ? (
+        <>
+          <Field label="Weight in grams" value={grams} onChangeText={(t) => setGrams(digits(t))} placeholder="40" keyboardType="decimal-pad" />
+          <Choice label="Purity" options={[{ value: '22' as const, label: '22K jewellery' }, { value: '24' as const, label: '24K' }, { value: '18' as const, label: '18K' }]} value={karat} onChange={setKarat} />
+          {gold.rate ? (
+            <Text style={{ fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 }}>
+              Uses {gold.mode === 'live' ? 'today’s market' : 'your own'} 24K rate of {formatINR(gold.rate)} a gram, and updates by itself. Making charges and GST aren’t counted, since you wouldn’t get them back.
+            </Text>
+          ) : (
+            <Field money label="Today’s 24K rate per gram" value={rate} onChangeText={(t) => setRate(digits(t))} placeholder="Check a jeweller" />
+          )}
+        </>
+      ) : (
+        <Field money label="What could you sell it for today" value={value} onChangeText={(t) => setValue(digits(t))} placeholder="A rough figure is fine"
+          error={tried && !(preview > 0) ? 'Enter a value' : undefined} />
+      )}
 
-            <View style={f.field}>
-              <Text style={f.label}>NAME</Text>
-              <TextInput style={f.input} value={name} onChangeText={setName} placeholder={kind === 'vehicle' ? 'e.g. Activa, Swift' : kind === 'gold' ? 'e.g. Wedding gold' : 'e.g. Our flat'} placeholderTextColor={Corpus.textFaint} maxLength={30} />
-            </View>
-
-            {kind === 'vehicle' ? (
-              <>
-                <View style={f.field}>
-                  <Text style={f.label}>PRICE YOU PAID (ON-ROAD)</Text>
-                  <TextInput style={f.input} value={price} onChangeText={(t) => setPrice(digits(t))} placeholder="e.g. 95000" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-                </View>
-                <View style={f.field}>
-                  <Text style={f.label}>YEAR BOUGHT</Text>
-                  <TextInput style={f.input} value={year} onChangeText={(t) => setYear(t.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2023" placeholderTextColor={Corpus.textFaint} keyboardType="number-pad" />
-                </View>
-                <Text style={sheet.hint}>Corpus lowers the value every year like insurance does (5% → 15% → 20%… → 50% by year 5).</Text>
-              </>
-            ) : kind === 'gold' ? (
-              <>
-                <View style={f.field}>
-                  <Text style={f.label}>WEIGHT (GRAMS)</Text>
-                  <TextInput style={f.input} value={grams} onChangeText={(t) => setGrams(digits(t))} placeholder="e.g. 40" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-                </View>
-                <View style={sheet.chips}>
-                  {([24, 22, 18] as const).map((k) => (
-                    <Pressable key={k} style={[sheet.chip, karat === k && sheet.chipSuggested]} onPress={() => setKarat(k)}>
-                      <Text style={[sheet.chipText, karat === k && sheet.chipTextSuggested]}>{k}K{k === 22 ? ' · jewellery' : ''}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {gold.rate ? (
-                  <Text style={sheet.hint}>Using today's {gold.mode === 'live' ? 'live market' : 'your own'} 24K rate: ₹{gold.rate.toLocaleString('en-IN')}/g. It updates automatically.</Text>
-                ) : (
-                <View style={f.field}>
-                  <Text style={f.label}>TODAY'S 24K RATE PER GRAM</Text>
-                  <TextInput style={f.input} value={rate} onChangeText={(t) => setRate(digits(t))} placeholder="Check a jeweller or news site" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-                </View>
-                )}
-                <Text style={sheet.hint}>Valued without making charges or GST, which you wouldn't get back if you sold.</Text>
-              </>
-            ) : (
-              <View style={f.field}>
-                <Text style={f.label}>WHAT COULD YOU SELL IT FOR TODAY?</Text>
-                <TextInput style={f.input} value={value} onChangeText={(t) => setValue(digits(t))} placeholder="A rough estimate is fine" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
-              </View>
-            )}
-
-            {preview > 0 && <Text style={[sheet.hint, { color: Corpus.gold }]}>Counted as {formatINR(preview)}</Text>}
-            <Button label={editing ? 'Save changes' : 'Add'} onPress={save} loading={busy} disabled={!valid} />
-            {editing && onDelete && <Button variant="danger" icon="trash-outline" label="Delete" onPress={onDelete} />}
-          </ScrollView>
+      {preview > 0 && kind !== 'home' && kind !== 'property' && kind !== 'other' && (
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', backgroundColor: Corpus.bg, borderRadius: 16, padding: 14 }}>
+          <Text style={{ fontSize: Type.bodyLg, color: Corpus.textMuted }}>Counted as</Text>
+          <Text style={{ fontSize: Type.title, fontFamily: Font.display, color: Corpus.text }}>{formatINR(preview)}</Text>
         </View>
-      </View>
-    </Modal>
+      )}
+    </Sheet>
   );
 }

@@ -1,12 +1,14 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { styles } from './ToastContext.styles';
+import { celebrate } from '@/components/fx/Celebrate';
 
 export type ToastOptions = {
   message: string;
   actionLabel?: string;               // e.g. "Undo"
   onAction?: () => void | Promise<void>;
   duration?: number;                  // ms, default 5000
+  celebrate?: boolean;                // a real win: a short burst of colour with the message
 };
 
 type ToastContextType = {
@@ -27,6 +29,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = useCallback((options: ToastOptions) => {
     clearTimer();
     setToast(options); // a new toast replaces the current one
+    if (options.celebrate) celebrate();
     timer.current = setTimeout(() => setToast(null), options.duration ?? 5000);
   }, []);
 

@@ -3,7 +3,7 @@ import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 
 // Apple-style summary card: big number on the left, Activity rings on the right
 export const styles = StyleSheet.create({
-  card: { backgroundColor: Corpus.card, borderRadius: 26, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  card: { overflow: 'hidden', backgroundColor: Corpus.card, borderRadius: 26, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 },
   cardCol: { flexDirection: 'column', alignItems: 'stretch', gap: 2 },
   pressed: { transform: [{ scale: 0.98 }] },
   top: { flexDirection: 'row', alignItems: 'center', gap: 14 },

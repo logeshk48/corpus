@@ -1,4 +1,5 @@
 import Bullet from '@/components/charts/Bullet';
+import Shine from '@/components/fx/Shine';
 import { Tap } from '@/components/ui';
 import { Corpus } from '@/constants/theme';
 import { useEntrance } from '@/hooks/useEntrance';
@@ -31,6 +32,7 @@ export default function BudgetSummary({ spent, limit, monthly, onEditMonthly }: 
 
   return (
     <View style={styles.card}>
+              <Shine />
       <View style={styles.top}>
         <View style={{ flex: 1 }}>
           <Text style={styles.label}>Spent in {month()}</Text>

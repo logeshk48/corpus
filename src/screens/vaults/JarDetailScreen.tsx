@@ -114,7 +114,8 @@ export default function JarDetailScreen() {
     try {
       await addVaultEntry({ vaultId: jar.id, type: moneyType, amount, note, date: new Date().toISOString() });
       setMoneyType(null);
-      showToast({ message: moneyMovedMessage(jar, moneyType, amount) });
+      const msg = moneyMovedMessage(jar, moneyType, amount);
+      showToast({ message: msg, celebrate: /Goal reached|% full/.test(msg) });
     } catch (e) {
       console.error('Move money failed:', e);
       showToast({ message: 'Could not save. Check your connection.' });
@@ -171,7 +172,7 @@ export default function JarDetailScreen() {
 
   return (
     <>
-      <Screen title={jar.name} right={<IconButton icon="create-outline" label="Edit jar" onPress={() => setJarMode({ kind: 'edit', jar })} />} onBack={goBack}>
+      <Screen title={jar.name} tone={jar.color} right={<IconButton icon="create-outline" label="Edit jar" onPress={() => setJarMode({ kind: 'edit', jar })} />} onBack={goBack}>
         <View style={styles.hero}>
           <JarFill level={jar.goal ? saved / jar.goal : saved > 0 ? 0.6 : 0} color={jar.color} width={92} height={120} marks={!!jar.goal} />
           <View style={{ flex: 1, gap: 2 }}>

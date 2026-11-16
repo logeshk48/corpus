@@ -1,4 +1,5 @@
 import Bullet from '@/components/charts/Bullet';
+import Shine from '@/components/fx/Shine';
 import MonthBars, { lastMonths } from '@/components/charts/MonthBars';
 import { Button, Group, GroupRow, IconChip, Screen } from '@/components/ui';
 import { Chip, Corpus } from '@/constants/theme';
@@ -80,6 +81,7 @@ export default function IncomeStreamsScreen() {
         ) : (
           <>
             <View style={styles.hero}>
+              <Shine />
               <Text style={styles.label}>Came in during {monthName}</Text>
               <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(totalV))}</Text>
               {expected > 0 ? (
@@ -112,7 +114,7 @@ export default function IncomeStreamsScreen() {
               <Group animate title="Sources">
                 {[
                   ...sorted.map((s) => (
-                    <StreamCard key={s.id} stream={s} receivedThisMonth={received.get(s.id) ?? 0} usual={usual.get(s.id)!} onPaid={() => setPaying(s)} appear={t} onPress={() => router.push({ pathname: '/income/[id]', params: { id: s.id } })} />
+                    <StreamCard key={s.id} stream={s} receivedThisMonth={received.get(s.id) ?? 0} usual={usual.get(s.id) ?? usualOf([])} onPaid={() => setPaying(s)} appear={t} onPress={() => router.push({ pathname: '/income/[id]', params: { id: s.id } })} />
                   )),
                   ...(unlinked > 0
                     ? [<GroupRow key="unlinked" icon="help" color={Chip.gray} title="No source picked" subtitle="Income logged without a source" value={formatINR(unlinked)} valueColor={Corpus.text} onPress={() => router.push('/transactions' as Href)} />]
@@ -134,7 +136,7 @@ export default function IncomeStreamsScreen() {
             try {
               await logPaid(paying, amount, date, note, settings.defaultAccountId);
               setPaying(null);
-              showToast({ message: `${formatINR(amount)} from ${paying.name} added` });
+              showToast({ message: `${formatINR(amount)} from ${paying.name} added`, celebrate: true });
             } catch (e) {
               console.error(e);
               showToast({ message: 'Couldn’t save. Try again.' });
