@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useBills } from '@/hooks/useBills';
 import { useEntrance } from '@/hooks/useEntrance';
+import { useTween } from '@/hooks/useTween';
 import { useIous } from '@/hooks/useIous';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -51,6 +52,7 @@ export default function AccountsScreen() {
   const [pick, setPick] = useState<number | null>(null);
   const t = useEntrance(700, loading);
   const c = useEntrance(900, `${loading}-${range}`);
+  const haveV = useTween(loading ? 0 : accountTotals(accountBalances(accounts, transactions)).have);
 
   const ct = settings.checkinTotals ?? [];
   const recon = useMemo(() => (ct.length >= 2 ? reconcile(ct[ct.length - 2], ct[ct.length - 1], transactions, ious) : null), [ct, transactions, ious]);
@@ -156,7 +158,7 @@ export default function AccountsScreen() {
         adjustsFontSizeToFit
         accessibilityLabel={`You have ${formatINR(totals.have)} in ${money.length} account${money.length === 1 ? '' : 's'}`}
       >
-        {formatINR(Math.round(shown * (scrubbing ? 1 : t)))}
+        {formatINR(Math.round(scrubbing ? shown : haveV))}
       </Text>
       {candles.length >= 2 && (
         <View style={[styles.change, { backgroundColor: change === 0 ? Corpus.cardAlt : up ? Corpus.incomeTint : Corpus.dangerTint }]}>

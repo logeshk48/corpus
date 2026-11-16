@@ -2,10 +2,13 @@ import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Children, isValidElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeOut, LayoutAnimationConfig, LinearTransition } from 'react-native-reanimated';
+import { Duration } from '@/constants/motion';
 import IconChip from './IconChip';
 
 // Apple "inset grouped" list: an optional title, then white rounded rows with inset hairlines
-export default function Group({ title, action, onAction, children }: { title?: string; action?: string; onAction?: () => void; children: ReactNode }) {
+// animate: rows added later slide in, removed rows fade out and the rest close the gap (not on first show)
+export default function Group({ title, action, onAction, children, animate }: { title?: string; action?: string; onAction?: () => void; children: ReactNode; animate?: boolean }) {
   const rows = Children.toArray(children).filter(isValidElement);
   return (
     <View style={s.wrap}>
@@ -17,14 +20,23 @@ export default function Group({ title, action, onAction, children }: { title?: s
           )}
         </View>
       )}
-      <View style={s.card}>
-        {rows.map((r, i) => (
-          <View key={i}>
-            {r}
-            {i < rows.length - 1 && <View style={s.sep} />}
-          </View>
-        ))}
-      </View>
+      <LayoutAnimationConfig skipEntering>
+        <View style={s.card}>
+          {rows.map((r, i) =>
+            animate ? (
+              <Animated.View key={r.key ?? i} entering={FadeInDown.duration(Duration.enter)} exiting={FadeOut.duration(Duration.exit)} layout={LinearTransition.duration(Duration.enter)}>
+                {r}
+                {i < rows.length - 1 && <View style={s.sep} />}
+              </Animated.View>
+            ) : (
+              <View key={r.key ?? i}>
+                {r}
+                {i < rows.length - 1 && <View style={s.sep} />}
+              </View>
+            )
+          )}
+        </View>
+      </LayoutAnimationConfig>
     </View>
   );
 }

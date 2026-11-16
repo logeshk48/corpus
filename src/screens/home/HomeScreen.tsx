@@ -1,6 +1,6 @@
 import { Chip, Corpus } from '@/constants/theme';
 import { loggingStreak } from '@/utils/streak';
-import { Group, GroupRow, IconChip } from '@/components/ui';
+import { Group, GroupRow, IconChip, Tap } from '@/components/ui';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
@@ -436,19 +436,19 @@ export default function HomeScreen() {
         <HomeHeader streak={streak.days} loggedToday={streak.loggedToday} />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
         <View style={styles.actions}>
-          <Pressable style={({ pressed }) => [styles.primary, pressed && { opacity: 0.85 }]} onPress={() => router.push('/add' as Href)} accessibilityRole="button">
+          <Tap style={styles.primary} onPress={() => router.push('/add' as Href)} accessibilityRole="button">
             <Ionicons name="add" size={22} color={Corpus.onGold} />
             <Text style={styles.primaryText}>Add spend</Text>
-          </Pressable>
+          </Tap>
           <View style={styles.secondaryRow}>
-            <Pressable style={({ pressed }) => [styles.secondary, pressed && { opacity: 0.7 }]} onPress={() => router.push('/add?paste=1' as Href)} accessibilityRole="button">
+            <Tap style={styles.secondary} onPress={() => router.push('/add?paste=1' as Href)} accessibilityRole="button">
               <Ionicons name="scan" size={18} color={Corpus.text} />
               <Text style={styles.secondaryText}>Scan a receipt</Text>
-            </Pressable>
-            <Pressable style={({ pressed }) => [styles.secondary, pressed && { opacity: 0.7 }]} onPress={() => setShowAfford(true)} accessibilityRole="button">
+            </Tap>
+            <Tap style={styles.secondary} onPress={() => setShowAfford(true)} accessibilityRole="button">
               <Ionicons name="help-circle-outline" size={18} color={Corpus.text} />
               <Text style={styles.secondaryText}>Can I afford it?</Text>
-            </Pressable>
+            </Tap>
           </View>
         </View>
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
@@ -493,7 +493,7 @@ export default function HomeScreen() {
             <GroupRow icon="add" color={Chip.green} title="Log your first spend" subtitle="Takes 3 seconds" onPress={() => router.push('/add' as Href)} />
           </Group>
         ) : (
-          <Group title="Recent" action="See all" onAction={() => router.push('/transactions' as Href)}>
+          <Group animate title="Recent" action="See all" onAction={() => router.push('/transactions' as Href)}>
             {recent.map((tx) => (
               <TransactionRow key={tx.id} tx={tx} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })} />
             ))}

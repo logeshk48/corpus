@@ -1,10 +1,12 @@
+import { Tap } from '@/components/ui';
 import { ActivityRing } from '@/components/ui';
 import { useEntrance } from '@/hooks/useEntrance';
+import { useTween } from '@/hooks/useTween';
 import { Chip, Corpus, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { SafeToSpendResult } from '@/utils/safeToSpend';
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { styles } from './HeroCard.styles';
 
 const STATUS_COLOR = {
@@ -44,6 +46,8 @@ type HeroCardProps = {
 
 export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   const t = useEntrance(900, loading ? 0 : 1);
+  // Counts up on arrival, then rolls from old to new whenever it changes (e.g. right after you log a spend)
+  const safeV = useTween(loading || result.status === 'noData' ? 0 : result.safeToday);
   if (loading) {
     return (
       <View style={[styles.card, styles.cardCol]} accessibilityLabel="Working out what you can spend today" accessibilityState={{ busy: true }}>
@@ -61,7 +65,7 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
 
   if (result.status === 'noData') {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, styles.cardCol, pressed && styles.pressed]}>
+      <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" style={[styles.card, styles.cardCol]}>
         <View style={styles.top}>
           <View style={styles.left}>
             <Text style={styles.label}>Safe to spend today</Text>
@@ -77,18 +81,18 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
           <Text style={styles.howText}>How does it work?</Text>
           <Ionicons name="chevron-forward" size={13} color={Corpus.gold} />
         </View>
-      </Pressable>
+      </Tap>
     );
   }
 
   const color = STATUS_COLOR[result.status];
   const over = result.safeToday < 0;
   // A single precise figure reads as a spending target, so show a comfortable range
-  const low = Math.max(0, Math.floor((result.safeToday * 0.9 * t) / 10) * 10);
-  const high = Math.ceil((result.safeToday * 1.1 * t) / 10) * 10;
+  const low = Math.max(0, Math.floor((safeV * 0.9) / 10) * 10);
+  const high = Math.ceil((safeV * 1.1) / 10) * 10;
   const asRange = !over && result.safeToday >= 50;
   const label = over ? "Over today's limit by" : asRange ? 'Today you can spend about' : 'Safe to spend today';
-  const amount = asRange ? `${formatINR(low)}–${formatINR(high).replace('₹', '')}` : formatINR(Math.round(Math.abs(result.safeToday) * t));
+  const amount = asRange ? `${formatINR(low)}–${formatINR(high).replace('₹', '')}` : formatINR(Math.round(Math.abs(safeV)));
 
   let context = `${formatINR(result.dailyAllowance)}/day for the next ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'}`;
   if (result.available < 0) context = `You've used ${formatINR(-result.available)} more than this month allows`;
@@ -99,7 +103,7 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   const through = Math.min(1, Math.max(0, (result.cycleDays - result.daysLeft + 1) / Math.max(1, result.cycleDays)));
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.card, styles.cardCol, pressed && styles.pressed]}>
+    <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" style={[styles.card, styles.cardCol]}>
       <View style={styles.top}>
         <View style={styles.left}>
           <View style={styles.labelRow}>
@@ -130,6 +134,6 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
         <Text style={styles.howText}>How it works</Text>
         <Ionicons name="chevron-forward" size={13} color={Corpus.gold} />
       </View>
-    </Pressable>
+    </Tap>
   );
 }

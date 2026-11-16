@@ -1,7 +1,10 @@
 import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import type { Candle } from '@/utils/candles';
 import { compactINR, formatINR } from '@/utils/format';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 
 // Trading-app style candles (hollow = ended higher, filled = ended lower) drawn with plain Views (no SVG needed, works on web + phone).
 // Tap or hover a candle to read it; the parent shows the reading in its big number.
@@ -16,6 +19,10 @@ export default function CandleChart({ candles, selected, onSelect, appear = 1, l
   const max = hi + pad, min = lo - pad;
   const y = (v: number) => ((max - v) / (max - min)) * H;
   const n = candles.length;
+  // Slide a finger across the chart to read each candle (like a stock app). Horizontal only, so the page still scrolls.
+  const [cw, setCw] = useState(0);
+  const pick = (x: number) => { if (cw > 0) onSelect(Math.max(0, Math.min(n - 1, Math.floor((x / cw) * n)))); };
+  const scrub = Gesture.Pan().activeOffsetX([-6, 6]).failOffsetY([-14, 14]).onChange((e) => { runOnJS(pick)(e.x); });
 
   return (
     <View>
@@ -28,7 +35,8 @@ export default function CandleChart({ candles, selected, onSelect, appear = 1, l
             </View>
           ))}
         </View>
-        <View style={s.cols}>
+        <GestureDetector gesture={scrub}>
+        <View style={s.cols} onLayout={(e) => setCw(e.nativeEvent.layout.width)}>
           {candles.map((c, i) => {
             const up = c.close > c.open, down = c.close < c.open;
             const color = up ? Corpus.income : down ? Corpus.danger : Corpus.textFaint;
@@ -55,6 +63,7 @@ export default function CandleChart({ candles, selected, onSelect, appear = 1, l
             );
           })}
         </View>
+        </GestureDetector>
       </View>
       <View style={s.xRow}>
         <Text style={s.x}>{label(candles[0])}</Text>

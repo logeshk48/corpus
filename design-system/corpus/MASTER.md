@@ -95,3 +95,14 @@ Copy
 - Short and plain: say the fact, then the action. No "Not wrong, just worth seeing", no pep talk, no ✓ in text.
 - No explainer paragraphs under charts: a two-item legend instead.
 Still to clean (done as each screen is redesigned): 247 middle dots, 134 em dashes, 72 emoji lines across other screens and notifications.
+
+## Motion (step 4e) — react-native-reanimated 4 + gesture-handler, tokens in src/constants/motion.ts
+Every motion answers something you did. Reduce Motion turns them off.
+- Press: `Tap` dips to 0.97 and springs back (buttons, hero, tab bar, actions). List rows keep the grey highlight instead.
+- Tab bar: the selected pill slides to the tab you tap.
+- Screens: forward slides in from the right, the old screen parallaxes back; Ask and bank SMS rise from the bottom; auth/app crossfade.
+- Sheets: backdrop fades, sheet springs up; drag the top down or tap outside and it slides away faster than it came.
+- Numbers: `useTween` rolls Safe to spend / You have from old to new value after you log something.
+- Lists: `<Group animate>` slides new rows in, fades removed ones, the rest close the gap (not on first load).
+- Candle chart: slide a finger across to read each candle.
+- Switches: the knob springs across.

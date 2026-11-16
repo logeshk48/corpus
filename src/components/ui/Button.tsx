@@ -1,6 +1,7 @@
 import { Corpus } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Text, type StyleProp, type ViewStyle } from 'react-native';
+import Tap from './Tap';
 import { styles } from './Button.styles';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'quiet' | 'danger';
@@ -44,18 +45,17 @@ export default function Button({
   const iconEl = icon ? <Ionicons name={icon} size={size === 'lg' ? 17 : 14} color={color} /> : null;
 
   return (
-    <Pressable
+    <Tap
       onPress={onPress}
       disabled={inactive}
       accessibilityRole="button"
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         styles[size],
         styles[variant],
         tint && variant === 'primary' ? { backgroundColor: tint } : null,
         disabled && variant !== 'ghost' && variant !== 'quiet' && styles.disabled,
-        pressed && !inactive && styles.pressed,
         style,
       ]}
     >
@@ -68,6 +68,6 @@ export default function Button({
           {iconRight && iconEl}
         </>
       )}
-    </Pressable>
+    </Tap>
   );
 }

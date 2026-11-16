@@ -8,6 +8,7 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   // The web build is pre-rendered without knowing the saved theme, so draw only in the browser
@@ -19,14 +20,17 @@ export default function RootLayout() {
   });
   if (!mounted || (!fontsReady && !fontError)) return null; // a blink on first launch; system font if loading fails
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <AuthProvider>
       <ToastProvider>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <AuthGate>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+          {/* Forward = slide in from the right with the previous screen parallaxing back (same on Android and iPhone);
+              things you summon (Ask, bank SMS) rise from the bottom; switching auth/app crossfades. */}
+          <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', fullScreenGestureEnabled: true, gestureEnabled: true }}>
+            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="onboarding" options={{ gestureEnabled: false, animation: 'fade' }} />
             <Stack.Screen name="transactions" />
             <Stack.Screen name="edit/[id]" />
             <Stack.Screen name="income/index" />
@@ -41,8 +45,8 @@ export default function RootLayout() {
             <Stack.Screen name="accounts" />
             <Stack.Screen name="networth" />
             <Stack.Screen name="wealth" />
-            <Stack.Screen name="ask" />
-            <Stack.Screen name="sms-review" />
+            <Stack.Screen name="ask" options={{ animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="sms-review" options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="debts" />
             <Stack.Screen name="inbox" />
             <Stack.Screen name="reports" />
@@ -51,5 +55,6 @@ export default function RootLayout() {
         </AuthGate>
       </ToastProvider>
     </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

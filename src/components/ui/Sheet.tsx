@@ -1,39 +1,82 @@
 import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, type ReactNode } from 'react';
+import { Duration, EaseIn, Spring } from '@/constants/motion';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import {
-  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  Dimensions, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type TextInputProps,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // The one bottom sheet every form uses: title + close, scrolling body, pinned actions.
-// ui-ux-pro-max: visible labels (not placeholder-only), errors next to the field, 44pt targets.
+// Motion: the backdrop fades while the sheet springs up; drag the top down (or tap outside) and it slides away
+// faster than it came (skill: modal-motion, gesture-feedback, exit-faster-than-enter).
 export default function Sheet({ title, subtitle, onClose, children, footer }: {
   title: string; subtitle?: string; onClose: () => void; children: ReactNode; footer?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const reduce = useReducedMotion();
+  const H = Dimensions.get('window').height;
+  const y = useSharedValue(reduce ? 0 : H);
+  const fade = useSharedValue(reduce ? 1 : 0);
+  const closing = useRef(false);
+
+  useEffect(() => {
+    if (reduce) return;
+    y.value = withSpring(0, Spring.sheet);
+    fade.value = withTiming(1, { duration: Duration.enter });
+  }, [reduce, y, fade]);
+
+  const close = () => {
+    if (closing.current) return;
+    closing.current = true;
+    if (reduce) return onClose();
+    fade.value = withTiming(0, { duration: Duration.exit });
+    y.value = withTiming(H, { duration: Duration.exit + 40, easing: EaseIn }, (done) => { if (done) runOnJS(onClose)(); });
+  };
+
+  const drag = Gesture.Pan()
+    .activeOffsetY(8)
+    .onChange((e) => { y.value = e.translationY > 0 ? e.translationY : e.translationY / 4; })
+    .onEnd((e) => {
+      if (e.translationY > 120 || e.velocityY > 900) runOnJS(close)();
+      else y.value = withSpring(0, Spring.sheet);
+    });
+
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+  const scrimStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
+
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView style={s.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" />
-        <View style={[s.sheet, { paddingBottom: Math.max(insets.bottom, Space.md) + 4 }]} accessibilityViewIsModal>
-          <View style={s.handle} />
-          <View style={s.head}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={s.title} accessibilityRole="header" numberOfLines={2}>{title}</Text>
-              {!!subtitle && <Text style={s.subtitle}>{subtitle}</Text>}
-            </View>
-            <Pressable onPress={onClose} hitSlop={6} style={({ pressed }) => [s.close, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close">
-              <Ionicons name="close" size={18} color={Corpus.text} />
-            </Pressable>
-          </View>
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={s.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            {children}
-          </ScrollView>
-          {footer && <View style={s.footer}>{footer}</View>}
-        </View>
-      </KeyboardAvoidingView>
+    <Modal visible transparent animationType="none" onRequestClose={close} statusBarTranslucent>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardAvoidingView style={s.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Animated.View style={[StyleSheet.absoluteFill, s.scrim, scrimStyle]}>
+            <Pressable style={{ flex: 1 }} onPress={close} accessibilityLabel="Close" accessibilityRole="button" />
+          </Animated.View>
+          <Animated.View style={[s.sheet, { paddingBottom: Math.max(insets.bottom, Space.md) + 4 }, sheetStyle]} accessibilityViewIsModal>
+            <GestureDetector gesture={drag}>
+              <View style={{ gap: Space.md }}>
+                <View style={s.handle} />
+                <View style={s.head}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={s.title} accessibilityRole="header" numberOfLines={2}>{title}</Text>
+                    {!!subtitle && <Text style={s.subtitle}>{subtitle}</Text>}
+                  </View>
+                  <Pressable onPress={close} hitSlop={6} style={({ pressed }) => [s.close, pressed && { opacity: 0.6 }]} accessibilityRole="button" accessibilityLabel="Close">
+                    <Ionicons name="close" size={18} color={Corpus.text} />
+                  </Pressable>
+                </View>
+              </View>
+            </GestureDetector>
+            <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={s.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {children}
+            </ScrollView>
+            {footer && <View style={s.footer}>{footer}</View>}
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -94,6 +137,18 @@ export function Choice<T extends string>({ options, value, onChange, label, tile
   );
 }
 
+// The switch knob springs across instead of jumping
+function Switch({ on }: { on: boolean }) {
+  const x = useSharedValue(on ? 18 : 0);
+  useEffect(() => { x.value = withSpring(on ? 18 : 0, Spring.snappy); }, [on, x]);
+  const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  return (
+    <View style={[s.track, on && s.trackOn]}>
+      <Animated.View style={[s.knob, on && { backgroundColor: Corpus.onGold }, knob]} />
+    </View>
+  );
+}
+
 // A row with a title, a hint and an on/off control
 export function Toggle({ title, hint, value, onChange, icon = 'star' }: { title: string; hint?: string; value: boolean; onChange: (v: boolean) => void; icon?: string }) {
   return (
@@ -103,15 +158,14 @@ export function Toggle({ title, hint, value, onChange, icon = 'star' }: { title:
         <Text style={s.toggleTitle}>{title}</Text>
         {!!hint && <Text style={s.msg}>{hint}</Text>}
       </View>
-      <View style={[s.track, value && s.trackOn]}>
-        <View style={[s.knob, value && s.knobOn]} />
-      </View>
+      <Switch on={value} />
     </Pressable>
   );
 }
 
 const s = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', backgroundColor: Corpus.scrim },
+  overlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center' },
+  scrim: { backgroundColor: Corpus.scrim },
   sheet: {
     width: '100%', maxWidth: 520, maxHeight: '92%', backgroundColor: Corpus.card,
     borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 8, paddingHorizontal: Space.lg, gap: Space.md,
@@ -143,5 +197,4 @@ const s = StyleSheet.create({
   track: { width: 46, height: 28, borderRadius: 14, backgroundColor: Corpus.border, padding: 3 },
   trackOn: { backgroundColor: Corpus.gold },
   knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'white' },
-  knobOn: { transform: [{ translateX: 18 }], backgroundColor: Corpus.onGold },
 });

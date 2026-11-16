@@ -2,8 +2,11 @@ import { Corpus, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
-import { AccessibilityInfo, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { Spring } from '@/constants/motion';
+import Tap from '@/components/ui/Tap';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Floating "liquid glass" tab bar, Apple iOS 26 style: a capsule of tabs + a separate round Ask button.
@@ -29,16 +32,35 @@ export default function GlassTabBar({ state, navigation }: BottomTabBarProps) {
     return () => sub?.remove();
   }, []);
   const glassLook = solid ? s.solid : blur;
+
+  // The selected-tab pill slides to the tab you tap instead of jumping (skill: state-transition, continuity)
+  const visible = state.routes.filter((r) => TABS[r.name]);
+  const vi = visible.findIndex((r) => r.key === state.routes[state.index].key);
+  const [w, setW] = useState(0);
+  const tabW = w > 0 ? (w - 10) / visible.length : 0;
+  const reduce = useReducedMotion();
+  const x = useSharedValue(0);
+  const shown = useSharedValue(0);
+  useEffect(() => {
+    if (!tabW) return;
+    const to = Math.max(0, vi) * tabW;
+    x.value = reduce || shown.value === 0 ? to : withSpring(to, Spring.snappy);
+    shown.value = withTiming(vi >= 0 ? 1 : 0, { duration: 150 });
+  }, [vi, tabW, reduce, x, shown]);
+  const pill = useAnimatedStyle(() => ({ opacity: shown.value, transform: [{ translateX: x.value }] }));
+
   return (
     <View style={[s.wrap, { bottom: Math.max(insets.bottom, 10) + 6 }]} pointerEvents="box-none">
-      <View style={[s.bar, glassLook]} accessibilityRole="tablist">
+      <View style={[s.bar, glassLook]} accessibilityRole="tablist" onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+        {tabW > 0 && <Animated.View pointerEvents="none" style={[s.pill, { width: tabW }, pill]} />}
         {state.routes.map((r, i) => {
           const t = TABS[r.name];
           if (!t) return null; // Settings lives behind the profile button
           const focused = state.index === i;
           return (
-            <Pressable
+            <Tap
               key={r.key}
+              scaleTo={0.92}
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
               accessibilityLabel={t.label}
@@ -46,17 +68,17 @@ export default function GlassTabBar({ state, navigation }: BottomTabBarProps) {
                 const e = navigation.emit({ type: 'tabPress', target: r.key, canPreventDefault: true });
                 if (!focused && !e.defaultPrevented) navigation.navigate(r.name);
               }}
-              style={[s.tab, focused && s.tabOn]}
+              style={s.tab}
             >
               <Ionicons name={focused ? t.on : t.icon} size={22} color={focused ? Corpus.gold : Corpus.text} />
               <Text style={[s.label, focused && s.labelOn]}>{t.label}</Text>
-            </Pressable>
+            </Tap>
           );
         })}
       </View>
-      <Pressable style={[s.round, glassLook]} onPress={() => router.push('/ask' as Href)} accessibilityRole="button" accessibilityLabel="Ask Corpus">
+      <Tap style={[s.round, glassLook]} scaleTo={0.92} onPress={() => router.push('/ask' as Href)} accessibilityRole="button" accessibilityLabel="Ask Corpus">
         <Ionicons name="search" size={22} color={Corpus.text} />
-      </Pressable>
+      </Tap>
     </View>
   );
 }
@@ -76,7 +98,7 @@ const s = StyleSheet.create({
   wrap: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
   bar: { ...glass, flex: 1, height: 62, borderRadius: 31, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 5 },
   tab: { flex: 1, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  tabOn: { backgroundColor: Corpus.goldTint },
+  pill: { position: 'absolute', left: 5, top: 5, height: 52, borderRadius: 26, backgroundColor: Corpus.goldTint },
   label: { fontSize: Type.small, fontWeight: '500', color: Corpus.text },
   labelOn: { fontWeight: '700', color: Corpus.gold },
   round: { ...glass, width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center' },

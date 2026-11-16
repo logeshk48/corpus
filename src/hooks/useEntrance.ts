@@ -8,6 +8,7 @@ export function useEntrance(ms = 900, key: unknown = 0) {
   useEffect(() => {
     let raf = 0;
     let alive = true;
+    const settle = setTimeout(() => { if (alive) { cancelAnimationFrame(raf); setT(1); } }, ms + 120); // frames paused? still finish
     AccessibilityInfo.isReduceMotionEnabled()
       .catch(() => false)
       .then((reduce) => {
@@ -21,7 +22,7 @@ export function useEntrance(ms = 900, key: unknown = 0) {
         };
         raf = requestAnimationFrame(step);
       });
-    return () => { alive = false; cancelAnimationFrame(raf); };
+    return () => { alive = false; cancelAnimationFrame(raf); clearTimeout(settle); };
   }, [ms, key]);
   return t;
 }
