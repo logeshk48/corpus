@@ -2,7 +2,7 @@ import CandleChart from '@/components/charts/CandleChart';
 import Spark from '@/components/charts/Spark';
 import { Button, Group, IconChip, Screen } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
-import { Chip, Corpus, Pastel, Type } from '@/constants/theme';
+import { Chip, Corpus, Type } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useBills } from '@/hooks/useBills';
@@ -149,7 +149,7 @@ export default function AccountsScreen() {
 
   const hero = (
     <View style={styles.summary}>
-      <Text style={styles.label}>{scrubbing && cur ? `${candleLabel(cur)} · closed at` : 'You have'}</Text>
+      <Text style={styles.label}>{scrubbing && cur ? `Closed ${candleLabel(cur) === 'Today' ? 'today' : candleLabel(cur)} at` : 'You have'}</Text>
       <Text
         style={[styles.big, { fontSize: formatINR(shown).length > 10 ? Type.amount : Type.hero }, shown < 0 && { color: Corpus.danger }]}
         numberOfLines={1}
@@ -162,7 +162,7 @@ export default function AccountsScreen() {
         <View style={[styles.change, { backgroundColor: change === 0 ? Corpus.cardAlt : up ? Corpus.incomeTint : Corpus.dangerTint }]}>
           <Ionicons name={change === 0 ? 'remove' : up ? 'trending-up' : 'trending-down'} size={15} color={change === 0 ? Corpus.textMuted : up ? Corpus.income : Corpus.danger} />
           <Text style={[styles.changeText, { color: change === 0 ? Corpus.textMuted : up ? Corpus.income : Corpus.danger }]}>
-            {change === 0 ? 'No change' : `${up ? 'Up' : 'Down'} ${formatINR(Math.abs(change))}${pct >= 0.1 ? ` · ${pct.toFixed(1)}%` : ''}`}
+            {change === 0 ? 'No change' : `${up ? 'Up' : 'Down'} ${formatINR(Math.abs(change))}${pct >= 0.1 ? ` (${pct.toFixed(1)}%)` : ''}`}
             {scrubbing ? (range === 'days' ? ' that day' : ' that week') : range === 'days' ? ' in 2 weeks' : ' in 3 months'}
           </Text>
         </View>
@@ -182,12 +182,17 @@ export default function AccountsScreen() {
               </Pressable>
             )}
           </View>
-          <Text style={styles.chartNote}>Each candle: where your money started and ended, plus its high and low. Hollow green = ended higher, solid red = lower.</Text>
+          <View style={styles.legend} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <View style={[styles.swatch, { borderWidth: 1.5, borderColor: Corpus.income }]} />
+            <Text style={styles.legendText}>Ended higher</Text>
+            <View style={[styles.swatch, { backgroundColor: Corpus.danger }]} />
+            <Text style={styles.legendText}>Ended lower</Text>
+          </View>
         </View>
       ) : (
         <View style={styles.chartEmpty}>
           <IconChip icon="mci:chart-timeline-variant" color={Chip.indigo} size={30} />
-          <Text style={[styles.extraText, { flex: 1 }]}>Your money chart appears after a couple of days of entries linked to these accounts.</Text>
+          <Text style={[styles.extraText, { flex: 1 }]}>The chart fills in after a few days of entries.</Text>
         </View>
       )}
     </View>
@@ -215,49 +220,28 @@ export default function AccountsScreen() {
     </View>
   );
 
-  const lilac = Pastel.lilac;
-  const peach = Pastel.peach;
   const tiles = (
-    <View style={styles.tiles}>
+    <View style={styles.strip}>
       <Pressable
-        style={({ pressed }) => [styles.tile, { backgroundColor: lilac.bg }, pressed && { opacity: 0.85 }]}
+        style={({ pressed }) => [styles.stat, pressed && { opacity: 0.7 }]}
         onPress={() => (cards.length ? setSheet({ editing: cards[0] }) : setSheet({ type: 'credit' }))}
         accessibilityRole="button"
       >
-        <View style={styles.tileTop}>
-          <Ionicons name="card" size={16} color={lilac.icon} />
-          <Text style={[styles.tileLabel, { color: lilac.fg }]}>Card dues</Text>
-        </View>
-        {cards.length ? (
-          <>
-            <Text style={[styles.tileValue, { color: lilac.fg }]} numberOfLines={1} adjustsFontSizeToFit>{formatINR(totals.cardDues)}</Text>
-            <Text style={[styles.tileSub, { color: lilac.fg }]} numberOfLines={2}>
-              {totals.cardDues > 0 ? `${formatINR(totals.net)} left after paying` : `Nothing owed on ${cards.length === 1 ? 'your card' : `${cards.length} cards`}`}
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={[styles.tileValue, { color: lilac.fg }]}>No cards</Text>
-            <Text style={[styles.tileSub, { color: lilac.fg }]}>Tap to add a credit card</Text>
-          </>
-        )}
+        <Text style={styles.statLabel}>Card dues</Text>
+        <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{cards.length ? formatINR(totals.cardDues) : 'None'}</Text>
+        <Text style={styles.statSub} numberOfLines={2}>
+          {!cards.length ? 'Add a credit card' : totals.cardDues > 0 ? `${formatINR(totals.net)} left after paying` : 'Nothing owed'}
+        </Text>
       </Pressable>
-      <View style={[styles.tile, { backgroundColor: peach.bg }]} accessible>
-        <View style={styles.tileTop}>
-          <Ionicons name="hourglass" size={16} color={peach.icon} />
-          <Text style={[styles.tileLabel, { color: peach.fg }]}>Lasts</Text>
-        </View>
-        {health.runwayDays !== null ? (
-          <>
-            <Text style={[styles.tileValue, { color: peach.fg }]} numberOfLines={1} adjustsFontSizeToFit>{health.runwayDays} days</Text>
-            <Text style={[styles.tileSub, { color: peach.fg }]} numberOfLines={2}>at about {formatINR(health.perDay)} a day</Text>
-          </>
-        ) : (
-          <>
-            <Text style={[styles.tileValue, { color: peach.fg }]}>Soon</Text>
-            <Text style={[styles.tileSub, { color: peach.fg }]}>Log a week of spending to see this</Text>
-          </>
-        )}
+      <View style={styles.stripRule} />
+      <View style={styles.stat} accessible>
+        <Text style={styles.statLabel}>Lasts</Text>
+        <Text style={[styles.statValue, health.runwayDays !== null && health.runwayDays < 15 && { color: Corpus.warning }]} numberOfLines={1} adjustsFontSizeToFit>
+          {health.runwayDays !== null ? `${health.runwayDays} days` : '–'}
+        </Text>
+        <Text style={styles.statSub} numberOfLines={2}>
+          {health.runwayDays !== null ? `at ${formatINR(health.perDay)} a day` : 'Needs a week of entries'}
+        </Text>
       </View>
     </View>
   );
@@ -297,15 +281,12 @@ export default function AccountsScreen() {
   );
 
   const nudge = stale.length > 0 && (
-    <Pressable onPress={() => setUpdating(true)} style={({ pressed }) => [styles.nudge, { backgroundColor: Pastel.butter.bg }, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityHint="Opens the balance check-in">
-      <IconChip icon="refresh" color={Pastel.butter.icon} size={38} />
-      <View style={{ flex: 1, gap: 1 }}>
-        <Text style={[styles.nudgeTitle, { color: Pastel.butter.fg }]}>
-          {stale.length === list.length ? 'Time to check your balances' : `${stale.length} balance${stale.length > 1 ? 's are' : ' is'} over a week old`}
-        </Text>
-        <Text style={[styles.nudgeSub, { color: Pastel.butter.fg }]}>Takes 30 seconds · keeps every number right</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={Pastel.butter.fg} />
+    <Pressable onPress={() => setUpdating(true)} style={({ pressed }) => [styles.nudge, pressed && { opacity: 0.8 }]} accessibilityRole="button" accessibilityHint="Opens the balance check-in">
+      <Ionicons name="time" size={20} color={Corpus.warning} />
+      <Text style={styles.nudgeTitle}>
+        {stale.length === list.length ? 'Balances are over a week old' : `${stale.length} balance${stale.length > 1 ? 's are' : ' is'} over a week old`}
+      </Text>
+      <Text style={styles.nudgeAction}>Update</Text>
     </Pressable>
   );
 
@@ -346,12 +327,12 @@ export default function AccountsScreen() {
             <View style={[styles.barFill, { width: `${used}%`, backgroundColor: used > 30 ? Corpus.warning : Corpus.income }]} />
           </View>
           <Text style={styles.extraText}>
-            {used}% of {formatINR(a.creditLimit)} limit used{used > 30 ? ' · under 30% helps your credit score' : ' · healthy'}
+            {used}% of {formatINR(a.creditLimit)} limit used{used > 30 ? '. Under 30% helps your credit score' : ''}
           </Text>
         </View>
       );
     }
-    if (due) extras.push(<Extra key="due" icon="calendar-outline" color={due.daysLeft <= 3 ? Corpus.warning : undefined}>Pay by {shortDate(due.due)}{due.daysLeft <= 3 ? ` · ${due.daysLeft === 0 ? 'today' : `in ${due.daysLeft} day${due.daysLeft > 1 ? 's' : ''}`}` : ''}</Extra>);
+    if (due) extras.push(<Extra key="due" icon="calendar-outline" color={due.daysLeft <= 3 ? Corpus.warning : undefined}>Pay by {shortDate(due.due)}{due.daysLeft <= 3 ? `, ${due.daysLeft === 0 ? 'today' : `in ${due.daysLeft} day${due.daysLeft > 1 ? 's' : ''}`}` : ''}</Extra>);
     if (credit && a.balance > 0) extras.push(<Extra key="full" icon="information-circle-outline">Pay the full amount. Paying only the minimum costs about {formatINR(cardHealth(a.balance, a.creditLimit).monthlyInterestIfUnpaid)} a month (~42% a year).</Extra>);
     if (swipe) extras.push(<Extra key="swipe" icon="sparkles-outline">Big buys on the {swipe.best}th get up to {swipe.maxFreeDays} days interest-free.</Extra>);
     if (m && (m.below || m.close)) {
@@ -381,7 +362,7 @@ export default function AccountsScreen() {
             {v.stale ? (
               <View style={styles.metaWarn}>
                 <Ionicons name="time" size={12} color={Corpus.warning} />
-                <Text style={[styles.meta, { color: Corpus.warning }]}>{v.days} days old · check</Text>
+                <Text style={[styles.meta, { color: Corpus.warning }]}>{v.days} days old</Text>
               </View>
             ) : (
               <Text style={styles.meta}>{v.label.replace('verified', 'Checked')}</Text>
@@ -427,12 +408,10 @@ export default function AccountsScreen() {
   );
 
   const empty = (
-    <View style={[styles.empty, { backgroundColor: Pastel.sky.bg }]}>
-      <IconChip icon="wallet" color={Pastel.sky.icon} size={48} />
-      <Text style={[styles.emptyTitle, { color: Pastel.sky.fg }]}>Where’s your money?</Text>
-      <Text style={[styles.emptyText, { color: Pastel.sky.fg }]}>
-        Add your cash, bank, wallet and credit cards. Pick one when you log a spend and every balance stays up to date.
-      </Text>
+    <View style={styles.empty}>
+      <IconChip icon="mci:bank" color={Chip.blue} size={44} />
+      <Text style={styles.emptyTitle}>Where’s your money?</Text>
+      <Text style={styles.emptyText}>Add cash, bank, wallet and cards. Pick one when you log a spend and its balance moves with it.</Text>
       <Button label="Start with Cash + Bank" icon="flash" onPress={addStarters} style={{ alignSelf: 'stretch', marginTop: 6 }} />
       <Button variant="secondary" label="Add one myself" onPress={() => setSheet({})} style={{ alignSelf: 'stretch' }} />
     </View>
@@ -445,10 +424,7 @@ export default function AccountsScreen() {
         <View style={[styles.skelLine, { width: 180, height: 34 }]} />
         <View style={[styles.skelLine, { height: 14 }]} />
       </View>
-      <View style={styles.tiles}>
-        <View style={[styles.skel, styles.tile]} />
-        <View style={[styles.skel, styles.tile]} />
-      </View>
+      <View style={[styles.skel, { height: 96 }]} />
       <View style={[styles.skel, { height: 200 }]} />
     </View>
   );
@@ -457,7 +433,7 @@ export default function AccountsScreen() {
     <>
       <Screen
         title="Accounts"
-        subtitle={list.length ? `${list.length} account${list.length > 1 ? 's' : ''} · ${formatINR(totals.net)} after card dues` : undefined}
+        subtitle={list.length ? `${formatINR(totals.net)} after card dues` : undefined}
         right={<Button size="sm" icon="add" label="Add" onPress={() => setSheet({})} />}
       >
         {loading ? skeleton : list.length === 0 ? empty : (
@@ -472,7 +448,7 @@ export default function AccountsScreen() {
             {stale.length === 0 && <Button variant="secondary" icon="refresh" label="Update balances" onPress={() => setUpdating(true)} />}
             {trend}
             {reconCard}
-            <Text style={styles.footnote}>Open your bank and card apps once a week and tap Update balances. It keeps your net worth right.</Text>
+            <Text style={styles.footnote}>Check your bank and card apps once a week and update here.</Text>
           </>
         )}
       </Screen>

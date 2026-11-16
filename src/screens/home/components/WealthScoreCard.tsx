@@ -20,7 +20,7 @@ export default function WealthScoreCard({ s, onPress }: { s: WealthScore; onPres
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={st.title}>
-            Wealth score · <Text style={{ color: c }}>{s.grade}</Text>
+            Wealth score <Text style={{ color: c }}>{s.grade}</Text>
           </Text>
           <View style={st.bars}>
             {s.pillars.map((p) => (

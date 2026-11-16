@@ -28,14 +28,14 @@ export default function BillAlerts({ bills, onPay, onOpen }: Props) {
           ? { color: Corpus.warning, bg: Corpus.warningTint, border: Corpus.warningLine }
           : { color: Corpus.gold, bg: Corpus.goldTint, border: Corpus.goldLine };
         const when = variable
-          ? "Due — enter this month's amount"
+          ? "Due. Enter this month's amount"
           : overdue
-          ? `${-daysAway} day${daysAway === -1 ? '' : 's'} overdue · was due ${ordinal(bill.dayOfMonth)}`
+          ? `${-daysAway} day${daysAway === -1 ? '' : 's'} overdue, was due on the ${ordinal(bill.dayOfMonth)}`
           : daysAway === 0
           ? 'Due today'
           : daysAway === 1
-          ? `Due tomorrow · ${ordinal(bill.dayOfMonth)}`
-          : `Due in ${daysAway} days · ${ordinal(bill.dayOfMonth)}`;
+          ? `Due tomorrow, the ${ordinal(bill.dayOfMonth)}`
+          : `Due in ${daysAway} days, the ${ordinal(bill.dayOfMonth)}`;
         const left = remainingPayments(bill);
 
         return (
@@ -53,13 +53,13 @@ export default function BillAlerts({ bills, onPay, onOpen }: Props) {
             </View>
             <View style={styles.body}>
               <Text style={styles.title}>
-                {bill.name} · {variable ? '~' : ''}
+                {bill.name}  {variable ? '~' : ''}
                 {formatINR(bill.amount)}
               </Text>
               <Text style={[styles.sub, { color: tone.color }]}>{when}</Text>
               {left !== null && left > 0 && (
                 <Text style={styles.loan}>
-                  {left} payment{left === 1 ? '' : 's'} left · ends {endLabel(bill)}
+                  {left} payment{left === 1 ? '' : 's'} left, ends {endLabel(bill)}
                 </Text>
               )}
             </View>

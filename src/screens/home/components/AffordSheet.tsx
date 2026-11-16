@@ -117,7 +117,7 @@ export default function AffordSheet({ visible, onClose, safe, have, cardDues, bi
                     accessibilityRole="button"
                   >
                     <Ionicons name={jarDone ? 'checkmark' : 'file-tray-stacked-outline'} size={16} color={Corpus.onGold} />
-                    <Text style={s.btnText}>{jarDone ? 'Jar made — find it in Jars' : `Start a jar: ${formatINR(res.savePerMonth)} a month`}</Text>
+                    <Text style={s.btnText}>{jarDone ? 'Jar made. Find it in Jars' : `Start a jar: ${formatINR(res.savePerMonth)} a month`}</Text>
                   </Pressable>
                 )}
               </View>

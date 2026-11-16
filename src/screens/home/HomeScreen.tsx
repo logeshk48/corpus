@@ -1,4 +1,4 @@
-import { Chip, Corpus, Pastel } from '@/constants/theme';
+import { Chip, Corpus } from '@/constants/theme';
 import { loggingStreak } from '@/utils/streak';
 import { Group, GroupRow, IconChip } from '@/components/ui';
 import { useSettings } from '@/hooks/useSettings';
@@ -53,7 +53,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import WeekCard from './components/WeekCard';
 import { moneyCandles } from '@/utils/candles';
 import { billsNeedingAttention } from '@/utils/bills';
-import AmbientGlow from '@/components/AmbientGlow';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import AffordSheet from './components/AffordSheet';
 import { monthlyFlow } from '@/utils/afford';
@@ -105,7 +104,7 @@ export default function HomeScreen() {
   }, [settingsLoading, debtPlan.list.length, dp.startedAt]);
   const answerExtra = (a: 'paid' | 'skipped') =>
     saveSettings({ debtPlan: { ...dp, log: { ...(dp.log ?? {}), [debtPlan.cycleKey]: a } } }).then(() =>
-      showToast({ message: a === 'paid' ? `Nice — ${debtPlan.streak + 1 > 1 ? `${debtPlan.streak + 1} months in a row` : 'plan on track'}` : 'Okay — next month then' })
+      showToast({ message: a === 'paid' ? (debtPlan.streak + 1 > 1 ? `Paid extra ${debtPlan.streak + 1} months in a row` : 'Extra paid. Plan on track') : 'Skipped this month' })
     );
   const seenCleared = (ids: string[]) => saveSettings({ debtPlan: { ...dp, seenCleared: [...(dp.seenCleared ?? []), ...ids] } }).catch(() => {});
   const reminders = actionable([...shortAlert, ...sipReminders(investments), ...moneyReminders(ious), ...cardReminders(accList)]);
@@ -158,7 +157,7 @@ export default function HomeScreen() {
         icon: 'water-outline',
         tone: 'gold',
         title: `${l.name}: ${formatINR(l.yearly)} a year`,
-        body: `About ${formatINR(l.avg)} each, ${l.perWeek} times a week — ${formatINR(l.monthly)} a month. Not wrong, just worth seeing. Halving it saves ${formatINR(half * 12)} a year; invested instead, that’s about ${formatINR(grows)} in 10 years.`,
+        body: `${formatINR(l.avg)} each, ${l.perWeek} times a week. That’s ${formatINR(l.monthly)} a month. Half as often saves ${formatINR(half * 12)} a year, or about ${formatINR(grows)} in 10 years if invested.`,
         yes: {
           label: `Save ${formatINR(half)}/month in a jar`,
           run: async () => {
@@ -167,7 +166,7 @@ export default function HomeScreen() {
               name: `Saved on ${l.name}`, icon: VAULT_ICONS.includes('leaf') ? 'leaf' : VAULT_ICONS[0], color: VAULT_COLORS[2] ?? VAULT_COLORS[0], kind: 'savings',
               goal: half * 12, targetDate: `${by.getFullYear()}-${String(by.getMonth() + 1).padStart(2, '0')}`,
             });
-            showToast({ message: `Jar “Saved on ${l.name}” · ${formatINR(half)} a month`, actionLabel: 'Undo', onAction: () => deleteVault(id) });
+            showToast({ message: `Jar “Saved on ${l.name}” started: ${formatINR(half)} a month`, actionLabel: 'Undo', onAction: () => deleteVault(id) });
           },
         },
         no: { label: 'Worth it', run: async () => dismiss(l.key) },
@@ -201,7 +200,7 @@ export default function HomeScreen() {
         icon: 'cash-outline',
         tone: 'warn',
         title: `Salary not logged yet this month`,
-        body: `It usually comes around the ${sal.day}${sal.day === 1 ? 'st' : sal.day === 2 ? 'nd' : sal.day === 3 ? 'rd' : 'th'} (${formatINR(sal.amount)}) — that was ${sal.lateBy} days ago. If it’s in, log it so safe-to-spend and your budget are right. If it’s late, safe-to-spend stays cautious until it arrives.`,
+        body: `It usually comes around the ${sal.day}${sal.day === 1 ? 'st' : sal.day === 2 ? 'nd' : sal.day === 3 ? 'rd' : 'th'} (${formatINR(sal.amount)}), ${sal.lateBy} days ago. If it came, log it. Until then, safe to spend stays careful.`,
         yes: {
           label: `Log ${formatINR(sal.amount)} salary`,
           run: async () => {
@@ -220,10 +219,10 @@ export default function HomeScreen() {
         key: f.b.key,
         icon: typo ? 'alert-circle-outline' : 'trending-up-outline',
         tone: 'warn',
-        title: typo ? `${formatINR(t.amount)} ${t.note || label} — extra zero?` : `${formatINR(t.amount)} on ${t.note || label}`,
+        title: typo ? `${formatINR(t.amount)} on ${t.note || label}. Extra zero?` : `${formatINR(t.amount)} on ${t.note || label}`,
         body: typo
-          ? `On ${when}. You usually spend about ${formatINR(usual)} on ${label.toLowerCase()} — did you mean ${formatINR(typo)}? A wrong amount throws off your budget and safe-to-spend.`
-          : `On ${when}, about ${times}× your usual ${label.toLowerCase()} spend of ${formatINR(usual)}. Big one-offs are fine — just make sure the amount is right.`,
+          ? `On ${when}. You usually spend about ${formatINR(usual)} on ${label.toLowerCase()}. Did you mean ${formatINR(typo)}?`
+          : `On ${when}, ${times}× your usual ${label.toLowerCase()} spend of ${formatINR(usual)}. Check the amount is right.`,
         yes: typo
           ? {
               label: `Change to ${formatINR(typo)}`,
@@ -246,9 +245,9 @@ export default function HomeScreen() {
         tone: 'warn',
         title: `${label} is running high this month`,
         body:
-          `${formatINR(h.spent)} so far — usually about ${formatINR(h.usualByNow)} by now. At this pace it ends near ${formatINR(h.projected)}, ${formatINR(h.projected - h.usual)} above your usual ${formatINR(h.usual)}.` +
+          `${formatINR(h.spent)} so far, against about ${formatINR(h.usualByNow)} by now. This pace ends near ${formatINR(h.projected)}, ${formatINR(h.projected - h.usual)} over your usual.` +
           (h.spent >= h.usual
-            ? ` You’ve already spent a usual month’s ${label.toLowerCase()} — keep it minimal for the last ${h.daysLeft} days.`
+            ? ` That’s a usual month’s ${label.toLowerCase()} already, with ${h.daysLeft} days left.`
             : ` ${h.daysLeft} days left: about ${formatINR(Math.round((h.usual - h.spent) / h.daysLeft))} a day keeps it at your usual.`),
         yes: h.budget
           ? { label: `See ${label}`, run: async () => router.push(`/category/${h.category}` as Href) }
@@ -274,7 +273,7 @@ export default function HomeScreen() {
         body:
           f.d.reason === 'bill'
             ? `Corpus already logged your “${keep.note || label}” bill on ${new Date(keep.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, and you added it again on ${when}. Counting it twice makes your spending look ${formatINR(drop.amount)} higher.`
-            : `Two identical ${drop.type === 'income' ? 'incomes' : 'expenses'} on ${when}, ${f.d.minutes <= 1 ? 'within a minute' : `${f.d.minutes} minutes apart`} — usually a double tap.`,
+            : `Two identical ${drop.type === 'income' ? 'incomes' : 'expenses'} on ${when}, ${f.d.minutes <= 1 ? 'within a minute' : `${f.d.minutes} minutes apart`}. Usually a double tap.`,
         yes: {
           label: 'Delete the extra one',
           run: async () => {
@@ -292,10 +291,10 @@ export default function HomeScreen() {
       key: r.key,
       icon: 'repeat-outline',
       tone: r.increase ? 'warn' : 'gold',
-      title: `${r.name} · ${r.variable ? 'about ' : ''}${formatINR(r.amount)} every month`,
+      title: `${r.name}: ${r.variable ? 'about ' : ''}${formatINR(r.amount)} a month`,
       body:
         `Paid ${r.months} months in a row, around the ${r.day}${nth}. That’s ${formatINR(r.yearly)} a year.` +
-        (r.increase ? ` It went up by ${formatINR(r.increase)} recently — still worth it?` : '') +
+        (r.increase ? ` Up ${formatINR(r.increase)} recently. Still worth it?` : '') +
         ' Make it a bill and Corpus logs it for you, keeps the money aside in safe-to-spend, and reminds you before it’s due.',
       yes: {
         label: 'Make it a bill',
@@ -370,7 +369,7 @@ export default function HomeScreen() {
     if (a.kind === 'catBudget') await saveCategoryBudgets({ ...(settings.categoryBudgets ?? {}), [a.category]: a.limit });
     if (a.kind === 'budget') await saveSettings({ monthlyBudget: a.amount });
     if (a.kind === 'notify') await saveSettings({ notify: { ...(settings.notify ?? {}), daily: true } });
-    showToast({ message: 'Done — saved to your settings' });
+    showToast({ message: 'Saved' });
   };
   const { review } = useLocalSearchParams<{ review?: string }>();
   const showMonth = mReport.hasData && (review === '1' || (new Date().getDate() <= 7 && !(settings.dismissedInsights ?? []).includes(`mreport:${lmKey}`)));
@@ -427,10 +426,6 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
-      <AmbientGlow
-        tone={loading ? 'none' : safe.status === 'noData' ? 'none' : safe.status}
-        opacity={scrollY.interpolate({ inputRange: [0, 260], outputRange: [Corpus.glow, Corpus.glow * 0.35], extrapolate: 'clamp' })}
-      />
       <Animated.ScrollView
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
@@ -440,17 +435,21 @@ export default function HomeScreen() {
       >
         <HomeHeader streak={streak.days} loggedToday={streak.loggedToday} />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
-        <View style={styles.tiles}>
-          {[
-            { label: 'Add spend', icon: 'add', tone: Pastel.mint, go: () => router.push('/add' as Href) },
-            { label: 'Scan receipt', icon: 'scan', tone: Pastel.sky, go: () => router.push('/add?paste=1' as Href) },
-            { label: 'Can I afford?', icon: 'cart', tone: Pastel.lilac, go: () => setShowAfford(true) },
-          ].map((t) => (
-            <Pressable key={t.label} style={({ pressed }) => [styles.tile, { backgroundColor: t.tone.bg }, pressed && { transform: [{ scale: 0.95 }] }]} onPress={t.go} accessibilityRole="button">
-              <IconChip icon={t.icon} color={t.tone.icon} size={38} />
-              <Text style={[styles.tileText, { color: t.tone.fg }]} numberOfLines={1}>{t.label}</Text>
+        <View style={styles.actions}>
+          <Pressable style={({ pressed }) => [styles.primary, pressed && { opacity: 0.85 }]} onPress={() => router.push('/add' as Href)} accessibilityRole="button">
+            <Ionicons name="add" size={22} color={Corpus.onGold} />
+            <Text style={styles.primaryText}>Add spend</Text>
+          </Pressable>
+          <View style={styles.secondaryRow}>
+            <Pressable style={({ pressed }) => [styles.secondary, pressed && { opacity: 0.7 }]} onPress={() => router.push('/add?paste=1' as Href)} accessibilityRole="button">
+              <Ionicons name="scan" size={18} color={Corpus.text} />
+              <Text style={styles.secondaryText}>Scan a receipt</Text>
             </Pressable>
-          ))}
+            <Pressable style={({ pressed }) => [styles.secondary, pressed && { opacity: 0.7 }]} onPress={() => setShowAfford(true)} accessibilityRole="button">
+              <Ionicons name="help-circle-outline" size={18} color={Corpus.text} />
+              <Text style={styles.secondaryText}>Can I afford it?</Text>
+            </Pressable>
+          </View>
         </View>
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
         {needsCount > 0 && (
@@ -491,7 +490,7 @@ export default function HomeScreen() {
           <Text style={styles.errorText}>{error}</Text>
         ) : recent.length === 0 ? (
           <Group title="Recent">
-            <GroupRow icon="add" color={Chip.green} title="Log your first spend" subtitle="Tap Add below — it takes 3 seconds" onPress={() => router.push('/add' as Href)} />
+            <GroupRow icon="add" color={Chip.green} title="Log your first spend" subtitle="Takes 3 seconds" onPress={() => router.push('/add' as Href)} />
           </Group>
         ) : (
           <Group title="Recent" action="See all" onAction={() => router.push('/transactions' as Href)}>
@@ -511,7 +510,7 @@ export default function HomeScreen() {
             <IconChip icon="trending-up" color={Chip.indigo} size={32} />
             <Text style={styles.linkText}>
               {investedThisMonth > 0 ? `Invested ${formatINR(investedThisMonth)} this month` : 'SIPs'}
-              {nextSipAll ? `  ·  next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+              {nextSipAll ? `. Next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
           </Pressable>

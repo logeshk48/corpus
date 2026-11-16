@@ -18,7 +18,7 @@ export default function UpcomingBills({ bills, onPress }: { bills: Bill[]; onPre
   if (active.length === 0) {
     return (
       <Group title="Up next">
-        <GroupRow icon="repeat" color={Chip.red} title="Add your recurring bills" subtitle="Rent, EMIs, phone — Corpus reminds you and keeps the money aside" onPress={onPress} />
+        <GroupRow icon="repeat" color={Chip.red} title="Add your recurring bills" subtitle="Rent, EMIs, phone. Corpus reminds you and sets the money aside" onPress={onPress} />
       </Group>
     );
   }

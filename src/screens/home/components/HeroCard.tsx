@@ -92,7 +92,7 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
 
   let context = `${formatINR(result.dailyAllowance)}/day for the next ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'}`;
   if (result.available < 0) context = `You've used ${formatINR(-result.available)} more than this month allows`;
-  else if (result.status === 'tight') context = `Most of today's ${formatINR(result.dailyAllowance)} is used — go easy`;
+  else if (result.status === 'tight') context = `Most of today's ${formatINR(result.dailyAllowance)} is used. Go easy`;
   else if (over) context = `Tomorrow's allowance adjusts to ${formatINR(result.tomorrowAllowance)}/day`;
 
   const used = result.income + (result.monthlyBudget ?? 0) > 0 ? Math.min(1, Math.max(0, 1 - Math.max(result.available, 0) / Math.max(1, result.available + result.spent))) : 0;

@@ -22,13 +22,16 @@ export const styles = StyleSheet.create({
   legendAmt: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text, ...tabular },
   legendPct: { width: 40, textAlign: 'right', fontSize: Type.body, color: Corpus.textMuted, ...tabular },
 
-  // two pastel bento tiles
-  tiles: { flexDirection: 'row', gap: 12 },
-  tile: { flex: 1, minHeight: 112, borderRadius: 26, padding: 14, gap: 2 },
-  tileTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  tileLabel: { fontSize: Type.body, fontFamily: Font.display },
-  tileValue: { fontSize: Type.h2, fontFamily: Font.displayBold, letterSpacing: -0.4, ...tabular },
-  tileSub: { fontSize: Type.small, lineHeight: 16 },
+  // card dues | lasts
+  strip: { flexDirection: 'row', backgroundColor: Corpus.card, borderRadius: 24, paddingVertical: 14 },
+  stat: { flex: 1, paddingHorizontal: 16, gap: 2 },
+  stripRule: { width: StyleSheet.hairlineWidth, backgroundColor: Corpus.border },
+  statLabel: { fontSize: Type.body, color: Corpus.textMuted },
+  statValue: { fontSize: Type.h2, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.4, ...tabular },
+  statSub: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 16 },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  swatch: { width: 10, height: 14, borderRadius: 2, marginLeft: 4 },
+  legendText: { fontSize: Type.small, color: Corpus.textMuted, marginRight: 8 },
 
   // next 30 days, read like a receipt
   card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 16, gap: 10 },
@@ -47,9 +50,9 @@ export const styles = StyleSheet.create({
   strong: { fontFamily: Font.display },
 
   // stale balances prompt
-  nudge: { borderRadius: 24, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  nudgeTitle: { fontSize: Type.label, fontFamily: Font.display },
-  nudgeSub: { fontSize: Type.small },
+  nudge: { borderRadius: 20, minHeight: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Corpus.card },
+  nudgeTitle: { flex: 1, fontSize: Type.bodyLg, color: Corpus.text },
+  nudgeAction: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text },
 
   // check-in trend
   trend: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 70 },
@@ -77,9 +80,9 @@ export const styles = StyleSheet.create({
   footnote: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17, paddingHorizontal: 4, textAlign: 'center' },
 
   // empty + loading
-  empty: { borderRadius: 28, padding: 22, gap: 10, alignItems: 'flex-start' },
-  emptyTitle: { fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.5 },
-  emptyText: { fontSize: Type.bodyLg, lineHeight: 20 },
+  empty: { borderRadius: 28, padding: 22, gap: 10, alignItems: 'flex-start', backgroundColor: Corpus.card },
+  emptyTitle: { fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.5, color: Corpus.text },
+  emptyText: { fontSize: Type.bodyLg, lineHeight: 21, color: Corpus.textMuted },
   skel: { backgroundColor: Corpus.card, borderRadius: 24 },
   skelLine: { backgroundColor: Corpus.cardAlt, borderRadius: 6 },
 });

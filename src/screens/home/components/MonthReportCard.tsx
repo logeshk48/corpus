@@ -18,13 +18,13 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
   const pct = (x: number) => `${x > 0 ? '+' : '−'}${Math.round(Math.abs(x) * 100)}%`;
   const lines: { text: string; color?: string }[] = [];
   if (r.spentChange != null && Math.abs(r.spentChange) >= 0.05) lines.push({ text: `Spent ${pct(r.spentChange)} vs ${formatINR(Math.round(r.prevSpent))} the month before`, color: r.spentChange > 0 ? Corpus.warning : Corpus.income });
-  if (r.overBudget != null) lines.push(r.overBudget > 0 ? { text: `${formatINR(Math.round(r.overBudget))} over your ${formatINR(r.budget!)} budget`, color: Corpus.danger } : { text: `Within your ${formatINR(r.budget!)} budget ✓`, color: Corpus.income });
+  if (r.overBudget != null) lines.push(r.overBudget > 0 ? { text: `${formatINR(Math.round(r.overBudget))} over your ${formatINR(r.budget!)} budget`, color: Corpus.danger } : { text: `Within your ${formatINR(r.budget!)} budget`, color: Corpus.income });
   if (r.top) lines.push({ text: `Most on ${r.top.label}: ${formatINR(Math.round(r.top.amount))}` });
   if (r.jump && r.jump.label !== r.top?.label) lines.push({ text: `${r.jump.label} went up ${formatINR(Math.round(r.jump.by))}`, color: Corpus.warning });
   if (r.invested) lines.push({ text: `Invested ${formatINR(Math.round(r.invested))} through SIPs`, color: Corpus.income });
   if (r.netWorthChange != null) lines.push({ text: `Net worth ${r.netWorthChange >= 0 ? '+' : '−'}${formatINR(Math.abs(Math.round(r.netWorthChange)))}`, color: r.netWorthChange >= 0 ? Corpus.income : Corpus.danger });
   if (r.scoreChange) lines.push({ text: `Wealth score ${r.score} (${r.scoreChange > 0 ? '▲' : '▼'} ${Math.abs(r.scoreChange)})`, color: r.scoreChange > 0 ? Corpus.income : Corpus.warning });
-  if (r.loggedDays < r.daysIn * 0.6) lines.push({ text: `Logged on ${r.loggedDays} of ${r.daysIn} days — the real spend is probably higher`, color: Corpus.textFaint });
+  if (r.loggedDays < r.daysIn * 0.6) lines.push({ text: `Logged on ${r.loggedDays} of ${r.daysIn} days, so the real spend is likely higher`, color: Corpus.textFaint });
   return (
     <View style={st.card}>
       <View style={st.head}>
@@ -67,7 +67,7 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
                     style={[st.cta, ok && st.ctaDone]} disabled={ok} accessibilityRole="button"
                     onPress={() => onAct(p).then(() => { if (p.act.kind !== 'route') setDone((d) => [...d, p.id]); }).catch(() => {})}
                   >
-                    <Text style={[st.ctaText, ok && { color: Corpus.income }]}>{ok ? 'Done ✓' : p.cta}</Text>
+                    <Text style={[st.ctaText, ok && { color: Corpus.income }]}>{ok ? 'Done' : p.cta}</Text>
                   </Pressable>
                 </View>
               </View>

@@ -26,14 +26,14 @@ export default function UpdateBalancesSheet({ list, colors, onClose, onSave }: {
       title="Update balances"
       subtitle="Open each app and type what it shows. Ones you don’t change are marked checked too."
       onClose={onClose}
-      footer={<Button label="Save · all checked today" icon="checkmark" onPress={save} loading={busy} />}
+      footer={<Button label="Save balances" icon="checkmark" onPress={save} loading={busy} />}
     >
       {list.map((a) => {
         const v = verifiedAgo(a);
         const d = Math.round((Number(values[a.id]) || 0) - a.balance);
         const good = a.type === 'credit' ? d < 0 : d > 0;
         const hint = d === 0
-          ? `Same as before · ${v.label.replace('verified', 'checked')}`
+          ? `Same as before, ${v.label.replace('verified', 'checked')}`
           : `${formatINR(Math.abs(d))} ${d > 0 ? 'more' : 'less'} than your last check (${v.label.replace('verified ', '')})`;
         return (
           <View key={a.id} style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
@@ -43,7 +43,7 @@ export default function UpdateBalancesSheet({ list, colors, onClose, onSave }: {
             <View style={{ flex: 1 }}>
               <Field
                 money
-                label={`${a.name} · ${a.type === 'credit' ? 'you owe' : 'balance'}`}
+                label={a.type === 'credit' ? `${a.name}, you owe` : a.name}
                 value={values[a.id]}
                 onChangeText={(t) => setValues((s) => ({ ...s, [a.id]: t.replace(/[^0-9.-]/g, '') }))}
                 selectTextOnFocus

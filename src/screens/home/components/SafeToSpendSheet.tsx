@@ -142,7 +142,7 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
                     : result.monthlyBudget
                     ? 'Your income is stricter than your monthly budget, so Corpus uses your income. '
                     : ''}
-                  Money in jars and bills still due are protected — never counted as spendable. Category budgets don't
+                  Money in jars and bills still due are kept aside and never counted as spendable. Category budgets don't
                   change this number; they warn you on the Budgets screen.
                 </Text>
               </>

@@ -73,7 +73,7 @@ export default function AccountSheet({ editing, isDefault, onClose, onSave, onDe
       onClose={onClose}
       footer={
         <>
-          <Button label={editing ? 'Save changes' : balance ? `Add account · ${formatINR(value)}` : 'Add account'} onPress={save} loading={busy} />
+          <Button label={editing ? 'Save changes' : balance ? `Add with ${formatINR(value)}` : 'Add account'} onPress={save} loading={busy} />
           {editing && onDelete && <Button variant="danger" icon="trash-outline" label="Delete account" onPress={onDelete} />}
         </>
       }

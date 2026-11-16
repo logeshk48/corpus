@@ -19,7 +19,7 @@ export default function TransactionRow({ tx, onPress }: TransactionRowProps) {
       <IconChip icon={cat?.icon ?? 'ellipsis-horizontal'} color={CategoryChip[tx.category] ?? Chip.gray} />
       <View style={styles.middle}>
         <Text style={styles.note} numberOfLines={1}>{tx.note ?? cat?.label ?? 'Transaction'}</Text>
-        <Text style={styles.meta}>{cat?.label} · {formatTime(tx.date)}</Text>
+        <Text style={styles.meta}>{tx.note ? `${cat?.label ?? ''}, ${formatTime(tx.date)}` : formatTime(tx.date)}</Text>
       </View>
       <Text style={[styles.amount, isIncome && styles.amountIncome]}>
         {isIncome ? '+' : '−'}₹{tx.amount.toLocaleString('en-IN')}

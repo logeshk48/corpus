@@ -82,3 +82,16 @@ Glance → act → what needs you → what just happened → explore → long te
 1. Header + Safe to spend (the one number) 2. Add spend / Scan / Can I afford? 3. Your usuals (one-tap log)
 4. **Needs you** (count badge): bill alerts, bank SMS to log, catch-up, month report, reminders — only when there is something
 5. Recent 6. This week 7. Up next 8. Your money bento (Accounts tile has a 14-day spark) 9. For you 10. Wealth score, debt plan, investing.
+
+## No AI slop (step 4d) — check every screen against this
+Visual
+- No pastel candy tiles, no gradient glows or washes, no glossy icons. Colour only for money status and category identity.
+- One primary button per screen (filled black/white pill). Everything else is secondary (card-coloured pill) or a row.
+- Not everything is a card: lists are grouped rows; figures right-aligned like a ledger. Vary hierarchy with type size and space.
+- One motion moment per screen (the main number counting up). No staggered tile entrances.
+- No emoji anywhere in the UI or toasts. Icons from @expo/vector-icons only.
+Copy
+- No em dashes (—) and no "A · B · C" middle-dot chains. Use a comma, a full stop, or a separate line.
+- Short and plain: say the fact, then the action. No "Not wrong, just worth seeing", no pep talk, no ✓ in text.
+- No explainer paragraphs under charts: a two-item legend instead.
+Still to clean (done as each screen is redesigned): 247 middle dots, 134 em dashes, 72 emoji lines across other screens and notifications.

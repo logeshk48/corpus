@@ -35,7 +35,7 @@ export default function WeekCard({ tx, onPress }: { tx: Transaction[]; onPress: 
           <Text style={st.title}>This week</Text>
           {w.total > 0 ? (
             <Text style={st.sub}>
-              <Text style={st.big}>{formatINR(Math.round(w.total))}</Text>  ·  about {formatINR(Math.round(w.avg))} a day
+              <Text style={st.big}>{formatINR(Math.round(w.total))}</Text>  about {formatINR(Math.round(w.avg))} a day
             </Text>
           ) : (
             <Text style={st.sub}>Nothing spent yet this week</Text>

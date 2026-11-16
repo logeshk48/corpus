@@ -1,5 +1,5 @@
 import { IconChip } from '@/components/ui';
-import { Font, Pastel, Space, Type } from '@/constants/theme';
+import { Chip, Corpus, Font, Space, Type } from '@/constants/theme';
 import type { CatchUp } from '@/utils/catchUp';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -15,23 +15,22 @@ export default function CatchUpCard({ data, onPress }: { data: CatchUp; onPress:
   return (
     <Pressable style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} onPress={onPress} accessibilityRole="button">
       <View style={styles.row}>
-        <IconChip icon="time" color={P.icon} size={38} />
+        <IconChip icon="time" color={Chip.orange} size={34} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Nothing logged since {since}</Text>
           <Text style={styles.text}>
-            Takes a minute to fill in. Add what you remember — a rough amount is better than nothing.
+            Add what you remember. A rough amount beats a gap.
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={P.fg} />
+        <Ionicons name="chevron-forward" size={18} color={Corpus.textFaint} />
       </View>
     </Pressable>
   );
 }
 
-const P = Pastel.butter;
 const styles = StyleSheet.create({
-  card: { backgroundColor: P.bg, borderRadius: 24, padding: Space.md - 2 },
+  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md - 2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { fontSize: Type.label, fontFamily: Font.display, color: P.fg },
-  text: { fontSize: Type.small, color: P.fg, marginTop: 2, lineHeight: 17 },
+  title: { fontSize: Type.label, fontFamily: Font.display, color: Corpus.text },
+  text: { fontSize: Type.body, color: Corpus.textMuted, marginTop: 2, lineHeight: 18 },
 });

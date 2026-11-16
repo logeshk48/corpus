@@ -34,7 +34,7 @@ export default function DebtPlanCard({ s, onOpen, onAnswer, onSeenCleared }: Pro
         <Text style={st.big}>🎉 {c.name} is cleared!</Text>
         <Text style={st.sub}>
           {formatINR(c.balance)} paid off.{' '}
-          {s.first ? `Its monthly payment now rolls into ${s.first.name} — keep paying the same total and the next one goes faster.` : 'That was your last debt in the plan — you’re debt-free.'}
+          {s.first ? `Its payment now goes to ${s.first.name}. Keep paying the same total and it clears faster.` : 'That was the last debt in your plan. You’re debt-free.'}
           {s.freeBy && s.list.length ? ` Debt-free by ${my(s.freeBy)}.` : ''}
         </Text>
         <Button size="sm" label="Nice" icon="checkmark" onPress={() => onSeenCleared(s.newCleared.map((x) => x.id))} />
@@ -52,7 +52,7 @@ export default function DebtPlanCard({ s, onOpen, onAnswer, onSeenCleared }: Pro
         <View style={{ flex: 1 }}>
           <Text style={st.title}>{s.freeBy ? `Debt-free by ${my(s.freeBy)}` : `${compactINR(s.totals.total)} owed`}</Text>
           <Text style={st.sub}>
-            {compactINR(s.totals.total)} left · {formatINR(s.totals.interest)}/month in interest
+            {compactINR(s.totals.total)} left, {formatINR(s.totals.interest)} a month in interest
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
@@ -64,9 +64,9 @@ export default function DebtPlanCard({ s, onOpen, onAnswer, onSeenCleared }: Pro
             <View style={[st.barFill, { width: `${Math.max(2, s.pct * 100)}%` }]} />
           </View>
           <Text style={st.sub}>
-            <Text style={{ color: Corpus.income, fontWeight: '600' }}>{formatINR(Math.round(s.paidOff))} paid off</Text> since {my(s.started)} · {Math.round(s.pct * 100)}% done
-            {s.cleared.length ? ` · ${s.cleared.length} cleared` : ''}
-            {s.streak > 1 ? ` · extra paid ${s.streak} months in a row 🔥` : ''}
+            <Text style={{ color: Corpus.income, fontWeight: '600' }}>{formatINR(Math.round(s.paidOff))} paid off</Text> since {my(s.started)}, {Math.round(s.pct * 100)}% done
+            {s.cleared.length ? `, ${s.cleared.length} cleared` : ''}
+            {s.streak > 1 ? `. Extra paid ${s.streak} months in a row` : ''}
           </Text>
         </View>
       )}
@@ -74,10 +74,10 @@ export default function DebtPlanCard({ s, onOpen, onAnswer, onSeenCleared }: Pro
       {s.first && !s.askNow && (
         <Text style={st.fix} numberOfLines={2}>
           <Text style={{ color: Corpus.gold, fontWeight: '600' }}>Pay this first: </Text>
-          {s.first.name} · {formatINR(s.first.balance)}
-          {s.first.rate ? ` · ${s.first.rate}%` : ''}
-          {s.extra > 0 ? ` (+${formatINR(s.extra)} a month)` : ' — set an extra amount in your plan'}
-          {s.answered === 'paid' ? ' · ✓ done this month' : s.answered === 'skipped' ? ' · skipped this month' : ''}
+          {s.first.name}, {formatINR(s.first.balance)}
+          {s.first.rate ? ` at ${s.first.rate}%` : ''}
+          {s.extra > 0 ? ` (+${formatINR(s.extra)} a month)` : '. Set an extra amount in your plan'}
+          {s.answered === 'paid' ? '. Done this month' : s.answered === 'skipped' ? '. Skipped this month' : ''}
         </Text>
       )}
 
@@ -98,7 +98,7 @@ export default function DebtPlanCard({ s, onOpen, onAnswer, onSeenCleared }: Pro
         </View>
       )}
 
-      {!s.freeBy && s.stuck.length > 0 && <Text style={[st.fix, { color: Corpus.danger }]}>{s.stuck[0]} isn’t going down — set an extra amount in your plan.</Text>}
+      {!s.freeBy && s.stuck.length > 0 && <Text style={[st.fix, { color: Corpus.danger }]}>{s.stuck[0]} isn’t going down. Set an extra amount in your plan.</Text>}
     </Pressable>
   );
 }
