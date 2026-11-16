@@ -21,6 +21,8 @@ import {
   frequencyLabel,
   isFinished,
   remainingPayments,
+  isAuto,
+  isDayPlan,
   isPaidThisMonth,
   isSkippedThisMonth,
   needsAmount,
@@ -74,17 +76,17 @@ export default function BillDetailScreen() {
   const due = nextDue(bill);
   const dueNow = dueThisMonth(bill) && !isPaidThisMonth(bill);
   let status = { text: `Next due ${due.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`, color: Corpus.textMuted, bg: Corpus.bg };
-  if (isFinished(bill)) status = { text: '🎉 Completed — all payments done', color: Corpus.income, bg: Corpus.incomeTint };
+  if (isFinished(bill)) status = { text: 'Completed. All payments done', color: Corpus.income, bg: Corpus.incomeTint };
   else if (!bill.active) status = { text: 'Paused', color: Corpus.textFaint, bg: Corpus.bg };
-  else if (needsAmount(bill)) status = { text: "Due — enter this month's amount", color: Corpus.warning, bg: Corpus.warningTint };
-  else if (dueNow && due.daysAway < 0) status = { text: `${-due.daysAway} days overdue`, color: Corpus.danger, bg: Corpus.dangerTint };
+  else if (needsAmount(bill)) status = { text: "Due. Enter the amount", color: Corpus.warning, bg: Corpus.warningTint };
+  else if (dueNow && due.daysAway < 0) status = { text: `${-due.daysAway} day${due.daysAway === -1 ? '' : 's'} late`, color: Corpus.danger, bg: Corpus.dangerTint };
   else if (dueNow) status = { text: due.daysAway === 0 ? 'Due today' : `Due in ${due.daysAway} days`, color: Corpus.gold, bg: Corpus.goldActive };
   else if (isSkippedThisMonth(bill)) status = { text: 'Skipped this month', color: Corpus.textMuted, bg: Corpus.bg };
-  else if (isPaidThisMonth(bill)) status = { text: '✓ Paid this month', color: Corpus.income, bg: Corpus.incomeTint };
+  else if (isPaidThisMonth(bill)) status = { text: 'Paid this month', color: Corpus.income, bg: Corpus.incomeTint };
 
-  const pay = async (b: Bill, amount: number) => {
+  const pay = async (b: Bill, amount: number, paidOn: Date) => {
     try {
-      await logBillForThisMonth(b, amount);
+      await logBillForThisMonth(b, amount, new Date(), paidOn);
       setPaying(null);
       showToast({ message: `${b.name} ${formatINR(amount)} recorded`, actionLabel: 'Undo', onAction: () => undoBillPayment(b) });
     } catch (e) {
@@ -96,7 +98,7 @@ export default function BillDetailScreen() {
     try {
       await skipBillThisMonth(b);
       setPaying(null);
-      showToast({ message: `${b.name} skipped this month`, actionLabel: 'Undo', onAction: () => restoreBillState(b) });
+      showToast({ message: `${b.name} skipped`, actionLabel: 'Undo', onAction: () => restoreBillState(b) });
     } catch (e) {
       console.error('Skip bill failed:', e);
       showToast({ message: 'Could not skip. Try again.' });
@@ -189,7 +191,8 @@ export default function BillDetailScreen() {
             {formatINR(bill.amount)}
           </Text>
           <Text style={styles.heroFreq}>
-            {frequencyLabel(bill)}, on the {ordinal(bill.dayOfMonth)}
+            {frequencyLabel(bill)}{isDayPlan(bill) ? '' : `, on the ${ordinal(bill.dayOfMonth)}`}
+            {isAuto(bill) && !bill.variable ? '. Records itself' : ''}
             {bill.variable ? '. The amount varies' : ''}
           </Text>
           <View style={[styles.statusPill, { backgroundColor: status.bg }]}>

@@ -155,3 +155,16 @@ Cards and text stay clean; the life is in the background and in moments.
 - Cash context card: what's due in the next 7 days against what's in your accounts.
 - Calendar: each due day carries a symbol (tick paid, dot due, alert overdue); tap a day to list its bills.
 - Still to do (10b): BillSheet, LoanSheet and LoanPanel on the shared Sheet; bill detail sections.
+
+## Bill calendar (step 10a, calendar pass)
+- A day with bills is a tinted tile: state symbol + short amount (4.1K). State never rests on colour alone.
+- Today is outlined, the chosen day is filled and gives one small bounce.
+- Arrows look up to 3 months ahead; future months show every bill as "To pay".
+- The day panel lists that day's bills with a Pay button. An empty day says what is next and when.
+
+## Bill dates (rules)
+- Two kinds of repeat. Calendar bills (monthly, 2, 3, 6 months, yearly) fall on a fixed day. Day-count plans (28, 56, 84 days) run from the day you last paid.
+- A day-count plan's next date = the later of its due date and the day you paid, plus the plan length.
+- Only bills marked "Records itself" are added on the due day (auto-debits). Everything else waits for Mark paid.
+- A missed payment stays as Late until it is paid or skipped. It never vanishes when the month turns.
+- The Pay sheet always asks which day it was paid, default today.

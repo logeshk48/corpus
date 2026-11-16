@@ -29,8 +29,8 @@ import {
   needsAmount,
   nextDue,
   thisMonthBills,
+  yearlyCost,
   upcomingBills,
-  ordinal,
   unpaidThisMonth,
   yearlyBillsTotal,
   yearMonth,
@@ -90,7 +90,7 @@ export default function BillsScreen() {
   const ratio = income > 0 ? Math.round((monthly / income) * 100) : null;
   const subscriptionsYearly = bills
     .filter((b) => b.active && b.category === 'fun')
-    .reduce((s, b) => s + b.amount * ({ monthly: 12, quarterly: 4, yearly: 1 } as const)[b.frequency ?? 'monthly'], 0);
+    .reduce((s, b) => s + yearlyCost(b), 0);
 
   // ── Loans overview ──
   const loans = bills
@@ -141,9 +141,9 @@ export default function BillsScreen() {
     }
   };
 
-  const pay = async (bill: Bill, amount: number) => {
+  const pay = async (bill: Bill, amount: number, paidOn: Date) => {
     try {
-      await logBillForThisMonth(bill, amount);
+      await logBillForThisMonth(bill, amount, new Date(), paidOn);
       setPaying(null);
       showToast({
         message: `${bill.name} paid, ${formatINR(amount)}`,
@@ -160,7 +160,7 @@ export default function BillsScreen() {
     try {
       await skipBillThisMonth(bill);
       setPaying(null);
-      showToast({ message: `${bill.name} skipped this month`, actionLabel: 'Undo', onAction: () => restoreBillState(bill) });
+      showToast({ message: `${bill.name} skipped`, actionLabel: 'Undo', onAction: () => restoreBillState(bill) });
     } catch (e) {
       console.error('Skip bill failed:', e);
       showToast({ message: 'Couldn’t skip. Try again.' });
@@ -300,13 +300,13 @@ export default function BillsScreen() {
               (b) => ({ text: `Due ${shortDate(nextDue(b).date)}. Enter this month’s amount`, color: Corpus.warning, icon: 'create' }),
               (b) => ({ label: 'Enter', filled: true, onPress: () => setPaying(b) }))}
             {group('Due this week', thisWeek,
-              (b) => { const d = nextDue(b).daysAway; return { text: `${whenText(d)}, the ${ordinal(b.dayOfMonth)}`, color: d < 0 ? Corpus.danger : d <= 1 ? Corpus.warning : undefined, icon: d < 0 ? 'alert-circle' : d <= 1 ? 'time' : undefined }; },
+              (b) => { const d = nextDue(b).daysAway; return { text: `${whenText(d)}, ${shortDate(nextDue(b).date)}`, color: d < 0 ? Corpus.danger : d <= 1 ? Corpus.warning : undefined, icon: d < 0 ? 'alert-circle' : d <= 1 ? 'time' : undefined }; },
               (b) => ({ label: 'Pay', filled: nextDue(b).daysAway <= 1, onPress: () => setPaying(b) }))}
             {group('Later this month', laterThisMonth,
-              (b) => ({ text: `${whenText(nextDue(b).daysAway)}, the ${ordinal(b.dayOfMonth)}` }),
+              (b) => ({ text: `${whenText(nextDue(b).daysAway)}, ${shortDate(nextDue(b).date)}` }),
               (b) => ({ label: 'Pay', onPress: () => setPaying(b) }))}
 
-            <BillCalendar bills={bills} onOpen={openBill} />
+            <BillCalendar bills={bills} onOpen={openBill} onPay={setPaying} />
 
             {group('Paid this month', paid, (b) =>
               isSkippedThisMonth(b)
@@ -316,7 +316,7 @@ export default function BillsScreen() {
             {group('Finished', completed, (b) => ({ text: `All payments done. Last one ${endLabel(b)}`, color: Corpus.income, icon: 'checkmark-done' }))}
             {group('Paused', paused, () => ({ text: 'Paused. Not recorded or kept aside', icon: 'pause' }))}
 
-            <Text style={styles.note}>Fixed bills are recorded by themselves on their due day. Ones that change wait for your amount. Until a bill is paid, its money is kept out of Safe to spend.</Text>
+            <Text style={styles.note}>Bills set to record themselves are added on their due day. The rest wait until you mark them paid, and stay here as late if you miss one. Until a bill is paid, its money is kept out of Safe to spend.</Text>
           </>
         )}
       </Screen>

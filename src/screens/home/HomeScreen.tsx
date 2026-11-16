@@ -119,9 +119,9 @@ export default function HomeScreen() {
   const { showToast } = useToast();
   const [paying, setPaying] = useState<Bill | null>(null);
 
-  const payBill = async (bill: Bill, amount: number) => {
+  const payBill = async (bill: Bill, amount: number, paidOn: Date) => {
     try {
-      await logBillForThisMonth(bill, amount);
+      await logBillForThisMonth(bill, amount, new Date(), paidOn);
       setPaying(null);
       showToast({ message: `${bill.name} ${formatINR(amount)} recorded`, actionLabel: 'Undo', onAction: () => undoBillPayment(bill) });
     } catch (e) {
@@ -133,7 +133,7 @@ export default function HomeScreen() {
     try {
       await skipBillThisMonth(bill);
       setPaying(null);
-      showToast({ message: `${bill.name} skipped this month`, actionLabel: 'Undo', onAction: () => restoreBillState(bill) });
+      showToast({ message: `${bill.name} skipped`, actionLabel: 'Undo', onAction: () => restoreBillState(bill) });
     } catch (e) {
       console.error('Skip bill failed:', e);
       showToast({ message: 'Could not skip. Try again.' });

@@ -2,7 +2,7 @@ import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
 import { logBillForThisMonth } from '@/services/bills';
 import type { Bill } from '@/types/bill';
-import { isDueToLog, yearMonth } from '@/utils/bills';
+import { isDueToLog, openDue } from '@/utils/bills';
 import { formatINR } from '@/utils/format';
 import { useEffect, useRef } from 'react';
 
@@ -15,30 +15,29 @@ export default function BillsAutoLogger() {
 
   useEffect(() => {
     if (loading) return;
-    const ym = yearMonth(new Date());
-    const due = bills.filter((b) => isDueToLog(b) && !started.current.has(`${b.id}_${ym}`));
+    const key = (b: Bill) => `${b.id}_${openDue(b).key}`;
+    const due = bills.filter((b) => isDueToLog(b) && !started.current.has(key(b)));
     if (due.length === 0) return;
-    due.forEach((b) => started.current.add(`${b.id}_${ym}`));
+    due.forEach((b) => started.current.add(key(b)));
 
     (async () => {
       const logged: Bill[] = [];
       for (const bill of due) {
         try {
-          await logBillForThisMonth(bill);
+          await logBillForThisMonth(bill, bill.amount, new Date(), openDue(bill).date);
           logged.push(bill);
         } catch (e) {
           console.error('Auto-log bill failed:', e);
-          started.current.delete(`${bill.id}_${ym}`); // allow a retry next time
+          started.current.delete(key(bill)); // allow a retry next time
         }
       }
       if (logged.length === 0) return;
-      const month = new Date().toLocaleDateString('en-IN', { month: 'long' });
       const total = logged.reduce((s, b) => s + b.amount, 0);
       showToast({
         message:
           logged.length === 1
-            ? `🔁 ${logged[0].name} ${formatINR(logged[0].amount)} logged for ${month}`
-            : `🔁 ${logged.length} bills logged for ${month} · ${formatINR(total)}`,
+            ? `${logged[0].name} ${formatINR(logged[0].amount)} recorded`
+            : `${logged.length} bills recorded, ${formatINR(total)}`,
       });
     })();
   }, [bills, loading, showToast]);

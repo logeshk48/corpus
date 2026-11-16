@@ -1,6 +1,6 @@
 import { Corpus } from '@/constants/theme';
 import type { Bill } from '@/types/bill';
-import { billsNeedingAttention, endLabel, needsAmount, ordinal, remainingPayments } from '@/utils/bills';
+import { billsNeedingAttention, endLabel, needsAmount, remainingPayments } from '@/utils/bills';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, Text, View } from 'react-native';
@@ -19,7 +19,7 @@ export default function BillAlerts({ bills, onPay, onOpen }: Props) {
 
   return (
     <View style={styles.list}>
-      {alerts.map(({ bill, daysAway }) => {
+      {alerts.map(({ bill, daysAway, date }) => {
         const variable = needsAmount(bill);
         const overdue = daysAway < 0;
         const tone = overdue
@@ -27,15 +27,16 @@ export default function BillAlerts({ bills, onPay, onOpen }: Props) {
           : daysAway === 0 || variable
           ? { color: Corpus.warning, bg: Corpus.warningTint, border: Corpus.warningLine }
           : { color: Corpus.gold, bg: Corpus.goldTint, border: Corpus.goldLine };
+        const on = date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
         const when = variable
           ? "Due. Enter this month's amount"
           : overdue
-          ? `${-daysAway} day${daysAway === -1 ? '' : 's'} overdue, was due on the ${ordinal(bill.dayOfMonth)}`
+          ? `${-daysAway} day${daysAway === -1 ? '' : 's'} late, was due ${on}`
           : daysAway === 0
           ? 'Due today'
           : daysAway === 1
-          ? `Due tomorrow, the ${ordinal(bill.dayOfMonth)}`
-          : `Due in ${daysAway} days, the ${ordinal(bill.dayOfMonth)}`;
+          ? `Due tomorrow, ${on}`
+          : `Due in ${daysAway} days, ${on}`;
         const left = remainingPayments(bill);
 
         return (

@@ -2,7 +2,7 @@ import { IconChip } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
 import { CategoryChip, Chip, Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import type { Bill } from '@/types/bill';
-import { endLabel, isPaidThisMonth, remainingPayments } from '@/utils/bills';
+import { endLabel, frequencyTag, isPaidThisMonth, remainingPayments } from '@/utils/bills';
 import { compactINR, formatINR } from '@/utils/format';
 import { loanStatus } from '@/utils/loan';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,10 +19,9 @@ type Props = {
 // One bill: what it is, where it stands this month (in words), the amount, and a pay button when it's due
 export default function BillRow({ bill, status, action, onOpen }: Props) {
   const cat = findCategory('expense', bill.category);
-  const freq = bill.frequency ?? 'monthly';
   const left = remainingPayments(bill);
   const owed = bill.loan && left ? loanStatus(bill.loan, isPaidThisMonth(bill)).outstanding : null;
-  const tags = [freq === 'yearly' ? 'Yearly' : freq === 'quarterly' ? 'Every 3 months' : null, bill.variable ? 'Amount varies' : null].filter(Boolean).join(', ');
+  const tags = [frequencyTag(bill), bill.variable ? 'Amount varies' : null].filter(Boolean).join(', ');
   return (
     <View style={s.wrap}>
       <Pressable onPress={onOpen} style={({ pressed }) => [s.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button"

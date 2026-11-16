@@ -1,3 +1,4 @@
+import DateStepper from '@/components/DateStepper';
 import { Button } from '@/components/ui';
 import { askWeb } from '@/services/confirm';
 import { EXPENSE_CATEGORIES } from '@/constants/categories';
@@ -5,7 +6,7 @@ import { Corpus } from '@/constants/theme';
 import CategoryGrid from '@/screens/add/components/CategoryGrid';
 import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
 import type { Bill, NewBill } from '@/types/bill';
-import { endLabel, isDueInMonth, ordinal, remainingPayments, yearMonth } from '@/utils/bills';
+import { addDays, endLabel, fromIsoDay, isAuto, isDueInMonth, isoDay, ordinal, remainingPayments, yearMonth } from '@/utils/bills';
 import type { BillFrequency } from '@/types/bill';
 import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,6 +35,8 @@ export type Template = {
   frequency?: BillFrequency;
   variable?: boolean;
   hasEnd?: boolean; // loans / EMIs
+  everyDays?: number; // prepaid plans counted in days
+  auto?: boolean; // an auto-debit that records itself
 };
 
 // 'YYYY-MM' shifted by n months
@@ -44,13 +47,13 @@ function shiftYm(ym: string, n: number): string {
 
 export const BILL_TEMPLATES: Template[] = [
   { name: 'Rent', category: 'bills', day: 1, icon: 'home' },
-  { name: 'EMI', category: 'bills', day: 5, icon: 'card', hasEnd: true },
-  { name: 'Mobile recharge', category: 'bills', day: 10, icon: 'phone-portrait' },
+  { name: 'EMI', category: 'bills', day: 5, icon: 'card', hasEnd: true, auto: true },
+  { name: 'Mobile recharge', category: 'bills', day: 10, icon: 'phone-portrait', frequency: 'days', everyDays: 28 },
   { name: 'Internet', category: 'bills', day: 10, icon: 'wifi' },
   { name: 'Electricity', category: 'bills', day: 15, icon: 'flash', variable: true },
-  { name: 'Netflix', category: 'fun', day: 20, icon: 'tv' },
+  { name: 'Netflix', category: 'fun', day: 20, icon: 'tv', auto: true },
   { name: 'Insurance', category: 'health', day: 1, icon: 'shield-checkmark', frequency: 'yearly' },
-  { name: 'Amazon Prime', category: 'fun', day: 1, icon: 'pricetag', frequency: 'yearly' },
+  { name: 'Amazon Prime', category: 'fun', day: 1, icon: 'pricetag', frequency: 'yearly', auto: true },
   { name: 'Water', category: 'bills', day: 10, icon: 'water', variable: true },
   { name: 'Gym', category: 'health', day: 1, icon: 'barbell' },
 ];
@@ -85,6 +88,9 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
   const [dueMonth, setDueMonth] = useState(new Date().getMonth() + 1);
   const [variable, setVariable] = useState(false);
   const [endMonth, setEndMonth] = useState<string | undefined>(undefined);
+  const [everyDays, setEveryDays] = useState('28');
+  const [lastPaid, setLastPaid] = useState(new Date());
+  const [auto, setAuto] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -99,6 +105,10 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
       setDueMonth(mode.bill.dueMonth ?? new Date().getMonth() + 1);
       setVariable(!!mode.bill.variable);
       setEndMonth(mode.bill.endMonth);
+      setAuto(isAuto(mode.bill));
+      const n = mode.bill.everyDays ?? 28;
+      setEveryDays(String(n));
+      setLastPaid(mode.bill.lastPaidDate ? fromIsoDay(mode.bill.lastPaidDate) : mode.bill.nextDate ? addDays(fromIsoDay(mode.bill.nextDate), -n) : new Date());
     } else {
       setName(mode.template?.name ?? '');
       setAmount('');
@@ -110,6 +120,9 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
       setVariable(!!mode.template?.variable);
       setEndMonth(mode.template?.hasEnd ? shiftYm(yearMonth(new Date()), 11) : undefined);
       setPaidThisMonth(false);
+      setAuto(!!mode.template?.auto);
+      setEveryDays(String(mode.template?.everyDays ?? 28));
+      setLastPaid(new Date());
     }
   }, [mode]);
 
@@ -123,7 +136,11 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
     now.getFullYear(),
     now.getMonth()
   );
-  const dueAlreadyPassed = draftDueThisMonth && day <= today;
+  const byDays = frequency === 'days';
+  const planDays = Math.round(Number(everyDays));
+  const planOk = !byDays || (Number.isFinite(planDays) && planDays >= 1 && planDays <= 730);
+  const nextOn = addDays(lastPaid, planOk ? planDays : 28);
+  const dueAlreadyPassed = !byDays && draftDueThisMonth && day <= today;
   // End date preview (loans / EMIs)
   const draft = {
     id: '', name, amount: Number(amount) || 0, category: '', dayOfMonth: day, active: true,
@@ -131,11 +148,12 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
     lastLoggedMonth: editing ? mode.bill.lastLoggedMonth : !editing && dueAlreadyPassed && paidThisMonth ? yearMonth(now) : undefined,
   };
   const left = endMonth ? remainingPayments(draft, now) ?? 0 : 0;
+  const stepMonths = frequency === 'bimonthly' ? 2 : frequency === 'halfyearly' ? 6 : 3;
   const monthName = (m: number) => new Date(2000, m - 1, 1).toLocaleDateString('en-IN', { month: 'long' });
 
   const value = Number(amount);
   const amountInvalid = amount.trim() !== '' && (!Number.isFinite(value) || value <= 0);
-  const canSave = name.trim().length > 0 && amount.trim() !== '' && !amountInvalid && category !== null && !busy;
+  const canSave = name.trim().length > 0 && amount.trim() !== '' && !amountInvalid && category !== null && planOk && !busy;
 
   const save = async () => {
     if (!canSave || !category) return;
@@ -146,14 +164,18 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
           name: name.trim(),
           amount: value,
           category,
-          dayOfMonth: day,
+          dayOfMonth: byDays ? nextOn.getDate() : day,
           active,
           startMonth: editing ? mode.bill.startMonth : yearMonth(new Date()),
           frequency: frequency === 'monthly' ? undefined : frequency,
-          dueMonth: frequency === 'monthly' ? undefined : dueMonth,
+          dueMonth: frequency === 'monthly' || byDays ? undefined : dueMonth,
           variable: variable ? true : undefined,
-          endMonth,
-          ...(editing && mode.bill.lastLoggedMonth ? { lastLoggedMonth: mode.bill.lastLoggedMonth } : {}),
+          endMonth: byDays ? undefined : endMonth,
+          auto: variable ? undefined : auto,
+          everyDays: byDays ? planDays : undefined,
+          nextDate: byDays ? isoDay(nextOn) : undefined,
+          lastPaidDate: byDays ? isoDay(lastPaid) : undefined,
+          ...(byDays ? { lastLoggedMonth: yearMonth(lastPaid) } : editing && mode.bill.lastLoggedMonth ? { lastLoggedMonth: mode.bill.lastLoggedMonth } : {}),
         },
         !editing && dueAlreadyPassed && paidThisMonth
       );
@@ -175,7 +197,7 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
               </View>
               <View style={sheet.titleBlock}>
                 <Text style={sheet.title}>{editing ? 'Edit bill' : 'New recurring bill'}</Text>
-                <Text style={sheet.subtitle}>Logged automatically every month on its due day</Text>
+                <Text style={sheet.subtitle}>Its money is kept aside until it is paid</Text>
               </View>
               <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
                 <Ionicons name="close" size={18} color={Corpus.textMuted} />
@@ -193,6 +215,8 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
                       setDay(t.day);
                       setCategory(t.category);
                       setFrequency(t.frequency ?? 'monthly');
+                      setAuto(!!t.auto);
+                      if (t.everyDays) setEveryDays(String(t.everyDays));
                       setVariable(!!t.variable);
                       setEndMonth(t.hasEnd ? shiftYm(yearMonth(new Date()), 11) : undefined);
                     }}
@@ -215,22 +239,50 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
             />
 
             <Text style={styles.label}>HOW OFTEN</Text>
-            <View style={styles.freqRow}>
-              {(['monthly', 'quarterly', 'yearly'] as BillFrequency[]).map((f) => (
+            <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
+              {(['monthly', 'bimonthly', 'quarterly', 'halfyearly', 'yearly', 'days'] as BillFrequency[]).map((f) => (
                 <Pressable
                   key={f}
-                  style={[styles.freq, frequency === f && styles.freqActive]}
-                  onPress={() => setFrequency(f)}
+                  style={[styles.freq, { flexGrow: 1, flexBasis: '30%' }, frequency === f && styles.freqActive]}
+                  onPress={() => { setFrequency(f); if (f === 'days') setAuto(false); }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: frequency === f }}
                 >
                   <Text style={[styles.freqText, frequency === f && styles.freqTextActive]}>
-                    {f === 'monthly' ? 'Monthly' : f === 'quarterly' ? 'Every 3 months' : 'Yearly'}
+                    {{ monthly: 'Monthly', bimonthly: '2 months', quarterly: '3 months', halfyearly: '6 months', yearly: 'Yearly', days: 'Count days' }[f]}
                   </Text>
                 </Pressable>
               ))}
             </View>
-            {frequency !== 'monthly' && (
+            {byDays && (
               <>
-                <Text style={styles.label}>{frequency === 'yearly' ? 'DUE IN' : 'FIRST MONTH OF THE CYCLE'}</Text>
+                <Text style={styles.hint}>For prepaid plans like a 28 day recharge. The next date is counted from the day you paid, so it moves earlier each month.</Text>
+                <Text style={styles.label}>PLAN LENGTH IN DAYS</Text>
+                <View style={[styles.freqRow, { flexWrap: 'wrap' }]}>
+                  {['28', '30', '56', '84', '365'].map((d) => (
+                    <Pressable key={d} style={[styles.freq, everyDays === d && styles.freqActive]} onPress={() => setEveryDays(d)} accessibilityRole="button" accessibilityState={{ selected: everyDays === d }}>
+                      <Text style={[styles.freqText, everyDays === d && styles.freqTextActive]}>{d}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <TextInput
+                  style={styles.input}
+                  value={everyDays}
+                  onChangeText={(t) => setEveryDays(t.replace(/[^0-9]/g, '').slice(0, 3))}
+                  placeholder="Or type the number of days"
+                  placeholderTextColor={Corpus.textFaint}
+                  keyboardType="number-pad"
+                  accessibilityLabel="Plan length in days"
+                />
+                {!planOk && <Text style={sheet.error}>Enter a number of days from 1 to 730</Text>}
+                <Text style={styles.label}>LAST PAID ON</Text>
+                <DateStepper value={lastPaid} onChange={setLastPaid} />
+                {planOk && <Text style={styles.hint}>Next one is due {nextOn.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}.</Text>}
+              </>
+            )}
+            {frequency !== 'monthly' && !byDays && (
+              <>
+                <Text style={styles.label}>{frequency === 'yearly' ? 'DUE IN' : 'ONE OF THE MONTHS IT IS DUE'}</Text>
                 <View style={styles.dayRow}>
                   <Pressable style={styles.dayArrow} onPress={() => setDueMonth(dueMonth <= 1 ? 12 : dueMonth - 1)}>
                     <Ionicons name="chevron-back" size={18} color={Corpus.text} />
@@ -240,9 +292,9 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
                     <Ionicons name="chevron-forward" size={18} color={Corpus.text} />
                   </Pressable>
                 </View>
-                {frequency === 'quarterly' && (
+                {frequency !== 'yearly' && (
                   <Text style={styles.hint}>
-                    Due in {[0, 3, 6, 9].map((k) => monthName(((dueMonth - 1 + k) % 12) + 1).slice(0, 3)).join(', ')}
+                    Due in {Array.from({ length: 12 / stepMonths }, (_, k) => monthName(((dueMonth - 1 + k * stepMonths) % 12) + 1).slice(0, 3)).join(', ')}
                   </Text>
                 )}
               </>
@@ -268,7 +320,7 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
                 <Text style={styles.switchHint}>
                   {variable
                     ? "Corpus will ask for the real amount when it's due (great for electricity, water)"
-                    : 'Off: the same amount is logged automatically'}
+                    : 'Off: the amount is the same each time'}
                 </Text>
               </View>
               <Switch
@@ -279,7 +331,21 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
               />
             </View>
 
-            <Text style={styles.label}>{frequency === 'monthly' ? 'DUE EVERY MONTH ON THE' : 'DUE ON THE'}</Text>
+            {!variable && (
+              <View style={styles.switchRow}>
+                <View style={styles.switchBody}>
+                  <Text style={styles.switchTitle}>Records itself on the due day</Text>
+                  <Text style={styles.switchHint}>
+                    {auto ? 'For auto-debits like an EMI or a subscription. Corpus adds the spend on the due day.' : 'Off: Corpus reminds you and waits until you mark it paid.'}
+                  </Text>
+                </View>
+                <Switch value={auto} onValueChange={setAuto} trackColor={{ false: Corpus.border, true: Corpus.gold }} thumbColor={Corpus.text} />
+              </View>
+            )}
+
+            {!byDays && (
+              <>
+                <Text style={styles.label}>{frequency === 'monthly' ? 'DUE EVERY MONTH ON THE' : 'DUE ON THE'}</Text>
             <View style={styles.dayRow}>
               <Pressable style={styles.dayArrow} onPress={() => setDay(day <= 1 ? 31 : day - 1)}>
                 <Ionicons name="chevron-back" size={18} color={Corpus.text} />
@@ -289,7 +355,9 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
                 <Ionicons name="chevron-forward" size={18} color={Corpus.text} />
               </Pressable>
             </View>
-            {day > 28 && <Text style={styles.hint}>In shorter months it's logged on the last day.</Text>}
+            {day > 28 && <Text style={styles.hint}>In shorter months it is due on the last day.</Text>}
+              </>
+            )}
 
             {!editing && dueAlreadyPassed && (
               <View style={styles.switchRow}>
@@ -310,6 +378,8 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
               </View>
             )}
 
+            {!byDays && (
+              <>
             <View style={styles.switchRow}>
               <View style={styles.switchBody}>
                 <Text style={styles.switchTitle}>Has an end date (loan / EMI)</Text>
@@ -347,6 +417,9 @@ export default function BillSheet({ mode, onClose, onSave, onDelete }: Props) {
                   {left} payment{left === 1 ? '' : 's'} left
                   {Number(amount) > 0 ? ` · ${formatINR(left * Number(amount))} still to pay` : ''}
                 </Text>
+              </>
+            )}
+
               </>
             )}
 

@@ -1,6 +1,6 @@
 import type { Bill } from '@/types/bill';
 import type { Transaction } from '@/types/transaction';
-import { dueDateIn, isDueInMonth, isFinished, isPaidThisMonth } from './bills';
+import { comingDues, isFinished } from './bills';
 
 // ─── Is your money enough? ───
 const DAY = 86_400_000;
@@ -11,18 +11,7 @@ export function upcomingBills(bills: Bill[], now = new Date(), days = 30) {
   const out: { bill: Bill; due: Date; amount: number }[] = [];
   for (const b of bills) {
     if (!b.active || isFinished(b, now)) continue;
-    for (let k = 0; k <= 1; k++) {
-      const y = now.getFullYear();
-      const m = now.getMonth() + k;
-      const yy = y + Math.floor(m / 12);
-      const mm = ((m % 12) + 12) % 12;
-      if (!isDueInMonth(b, yy, mm)) continue;
-      if (k === 0 && isPaidThisMonth(b, now)) continue;
-      if (b.startMonth && `${yy}-${String(mm + 1).padStart(2, '0')}` < b.startMonth) continue;
-      if (b.endMonth && `${yy}-${String(mm + 1).padStart(2, '0')}` > b.endMonth) continue;
-      const due = dueDateIn(b, yy, mm);
-      if (due.getTime() <= end) out.push({ bill: b, due, amount: b.amount });
-    }
+    for (const o of comingDues(b, new Date(end), now)) out.push({ bill: b, due: o.date, amount: b.amount });
   }
   return out.sort((a, b) => a.due.getTime() - b.due.getTime());
 }

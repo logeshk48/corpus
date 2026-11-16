@@ -9,13 +9,18 @@ export type Bill = {
   lastLoggedMonth?: string; // 'YYYY-MM' — the month it was last recorded or skipped (prevents double logging)
   lastSkippedMonth?: string; // 'YYYY-MM' — set when you chose "skip this month"
   frequency?: BillFrequency; // default 'monthly'
-  dueMonth?: number;       // 1–12: for yearly bills the month it's due; for quarterly the first month of the cycle
+  everyDays?: number;      // frequency 'days': the plan length (28, 56, 84, 365…)
+  nextDate?: string;       // frequency 'days': 'YYYY-MM-DD' the next payment is due
+  lastPaidDate?: string;   // frequency 'days': 'YYYY-MM-DD' of the last payment
+  auto?: boolean;          // records itself on the due day (auto-debits). Unset = on for calendar bills, off for day-count plans
+  dueMonth?: number;       // 1–12: for yearly bills the month it's due; otherwise the first month of the cycle
   variable?: boolean;      // amount changes each time (electricity) → Corpus asks instead of auto-logging
   endMonth?: string;       // 'YYYY-MM' — month of the LAST payment (loans / EMIs); none = forever
   loan?: Loan;             // optional loan details → balance, interest split, prepayment calculator
 };
 
-export type BillFrequency = 'monthly' | 'quarterly' | 'yearly';
+// 'days' = counted in days from the last payment (prepaid recharges), not tied to the calendar
+export type BillFrequency = 'monthly' | 'bimonthly' | 'quarterly' | 'halfyearly' | 'yearly' | 'days';
 
 export type NewBill = Omit<Bill, 'id'>;
 
