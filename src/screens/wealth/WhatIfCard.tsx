@@ -1,81 +1,65 @@
-import { Corpus } from '@/constants/theme';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
+import { Choice } from '@/components/ui';
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import { compactINR, formatINR } from '@/utils/format';
 import { project, real, type ProjectionInput } from '@/utils/projection';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { styles } from './WealthScreen.styles';
+import { StyleSheet, Text, View } from 'react-native';
 
 const EXTRA = [0, 2000, 5000, 10000, 20000];
 const STEP = [0, 5, 10, 15];
 
-// "What if I save ₹5,000 more / invest all my savings / step up SIPs / put idle cash to work?"
+// "What if I save ₹5,000 more / invest all my savings / raise SIPs / put idle cash to work?"
 export default function WhatIfCard({ base, idle }: { base: ProjectionInput; idle: number }) {
-  const [extra, setExtra] = useState(5000);
-  const [all, setAll] = useState(false);
-  const [step, setStep] = useState(0);
-  const [useIdle, setUseIdle] = useState(false);
+  const [extra, setExtra] = useState('0');
+  const [where, setWhere] = useState<'sips' | 'all'>('sips');
+  const [step, setStep] = useState('0');
+  const [useIdle, setUseIdle] = useState<'no' | 'yes'>('no');
+  const ex = Number(extra), st = Number(step), all = where === 'all', idl = useIdle === 'yes';
   const nowPts = useMemo(() => project(base, 20), [base]);
-  const whatPts = useMemo(() => project({ ...base, extraSave: extra, investAll: all, stepUpPct: step, moveToInvest: useIdle ? idle : 0 }, 20), [base, extra, all, step, useIdle, idle]);
+  const whatPts = useMemo(() => project({ ...base, extraSave: ex, investAll: all, stepUpPct: st, moveToInvest: idl ? idle : 0 }, 20), [base, ex, all, st, idl, idle]);
   const at = (pts: typeof nowPts, m: number) => real(pts.find((p) => p.month === m)!.netWorth, m);
   const crore = (pts: typeof nowPts) => {
     const hit = pts.find((p) => p.month > 0 && real(p.netWorth, p.month) >= 1e7);
     return hit ? new Date().getFullYear() + Math.ceil(hit.month / 12) : null;
   };
-  const changed = extra || all || step || useIdle;
+  const changed = ex || all || st || idl;
   const c1 = crore(nowPts), c2 = crore(whatPts);
-  const Chip = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
-    <Pressable style={[sheet.chip, on && sheet.chipSuggested]} onPress={onPress}>
-      <Text style={[sheet.chipText, on && sheet.chipTextSuggested]}>{label}</Text>
-    </Pressable>
-  );
   return (
-    <View style={styles.card}>
-      <Text style={styles.name}>What if…</Text>
-      <Text style={styles.statLabel}>I SAVE MORE EACH MONTH</Text>
-      <View style={sheet.chips}>
-        {EXTRA.map((e) => (
-          <Chip key={e} on={extra === e} label={e ? `+${compactINR(e)}` : 'No change'} onPress={() => setExtra(e)} />
-        ))}
-      </View>
-      <Text style={styles.statLabel}>WHERE SAVINGS GO</Text>
-      <View style={sheet.chips}>
-        <Chip on={!all} label="Only SIPs invested" onPress={() => setAll(false)} />
-        <Chip on={all} label="Invest all savings" onPress={() => setAll(true)} />
-      </View>
-      <Text style={styles.statLabel}>RAISE SIPS EVERY YEAR</Text>
-      <View style={sheet.chips}>
-        {STEP.map((x) => (
-          <Chip key={x} on={step === x} label={x ? `+${x}%` : 'No'} onPress={() => setStep(x)} />
-        ))}
-      </View>
-      {idle > 0 && (
-        <View style={sheet.chips}>
-          <Chip on={useIdle} label={`Invest my idle ${compactINR(idle)} today`} onPress={() => setUseIdle(!useIdle)} />
-        </View>
-      )}
-      <View style={[styles.statRow, { marginTop: 4 }]}>
-        {[60, 120, 240].map((m) => {
+    <View style={s.card}>
+      <Text style={s.title}>What if</Text>
+      <Choice label="I save more each month" options={EXTRA.map((e) => ({ value: String(e), label: e ? `+${compactINR(e)}` : 'Same' }))} value={extra} onChange={setExtra} />
+      <Choice label="Savings go into" options={[{ value: 'sips', label: 'Only my SIPs' }, { value: 'all', label: 'Investing all of it' }]} value={where} onChange={setWhere} />
+      <Choice label="Raise SIPs every year by" options={STEP.map((x) => ({ value: String(x), label: x ? `${x}%` : 'No' }))} value={step} onChange={setStep} />
+      {idle > 0 && <Choice label={`Invest my idle ${compactINR(idle)} today`} options={[{ value: 'no', label: 'No' }, { value: 'yes', label: 'Yes' }]} value={useIdle} onChange={setUseIdle} />}
+      <View style={s.strip}>
+        {[60, 120, 240].map((m, i) => {
           const a = at(nowPts, m), b = at(whatPts, m);
           return (
-            <View key={m} style={styles.stat}>
-              <Text style={styles.statLabel}>{m / 12} YEARS</Text>
-              <Text style={styles.statValue}>{compactINR(b)}</Text>
-              <Text style={[styles.why, { color: b - a >= 0 ? Corpus.income : Corpus.danger }]}>{changed ? `${b - a >= 0 ? '+' : '−'}${compactINR(Math.abs(b - a))}` : 'today’s habits'}</Text>
+            <View key={m} style={[s.stat, i > 0 && s.ruled]}>
+              <Text style={s.label}>In {m / 12} years</Text>
+              <Text style={s.value}>{compactINR(b)}</Text>
+              <Text style={[s.label, changed ? { color: b - a >= 0 ? Corpus.income : Corpus.danger } : null]}>{changed ? `${b - a >= 0 ? '+' : '−'}${compactINR(Math.abs(b - a))}` : 'As now'}</Text>
             </View>
           );
         })}
       </View>
-      {changed ? (
-        <Text style={styles.why}>
-          {c2 && c2 !== c1 ? `₹1 Cr (today’s value) around ${c2}${c1 ? ` instead of ${c1}` : ''} — ${c1 ? `${c1 - c2} year${c1 - c2 === 1 ? '' : 's'} sooner` : 'within reach now'}. ` : ''}
-          {extra ? `${formatINR(extra)} a month is about ${formatINR(Math.round(extra / 30))} a day. ` : ''}
-          {all ? 'Investing all savings means your bank balance stops growing — keep the emergency fund aside first. ' : ''}
-        </Text>
-      ) : (
-        <Text style={styles.why}>Pick a change above to see what it does to your future net worth.</Text>
-      )}
-      <Text style={styles.note}>All in today’s money (6% inflation removed). Same assumptions as “Where you’re heading”.</Text>
+      <Text style={s.text}>
+        {!changed ? 'Pick a change above to see what it does to your future net worth.'
+          : `${c2 && c2 !== c1 ? `₹1 crore (today's value) around ${c2}${c1 ? `, ${c1 - c2} year${c1 - c2 === 1 ? '' : 's'} sooner` : ''}. ` : ''}${ex ? `${formatINR(ex)} a month is about ${formatINR(Math.round(ex / 30))} a day. ` : ''}${all ? 'Keep your safety cushion aside before investing everything.' : ''}`}
+      </Text>
+      <Text style={s.note}>In today's money, with 6% a year of rising prices taken out.</Text>
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 18, gap: 14 },
+  title: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.text },
+  strip: { flexDirection: 'row', paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Corpus.border },
+  stat: { flex: 1, gap: 2 },
+  ruled: { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: Corpus.border, paddingLeft: 12 },
+  label: { fontSize: Type.small, color: Corpus.textMuted, ...tabular },
+  value: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.text, ...tabular },
+  text: { fontSize: Type.body, color: Corpus.text, lineHeight: 19 },
+  note: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
+});

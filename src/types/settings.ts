@@ -21,6 +21,8 @@ export type Settings = {
   inbox?: Record<string, InboxMark>; // reminder id → done / snoozed
   dismissedInsights?: string[]; // smart-detection findings you said no to
   scoreLog?: Record<string, number>; // wealth score by month, YYYY-MM → 0–100
+  // Insurance, as you told us (the app can't see policies). Feeds the "Covered if something goes wrong" part of the score
+  protection?: { health?: boolean; healthCover?: number; dependents?: boolean; term?: boolean; termCover?: number; answeredAt?: string };
   mixTarget?: { equity: number }; // % of investments you want in equity
   watchlist?: string[]; // stock symbols (RELIANCE.NS) and fund codes (mf:122639)
   gold?: { mode?: 'live' | 'custom'; customRate24k?: number; lastLive?: { rate: number; at: string } };

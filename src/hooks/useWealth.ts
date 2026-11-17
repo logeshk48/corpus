@@ -2,7 +2,9 @@ import { useAccounts } from '@/hooks/useAccounts';
 import { useAssets } from '@/hooks/useAssets';
 import { useBills } from '@/hooks/useBills';
 import { useGoldRate } from '@/hooks/useGoldRate';
+import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useInvestments } from '@/hooks/useInvestments';
+import { useSettings } from '@/hooks/useSettings';
 import { useIous } from '@/hooks/useIous';
 import { useTransactions } from '@/hooks/useTransactions';
 import { accountBalances, accountTotals } from '@/utils/accounts';
@@ -20,12 +22,14 @@ export function useWealth() {
   const { assets, snapshots, loading: asL } = useAssets();
   const gold = useGoldRate();
   const { investments, loading: iL } = useInvestments();
+  const { streams } = useIncomeStreams();
+  const { settings } = useSettings();
   return useMemo(() => {
     const accList = accountBalances(accounts, tx);
     const input = { accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null };
     const items = netWorthItems(input);
     const totals = netWorthTotals(items);
-    const inputs = scoreInputs({ tx, investments, ious, bills, items, totals, cardDues: accountTotals(accList).cardDues, hasAccounts: accounts.length > 0 });
+    const inputs = scoreInputs({ tx, investments, ious, bills, items, totals, cardDues: accountTotals(accList).cardDues, hasAccounts: accounts.length > 0, streams, protection: settings.protection });
     return { score: wealthScore(inputs), inputs, items, totals, nwInput: input, snapshots, tx, investments, ious, bills, accounts: accList, loading: aL || tL || asL || iL };
-  }, [accounts, tx, ious, bills, assets, investments, gold.rate, gold.mode, snapshots, aL, tL, asL, iL]);
+  }, [accounts, tx, ious, bills, assets, investments, gold.rate, gold.mode, snapshots, aL, tL, asL, iL, streams, settings.protection]);
 }

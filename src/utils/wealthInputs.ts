@@ -1,8 +1,11 @@
 // Gathers everything the Wealth Builder Score needs from the rest of the app.
 import type { Bill } from '@/types/bill';
 import type { Investment } from '@/types/investment';
+import type { IncomeStream } from '@/types/incomeStream';
 import type { Iou } from '@/types/iou';
+import type { Settings } from '@/types/settings';
 import type { Transaction } from '@/types/transaction';
+import { isLate } from './bills';
 import { debtSummary } from './debts';
 import { currentValue, portfolio } from './investments';
 import type { NwItem, NwTotals } from './netWorth';
@@ -18,6 +21,8 @@ export function scoreInputs(p: {
   totals: NwTotals;
   cardDues: number;
   hasAccounts: boolean;
+  streams?: IncomeStream[];             // income that varies needs a bigger cushion
+  protection?: Settings['protection'];  // insurance answers
   now?: Date;
 }): ScoreInput {
   const now = p.now ?? new Date();
@@ -44,5 +49,9 @@ export function scoreInputs(p: {
     sipSkipped12: skipped,
     equityShare: pf.value > 0 ? pf.allocation.find((a) => a.cls === 'equity')?.share ?? 0 : null,
     investedTotal: pf.value,
+    // no income sources set up yet: assume it varies (most people's does), so the cushion target is 9 months
+    incomeVaries: !p.streams?.length || p.streams.some((s) => !s.fixed),
+    lateBills: p.bills.filter((b) => isLate(b, now)).length,
+    protection: p.protection,
   };
 }

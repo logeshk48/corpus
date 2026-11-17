@@ -2,6 +2,7 @@ import { Chip, Corpus } from '@/constants/theme';
 import { loggingStreak } from '@/utils/streak';
 import { Group, GroupRow, IconChip, Tap } from '@/components/ui';
 import { useSettings } from '@/hooks/useSettings';
+import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
 import { useBills } from '@/hooks/useBills';
@@ -76,6 +77,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { transactions, loading, error } = useTransactions('month');
   const { settings, loading: settingsLoading } = useSettings();
+  const { streams: incomeStreams } = useIncomeStreams();
   const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
   const { ious } = useIous();
   const { accounts } = useAccounts();
@@ -383,7 +385,7 @@ export default function HomeScreen() {
   const nwTotals = netWorthTotals(nwItems);
   const nw = nwTotals.total;
   // Wealth Builder Score (Day 5)
-  const wscore = wealthScore(scoreInputs({ tx: yearTx, investments, ious, bills, items: nwItems, totals: nwTotals, cardDues: accTotals.cardDues, hasAccounts: accounts.length > 0 }));
+  const wscore = wealthScore(scoreInputs({ tx: yearTx, investments, ious, bills, items: nwItems, totals: nwTotals, cardDues: accTotals.cardDues, hasAccounts: accounts.length > 0, streams: incomeStreams, protection: settings.protection }));
   const budgetPct = overall && overall.limit > 0 ? Math.round((overall.spent / overall.limit) * 100) : null;
   const shortcuts: Shortcut[] = [
     {

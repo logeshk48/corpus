@@ -181,3 +181,22 @@ Cards and text stay clean; the life is in the background and in moments.
 - No swipe actions (skill: gesture-conflicts). Tap a row to open its tray: Mark paid (bills that are waiting) or Done, three snoozes, and Open. Every action has Undo in the toast.
 - Clearing the last reminder fires the small celebration once.
 - Reminder text from every source uses sentences: no middle dots or dashes.
+
+## Reminders v2 (researched)
+- The screen answers three questions in order: how much goes out and when, can I cover it, what else needs a look.
+- Top card: total to pay in the next 30 days, the next payment, a bar of bank and cash against it, and exactly how much to add by which date. Income can still arrive, so it says so.
+- Payments are listed by when they come (Today, Tomorrow, Rest of this week, Next week, Later), each group with its total. Each row: date tile, name, one plain line of what to do, amount on the right.
+- Notes where no money moves (update balances, budget, minimum balance) sit apart under "Worth a look" with an icon instead of a date.
+- Late payments sit first with their actions already open.
+- Optional money (the payoff plan's extra) is listed in grey and never counted in the must-pay total.
+- An auto-debit says "Keep it in your bank": its main action is Done, because it records itself on the day.
+- Spending reviews and Safe to spend stay on Home, not here.
+
+## Wealth score v2 (researched)
+- Five plain questions, 20 points each, on the Financial Health Network's areas (spend, save, borrow, plan and protect): Do you spend less than you earn? Could you handle a surprise? Is your debt easy to carry? Is your money growing? Are you covered if something goes wrong?
+- Indian benchmarks: 20 to 25% left over; cushion of 6 months, 9 if income varies; EMIs and interest under 15% full marks, 45% zero (lenders worry above 40%); 20% of income invested; health cover of ₹5 lakh+, term cover of about 10x yearly income when others depend on you.
+- Bands with their numbers shown: under 40 Needs care, 40 to 59 Getting there, 60 to 79 Good, 80+ Strong.
+- The next step is always the next milestone (1 month of cushion, then 3, 6, 9; invest 5%, then 10%, then 20%), never the whole distance, with the points it adds.
+- Each part shows a status word and icon (Good, Okay, Weak, Not scored), not colour alone. Tap a part for what it means, what full marks looks like, and its step.
+- Insurance is self-reported in a two-question sheet; until answered, that part is "Not scored" and the score is scaled from the rest.
+- Late bills cost 3 points each in Spending.
