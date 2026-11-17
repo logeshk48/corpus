@@ -200,3 +200,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - Each part shows a status word and icon (Good, Okay, Weak, Not scored), not colour alone. Tap a part for what it means, what full marks looks like, and its step.
 - Insurance is self-reported in a two-question sheet; until answered, that part is "Not scored" and the score is scaled from the rest.
 - Late bills cost 3 points each in Spending.
+
+## Debts (step 13, researched)
+- Order: how much you owe and when it ends, the one debt to pay first, card trap with cheaper ways out, how heavy it is next to income, the plan, every debt costliest first.
+- Payoff order is a choice between two tiles with the same three numbers (interest, free by, first debt gone): "Save the most" (highest interest first) and "Quick wins" (smallest first). Research: quick wins keep many people going; when shown the interest gap most pick the cheaper order. Show the gap in rupees and let them pick.
+- Card balance: show the minimum-due trap (years and interest) next to 12-month ways out with real costs incl. fees and GST (card EMI ~16% + fee, personal loan ~13% + 2%). Tag the cheapest by cost.
+- Progress line only once something is paid off; in the first month say the plan has started.
+- The order of payoff is a numbered step line (it is a real sequence).

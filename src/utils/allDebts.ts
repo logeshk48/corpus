@@ -96,3 +96,25 @@ export function minimumTrap(balance: number, rate = CARD_RATE) {
   }
   return { months, interest: Math.round(interest) };
 }
+
+// ─── Ways out of a card balance, cheapest first ───
+// Typical Indian rates (2026): card revolving ~36–42% a year; the card's own "convert to EMI" ~14–18% plus a
+// ₹199–999 fee, with 18% GST on interest and fee; a personal loan ~10.5–16% plus a 1–3% processing fee.
+// All compared over 12 months so the costs line up.
+const amortInterest = (p: number, ratePct: number, n: number) => {
+  const r = ratePct / 1200;
+  const emi = r === 0 ? p / n : (p * r) / (1 - Math.pow(1 + r, -n));
+  return { emi: Math.round(emi), interest: Math.round(emi * n - p) };
+};
+export function cardWaysOut(balance: number) {
+  const min = minimumTrap(balance);
+  const cardEmi = amortInterest(balance, 16, 12);
+  const loan = amortInterest(balance, 13, 12);
+  return {
+    minimum: { months: min.months, cost: min.interest },
+    cardEmi: { emi: cardEmi.emi, cost: Math.round((cardEmi.interest + 499) * 1.18) },
+    loan: { emi: loan.emi, cost: Math.round(loan.interest + balance * 0.02 * 1.18) },
+    // a personal loan only beats the card's own EMI on bigger amounts (fees and paperwork)
+    loanWorthIt: balance >= 50000,
+  };
+}
