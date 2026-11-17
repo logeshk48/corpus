@@ -72,13 +72,15 @@ export function nextCardDue(a: Account, now = new Date()) {
 
 // Reminders shaped like money reminders so Home + phone notifications can show them together
 export function cardReminders(list: AccountBalance[], now = new Date()) {
-  const out: { id: string; iouId: string; when: Date; title: string; body: string; urgency: 'overdue' | 'today' | 'soon' | 'later' }[] = [];
+  const out: { id: string; iouId: string; when: Date; title: string; body: string; urgency: 'overdue' | 'today' | 'soon' | 'later'; amount: number; name: string }[] = [];
   for (const a of list) {
     const n = nextCardDue(a, now);
     if (!n || a.balance <= 0 || a.archived) continue;
     out.push({
       id: `card:${a.id}:${n.due.toISOString().slice(0, 10)}`,
       iouId: a.id,
+      amount: Math.round(a.balance),
+      name: a.name,
       when: n.due,
       title: `Pay ${a.name} bill`,
       body: `${n.daysLeft === 0 ? 'Due today' : n.daysLeft === 1 ? 'Due tomorrow' : `Due in ${n.daysLeft} days`}, about ₹${Math.round(a.balance).toLocaleString('en-IN')} owed`,

@@ -15,6 +15,11 @@ export type MoneyReminder = {
   body: string;          // "Due today. Dinner"
   urgency: 'overdue' | 'today' | 'soon' | 'later';
   href?: string;         // where tapping it goes (default: Lent & borrowed)
+  amount?: number;       // money involved, when known
+  flow?: 'in' | 'out';   // money coming to you, or going out
+  person?: string;
+  name?: string;         // short name of what it is about (a fund, a card)
+  on?: Date;             // the day the money moves, when the reminder fires earlier
 };
 
 const DAY = 86_400_000;
@@ -42,20 +47,22 @@ export function moneyReminders(ious: Iou[], now = new Date()): MoneyReminder[] {
     if (!isOpen(i)) continue;
     const left = remaining(i);
     const note = i.note ? `. ${i.note}` : '';
+    const flow: 'in' | 'out' = i.direction === 'lent' ? 'in' : 'out';
+    const who = { flow, person: i.person };
 
     if (i.dueDate) {
       const due = at9(new Date(i.dueDate));
-      out.push({ id: `${i.id}:due`, iouId: i.id, when: due, title: ask(i, left), body: `${relative(due, now)}${note}`, urgency: urgencyOf(due, now) });
+      out.push({ ...who, amount: left, id: `${i.id}:due`, iouId: i.id, when: due, title: ask(i, left), body: `${relative(due, now)}${note}`, urgency: urgencyOf(due, now) });
     }
 
     const st = interestStatus(i, now);
     if (st) {
       const interestTitle = i.direction === 'lent' ? `Collect interest from ${i.person}` : `Pay interest to ${i.person}`;
       if (st.pending > 0) {
-        out.push({ id: `${i.id}:int-pending`, iouId: i.id, when: at9(now), title: `${interestTitle}: ${formatINR(st.pending)}`, body: `${st.monthsBehind > 1 ? `${st.monthsBehind} months` : 'This month'} not ${i.direction === 'lent' ? 'received' : 'paid'} yet`, urgency: 'overdue' });
+        out.push({ ...who, amount: st.pending, id: `${i.id}:int-pending`, iouId: i.id, when: at9(now), title: `${interestTitle}: ${formatINR(st.pending)}`, body: `${st.monthsBehind > 1 ? `${st.monthsBehind} months` : 'This month'} not ${i.direction === 'lent' ? 'received' : 'paid'} yet`, urgency: 'overdue' });
       }
       const next = at9(st.nextDue);
-      out.push({ id: `${i.id}:int-${next.toISOString().slice(0, 10)}`, iouId: i.id, when: next, title: `${interestTitle}: ${formatINR(st.monthly)}`, body: relative(next, now), urgency: urgencyOf(next, now) });
+      out.push({ ...who, amount: st.monthly, id: `${i.id}:int-${next.toISOString().slice(0, 10)}`, iouId: i.id, when: next, title: `${interestTitle}: ${formatINR(st.monthly)}`, body: relative(next, now), urgency: urgencyOf(next, now) });
     }
 
     const ins = instalmentStatus(i, now);
@@ -63,6 +70,7 @@ export function moneyReminders(ious: Iou[], now = new Date()): MoneyReminder[] {
       const next = at9(ins.nextDue);
       const what = i.direction === 'lent' ? `Collect ${formatINR(ins.thisPayment)} from ${i.person}` : `Pay ${i.person} ${formatINR(ins.thisPayment)}`;
       out.push({
+        ...who, amount: ins.thisPayment,
         id: `${i.id}:inst-${next.toISOString().slice(0, 10)}`, iouId: i.id, when: next,
         title: `${what}${i.onCard ? ' (EMI on your card)' : ''}`,
         body: ins.behind > 0 ? `${ins.behind} instalment${ins.behind > 1 ? 's' : ''} behind, ${ins.paidCount} of ${ins.total} paid` : `${relative(next, now)}, ${ins.paidCount} of ${ins.total} paid`,
@@ -72,12 +80,12 @@ export function moneyReminders(ious: Iou[], now = new Date()): MoneyReminder[] {
 
     if (i.remindAt) {
       const r = at9(new Date(i.remindAt));
-      out.push({ id: `${i.id}:custom`, iouId: i.id, when: r, title: ask(i, left), body: `You asked to be reminded${note}`, urgency: urgencyOf(r, now) === 'overdue' ? 'today' : urgencyOf(r, now) });
+      out.push({ ...who, amount: left, id: `${i.id}:custom`, iouId: i.id, when: r, title: ask(i, left), body: `You asked to be reminded${note}`, urgency: urgencyOf(r, now) === 'overdue' ? 'today' : urgencyOf(r, now) });
     }
   }
 
   for (const n of chainNudges(ious)) {
-    out.push({ id: `${n.borrowed.id}:chain`, iouId: n.borrowed.id, when: at9(now), title: `Repay ${n.borrowed.person} ${formatINR(n.repayNow)}`, body: `${n.lent.person} paid you back. Pass it on`, urgency: 'today' });
+    out.push({ flow: 'out', person: n.borrowed.person, amount: n.repayNow, id: `${n.borrowed.id}:chain`, iouId: n.borrowed.id, when: at9(now), title: `Repay ${n.borrowed.person} ${formatINR(n.repayNow)}`, body: `${n.lent.person} paid you back. Pass it on`, urgency: 'today' });
   }
 
   const rank = { overdue: 0, today: 1, soon: 2, later: 3 };

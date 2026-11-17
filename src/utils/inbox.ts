@@ -9,6 +9,7 @@ import { cardReminders, verifiedAgo, type AccountBalance } from './accounts';
 import { overallBudget } from './budgets';
 import { debtPlanReminders, debtPlanSummary } from './debtPlan';
 import { moneyReminders, type MoneyReminder } from './debtReminders';
+import { isAuto } from './bills';
 import { formatINR } from './format';
 import { upcomingBills } from './moneyHealth';
 import { minBalanceRisk } from './payday';
@@ -16,7 +17,13 @@ import { sipReminders } from './sip';
 
 export type InboxKind = 'people' | 'card' | 'bill' | 'sip' | 'debt' | 'budget' | 'checkin' | 'low';
 export type InboxGroup = 'overdue' | 'today' | 'week' | 'later';
-export type InboxItem = { id: string; kind: InboxKind; when: Date; title: string; body: string; href: string; group: InboxGroup; billId?: string; amount?: number };
+// flow: 'out' = money you pay, 'in' = money coming to you, 'note' = something to check (no money moves)
+// name / sub: the short form for the Reminders list (title / body stay for notifications)
+export type InboxFlow = 'out' | 'in' | 'note';
+export type InboxItem = {
+  id: string; kind: InboxKind; when: Date; title: string; body: string; href: string; group: InboxGroup;
+  billId?: string; amount?: number; flow: InboxFlow; name: string; sub: string; auto?: boolean;
+};
 
 const DAY = 86_400_000;
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -35,32 +42,47 @@ export function buildInbox(p: {
   const now = p.now ?? new Date();
   const horizon = now.getTime() + 30 * DAY;
   const out: InboxItem[] = [];
-  const from = (r: MoneyReminder, kind: InboxKind, href: string) => {
-    if (r.when.getTime() > horizon) return;
-    out.push({ id: r.id, kind, when: r.when, title: r.title, body: r.body, href: r.href ?? href, group: groupFor(r.when, now, r.urgency === 'overdue') });
+  const from = (r: MoneyReminder, kind: InboxKind, href: string, name: string, sub: string) => {
+    const when = r.on ?? r.when;
+    if (when.getTime() > horizon) return;
+    out.push({
+      id: r.id, kind, when, title: r.title, body: r.body, href: r.href ?? href, group: groupFor(when, now, r.urgency === 'overdue'),
+      amount: r.amount, flow: r.flow ?? 'note', name, sub,
+    });
   };
 
   // money with people: ask / pay / interest / instalments
-  for (const r of moneyReminders(p.ious, now)) from(r, 'people', '/ious');
+  for (const r of moneyReminders(p.ious, now)) {
+    const interest = /:int-/.test(r.id);
+    const sub = r.flow === 'in' ? (interest ? 'Interest to collect' : 'To collect') : interest ? 'Interest you pay' : 'You owe';
+    from(r, 'people', '/ious', r.person ?? r.title, r.id.endsWith(':chain') ? 'They paid you, so pass it on' : sub);
+  }
   // credit card bills
-  for (const r of cardReminders(p.accounts, now)) from(r, 'card', '/accounts');
+  for (const r of cardReminders(p.accounts, now)) from({ ...r, flow: 'out' }, 'card', '/accounts', `${r.name} card`, 'Card bill, what you owe now');
   // recurring bills & EMIs (unpaid ones this month show as overdue once the date passes)
   for (const u of upcomingBills(p.bills, now, 30)) {
     const days = Math.round((startOfDay(u.due).getTime() - startOfDay(now).getTime()) / DAY);
+    const auto = isAuto(u.bill) && !u.bill.variable;
     out.push({
       id: `bill:${u.bill.id}:${u.due.toISOString().slice(0, 10)}`, kind: 'bill', when: u.due,
       title: `${u.bill.name} ${u.bill.variable ? `(about ${formatINR(u.amount)})` : formatINR(u.amount)}`,
       body: days < 0 ? `Was due ${-days} day${days === -1 ? '' : 's'} ago. Paid it? Mark it here` : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due ${u.due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
       href: `/bill/${u.bill.id}`, group: groupFor(u.due, now), billId: u.bill.id, amount: u.amount,
+      flow: 'out', name: u.bill.name, auto,
+      sub: u.bill.variable ? 'Amount changes, this is the usual' : auto ? 'Auto-debit. Keep it in your bank' : 'You pay this yourself',
     });
   }
   // SIPs
-  for (const r of sipReminders(p.investments, now)) from(r, 'sip', '/invest');
+  for (const r of sipReminders(p.investments, now)) {
+    if (r.id.endsWith(':ask')) from({ ...r, flow: undefined }, 'sip', '/invest', `Did your ${formatINR(r.amount ?? 0)} SIP go through?`, `${r.name ?? 'SIP'}. Answer in Invest`);
+    else from(r, 'sip', '/invest', `SIP, ${r.name ?? 'fund'}`, 'Auto-debit. Keep it in your bank');
+  }
   // debt plan: extra payment on pay day
   const plan = debtPlanSummary({ ious: p.ious, bills: p.bills, accounts: p.accounts, plan: p.settings.debtPlan, cycleStartDay: p.settings.cycleStartDay, now });
   if (plan.askNow && plan.first)
-    out.push({ id: `debtplan:${plan.cycleKey}:ask`, kind: 'debt', when: now, title: `Put ${formatINR(plan.extra)} extra on ${plan.first.name}`, body: 'Your payoff plan for this month. Answer on Home', href: '/', group: 'today' });
-  for (const r of debtPlanReminders(plan, p.settings.cycleStartDay, now)) if (r.when > now) from(r, 'debt', '/debts');
+    out.push({ id: `debtplan:${plan.cycleKey}:ask`, kind: 'debt', when: now, title: `Put ${formatINR(plan.extra)} extra on ${plan.first.name}`, body: 'Your payoff plan for this month. Answer on Home', href: '/', group: 'today', flow: 'note', name: `Did you put ${formatINR(plan.extra)} extra on ${plan.first.name}?`, sub: 'Your payoff plan. Answer on Home' });
+  // one item per planned payment: the follow-up question is asked on Home, not listed twice here
+  for (const r of debtPlanReminders(plan, p.settings.cycleStartDay, now)) if (r.when > now && !r.id.endsWith(':ask')) from(r, 'debt', '/debts', `Extra on ${r.name ?? 'your debt'}`, 'Optional. Your payoff plan');
   // budget
   const ob = overallBudget(p.monthTx, p.settings.monthlyBudget);
   if (ob && ob.limit > 0 && ob.spent / ob.limit >= 0.8) {
@@ -69,13 +91,14 @@ export function buildInbox(p: {
       id: `budget:${now.toISOString().slice(0, 7)}`, kind: 'budget', when: now,
       title: pct >= 100 ? 'Over this month’s budget' : `${pct}% of this month’s budget used`,
       body: pct >= 100 ? `${formatINR(ob.spent - ob.limit)} over your ${formatINR(ob.limit)} limit` : `${formatINR(ob.limit - ob.spent)} left for the rest of the month`,
-      href: '/budgets', group: 'today',
+      href: '/budgets', group: 'today', flow: 'note', name: pct >= 100 ? 'Over this month’s budget' : `${pct}% of the budget used`,
+      sub: pct >= 100 ? `${formatINR(ob.spent - ob.limit)} over your ${formatINR(ob.limit)} limit` : `${formatINR(ob.limit - ob.spent)} left for the rest of the month`,
     });
   }
   // balances not updated for a week
   const stale = p.accounts.filter((a) => !a.archived && verifiedAgo(a, now).stale);
   if (stale.length)
-    out.push({ id: `checkin:${now.toISOString().slice(0, 10)}`, kind: 'checkin', when: now, title: 'Update your balances', body: `${stale.map((a) => a.name).slice(0, 3).join(', ')}. A quick update keeps Safe to spend and net worth right`, href: '/accounts', group: 'today' });
+    out.push({ id: `checkin:${now.toISOString().slice(0, 10)}`, kind: 'checkin', when: now, title: 'Update your balances', body: `${stale.map((a) => a.name).slice(0, 3).join(', ')}. A quick update keeps Safe to spend and net worth right`, href: '/accounts', group: 'today', flow: 'note', name: 'Update your balances', sub: `${stale.map((a) => a.name).slice(0, 3).join(', ')} not checked for a week` });
 
   // low balance: the next 7 days of bills & card dues vs the money in your bank/cash
   out.push(...lowBalanceItems(p.accounts, p.bills, now));
@@ -160,7 +183,8 @@ export function lowBalanceItems(accounts: AccountBalance[], bills: Bill[], now =
   const today = now.toISOString().slice(0, 10);
   if (due > 0 && spare < Math.max(1000, due * 0.1))
     out.push({
-      id: `low:week:${today}`, kind: 'low', when: now, href: '/accounts', group: spare < 0 ? 'overdue' : 'today',
+      id: `low:week:${today}`, kind: 'low', when: now, href: '/accounts', group: spare < 0 ? 'overdue' : 'today', flow: 'note',
+      name: spare < 0 ? `${formatINR(-spare)} short for the next 7 days` : `Only ${formatINR(spare)} spare this week`, sub: 'Move money into your bank before the bills go out',
       title: spare < 0 ? `${formatINR(-spare)} short for the next 7 days` : `Only ${formatINR(spare)} spare this week`,
       body: `${formatINR(due)} of bills${cardsWeek ? ' & card dues' : ''} due by ${new Date(week).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, and you have ${formatINR(have)} in bank & cash.${spare < 0 ? ' Move money in before then to avoid a bounce or late fee.' : ''}`,
     });
@@ -168,7 +192,8 @@ export function lowBalanceItems(accounts: AccountBalance[], bills: Bill[], now =
     const r = minBalanceRisk(a);
     if (!r || !(r.below || r.close)) continue;
     out.push({
-      id: `low:min:${a.id}:${today}`, kind: 'low', when: now, href: '/accounts', group: r.below ? 'overdue' : 'today',
+      id: `low:min:${a.id}:${today}`, kind: 'low', when: now, href: '/accounts', group: r.below ? 'overdue' : 'today', flow: 'note',
+      name: r.below ? `${a.name} is below its minimum` : `${a.name} is close to its minimum`, sub: r.below ? `Add ${formatINR(-r.room)} to avoid the bank's monthly fee` : `Only ${formatINR(r.room)} above ${formatINR(a.minBalance!)}`,
       title: r.below ? `${a.name} is below its minimum balance` : `${a.name} is close to its minimum balance`,
       body: `${formatINR(Math.round(a.balance))} now, the bank needs ${formatINR(a.minBalance!)}.${r.below ? ` Add ${formatINR(-r.room)}. Banks charge a fee every month you are below.` : ` Only ${formatINR(r.room)} above it.`}`,
     });

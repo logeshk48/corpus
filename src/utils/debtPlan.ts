@@ -77,7 +77,7 @@ export function debtPlanReminders(s: DebtPlanSummary | null, cycleStartDay = 1, 
   const payday = new Date(cyc.start.getFullYear(), cyc.start.getMonth(), cyc.start.getDate(), 10);
   const nextPayday = new Date(cyc.end.getFullYear(), cyc.end.getMonth(), cyc.end.getDate(), 10);
   const freeBy = s.freeBy ? `, debt-free by ${monthYear(s.freeBy)}` : '';
-  const put = { iouId: '', href: '/debts', title: `Put ${formatINR(s.extra)} extra on ${s.first.name}`, body: `Your payoff plan: pay this first${freeBy}` };
+  const put = { iouId: '', href: '/debts', amount: s.extra, flow: 'out' as const, name: s.first.name, title: `Put ${formatINR(s.extra)} extra on ${s.first.name}`, body: `Your payoff plan: pay this first${freeBy}` };
   const ask = { iouId: '', href: '/', title: `Did you pay the extra ${formatINR(s.extra)} to ${s.first.name}?`, body: 'Tap Yes or Not this month on Home. It keeps your plan on track' };
   const out: MoneyReminder[] = [
     { ...put, id: `debtplan:${ym(nextPayday)}:put`, when: nextPayday, urgency: 'later' },
