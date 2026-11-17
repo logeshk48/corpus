@@ -1,10 +1,14 @@
 import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Children, isValidElement, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LayoutAnimationConfig, LinearTransition } from 'react-native-reanimated';
 import { Duration } from '@/constants/motion';
 import IconChip from './IconChip';
+
+// On the web a leaving row is lifted out with the wrong offset and jumps up over the rows above it
+// while it fades, so there it just goes and the rest close the gap. Phones keep the fade.
+const EXIT = Platform.OS === 'web' ? undefined : FadeOut.duration(Duration.exit);
 
 // Apple "inset grouped" list: an optional title, then white rounded rows with inset hairlines
 // animate: rows added later slide in, removed rows fade out and the rest close the gap (not on first show)
@@ -24,7 +28,7 @@ export default function Group({ title, action, onAction, children, animate }: { 
         <View style={s.card}>
           {rows.map((r, i) =>
             animate ? (
-              <Animated.View key={r.key ?? i} entering={FadeInDown.duration(Duration.enter)} exiting={FadeOut.duration(Duration.exit)} layout={LinearTransition.duration(Duration.enter)}>
+              <Animated.View key={r.key ?? i} entering={FadeInDown.duration(Duration.enter)} exiting={EXIT} layout={LinearTransition.duration(Duration.enter)}>
                 {r}
                 {i < rows.length - 1 && <View style={s.sep} />}
               </Animated.View>
