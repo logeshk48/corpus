@@ -12,7 +12,7 @@ export type MoneyReminder = {
   iouId: string;
   when: Date;            // the day it's about (9 AM)
   title: string;         // "Ask Rahul for ₹500"
-  body: string;          // "Due today · Dinner"
+  body: string;          // "Due today. Dinner"
   urgency: 'overdue' | 'today' | 'soon' | 'later';
   href?: string;         // where tapping it goes (default: Lent & borrowed)
 };
@@ -41,7 +41,7 @@ export function moneyReminders(ious: Iou[], now = new Date()): MoneyReminder[] {
   for (const i of ious) {
     if (!isOpen(i)) continue;
     const left = remaining(i);
-    const note = i.note ? ` · ${i.note}` : '';
+    const note = i.note ? `. ${i.note}` : '';
 
     if (i.dueDate) {
       const due = at9(new Date(i.dueDate));
@@ -65,7 +65,7 @@ export function moneyReminders(ious: Iou[], now = new Date()): MoneyReminder[] {
       out.push({
         id: `${i.id}:inst-${next.toISOString().slice(0, 10)}`, iouId: i.id, when: next,
         title: `${what}${i.onCard ? ' (EMI on your card)' : ''}`,
-        body: ins.behind > 0 ? `${ins.behind} instalment${ins.behind > 1 ? 's' : ''} behind · ${ins.paidCount} of ${ins.total} paid` : `${relative(next, now)} · ${ins.paidCount} of ${ins.total} paid`,
+        body: ins.behind > 0 ? `${ins.behind} instalment${ins.behind > 1 ? 's' : ''} behind, ${ins.paidCount} of ${ins.total} paid` : `${relative(next, now)}, ${ins.paidCount} of ${ins.total} paid`,
         urgency: ins.behind > 0 ? 'overdue' : urgencyOf(next, now),
       });
     }

@@ -81,7 +81,7 @@ export function cardReminders(list: AccountBalance[], now = new Date()) {
       iouId: a.id,
       when: n.due,
       title: `Pay ${a.name} bill`,
-      body: `${n.daysLeft === 0 ? 'Due today' : n.daysLeft === 1 ? 'Due tomorrow' : `Due in ${n.daysLeft} days`} · about ₹${Math.round(a.balance).toLocaleString('en-IN')} owed`,
+      body: `${n.daysLeft === 0 ? 'Due today' : n.daysLeft === 1 ? 'Due tomorrow' : `Due in ${n.daysLeft} days`}, about ₹${Math.round(a.balance).toLocaleString('en-IN')} owed`,
       urgency: n.daysLeft === 0 ? 'today' : n.daysLeft <= 3 ? 'soon' : 'later',
     });
   }

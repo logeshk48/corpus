@@ -50,7 +50,7 @@ export function buildInbox(p: {
     out.push({
       id: `bill:${u.bill.id}:${u.due.toISOString().slice(0, 10)}`, kind: 'bill', when: u.due,
       title: `${u.bill.name} ${u.bill.variable ? `(about ${formatINR(u.amount)})` : formatINR(u.amount)}`,
-      body: days < 0 ? `Was due ${-days} day${days === -1 ? '' : 's'} ago — paid it? Mark it in Bills` : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due ${u.due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
+      body: days < 0 ? `Was due ${-days} day${days === -1 ? '' : 's'} ago. Paid it? Mark it here` : days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due ${u.due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`,
       href: `/bill/${u.bill.id}`, group: groupFor(u.due, now), billId: u.bill.id, amount: u.amount,
     });
   }
@@ -59,7 +59,7 @@ export function buildInbox(p: {
   // debt plan: extra payment on pay day
   const plan = debtPlanSummary({ ious: p.ious, bills: p.bills, accounts: p.accounts, plan: p.settings.debtPlan, cycleStartDay: p.settings.cycleStartDay, now });
   if (plan.askNow && plan.first)
-    out.push({ id: `debtplan:${plan.cycleKey}:ask`, kind: 'debt', when: now, title: `Put ${formatINR(plan.extra)} extra on ${plan.first.name}`, body: 'Your payoff plan for this month — answer on Home', href: '/', group: 'today' });
+    out.push({ id: `debtplan:${plan.cycleKey}:ask`, kind: 'debt', when: now, title: `Put ${formatINR(plan.extra)} extra on ${plan.first.name}`, body: 'Your payoff plan for this month. Answer on Home', href: '/', group: 'today' });
   for (const r of debtPlanReminders(plan, p.settings.cycleStartDay, now)) if (r.when > now) from(r, 'debt', '/debts');
   // budget
   const ob = overallBudget(p.monthTx, p.settings.monthlyBudget);
@@ -75,7 +75,7 @@ export function buildInbox(p: {
   // balances not updated for a week
   const stale = p.accounts.filter((a) => !a.archived && verifiedAgo(a, now).stale);
   if (stale.length)
-    out.push({ id: `checkin:${now.toISOString().slice(0, 10)}`, kind: 'checkin', when: now, title: 'Update your balances', body: `${stale.map((a) => a.name).slice(0, 3).join(', ')} — 30 seconds keeps safe-to-spend and net worth right`, href: '/accounts', group: 'today' });
+    out.push({ id: `checkin:${now.toISOString().slice(0, 10)}`, kind: 'checkin', when: now, title: 'Update your balances', body: `${stale.map((a) => a.name).slice(0, 3).join(', ')}. A quick update keeps Safe to spend and net worth right`, href: '/accounts', group: 'today' });
 
   // low balance: the next 7 days of bills & card dues vs the money in your bank/cash
   out.push(...lowBalanceItems(p.accounts, p.bills, now));
@@ -122,7 +122,7 @@ export function pruneMarks(marks: Record<string, InboxMark>, now = new Date()) {
 }
 
 // ─── Morning briefing: one notification instead of many ───
-// "₹230 to spend today · Rent ₹15,000 due today · SIP ₹200 tomorrow · 1 overdue"
+// "₹230 to spend today. Rent ₹15,000 today. SIP ₹200 tomorrow. 1 overdue"
 export function briefing(items: InboxItem[], safeToday: number | null, on: Date) {
   const day = startOfDay(on).getTime();
   const sameDay = (d: Date) => startOfDay(d).getTime() === day;
@@ -131,14 +131,14 @@ export function briefing(items: InboxItem[], safeToday: number | null, on: Date)
   const dueTomorrow = items.filter((i) => nextDay(i.when));
   const overdue = items.filter((i) => i.group === 'overdue').length;
   const parts: string[] = [];
-  if (safeToday != null) parts.push(safeToday > 0 ? `${formatINR(safeToday)} to spend today` : 'Spend nothing extra today — you’re over');
+  if (safeToday != null) parts.push(safeToday > 0 ? `${formatINR(safeToday)} to spend today` : 'Spend nothing extra today, you are over');
   for (const i of dueToday.slice(0, 2)) parts.push(`${i.title} today`);
   if (dueToday.length > 2) parts.push(`+${dueToday.length - 2} more today`);
   for (const i of dueTomorrow.slice(0, 1)) parts.push(`${i.title} tomorrow`);
   if (overdue) parts.push(`${overdue} overdue`);
   return {
     title: dueToday.length || overdue ? `Today: ${dueToday.length + overdue} thing${dueToday.length + overdue > 1 ? 's' : ''} to sort` : 'Good morning',
-    body: parts.join(' · ') || 'Nothing due today. Log what you spend and you’re done.',
+    body: parts.join('. ') || 'Nothing due today. Log what you spend and you are done.',
     dueToday, dueTomorrow, overdue,
   };
 }
@@ -170,7 +170,7 @@ export function lowBalanceItems(accounts: AccountBalance[], bills: Bill[], now =
     out.push({
       id: `low:min:${a.id}:${today}`, kind: 'low', when: now, href: '/accounts', group: r.below ? 'overdue' : 'today',
       title: r.below ? `${a.name} is below its minimum balance` : `${a.name} is close to its minimum balance`,
-      body: `${formatINR(Math.round(a.balance))} now, the bank needs ${formatINR(a.minBalance!)}.${r.below ? ` Add ${formatINR(-r.room)} — banks charge a fee every month you’re below.` : ` Only ${formatINR(r.room)} above it.`}`,
+      body: `${formatINR(Math.round(a.balance))} now, the bank needs ${formatINR(a.minBalance!)}.${r.below ? ` Add ${formatINR(-r.room)}. Banks charge a fee every month you are below.` : ` Only ${formatINR(r.room)} above it.`}`,
     });
   }
   return out;
@@ -181,7 +181,7 @@ export function overspentToday(safe: { safeToday: number; spentToday: number; da
   if (!safe || safe.spentToday <= 0 || safe.safeToday >= 0 || safe.spentToday <= safe.dailyAllowance) return null;
   return {
     id: `over:${now.toISOString().slice(0, 10)}`,
-    title: `${formatINR(safe.spentToday)} spent today — ${formatINR(safe.dailyAllowance)} was your amount`,
+    title: `${formatINR(safe.spentToday)} spent today, your amount was ${formatINR(safe.dailyAllowance)}`,
     body: `${formatINR(safe.spentToday - safe.dailyAllowance)} over. Tomorrow’s amount drops to about ${formatINR(Math.max(0, safe.tomorrowAllowance))} a day to stay on track.`,
   };
 }

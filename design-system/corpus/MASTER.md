@@ -174,3 +174,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - Stepper (‹ value ›) is for short ordered sets: day of month, month, a past date. Arrows are 44pt.
 - Loan card: one cell per EMI when there are 36 or fewer, a single bar above that. Green = cleared, amber = interest, always with words and numbers next to it.
 - A screen has one primary button. "I paid this extra" is secondary because Mark paid is the primary.
+
+## Reminders (step 11)
+- Top card: today's date, Safe to spend today (rolls), one line of what is due, and a Late / Today / Next 7 days strip. Late is red with an icon, never colour alone.
+- Groups: Late, Today, Next 7 days, Later. Each has its count in the title.
+- No swipe actions (skill: gesture-conflicts). Tap a row to open its tray: Mark paid (bills that are waiting) or Done, three snoozes, and Open. Every action has Undo in the toast.
+- Clearing the last reminder fires the small celebration once.
+- Reminder text from every source uses sentences: no middle dots or dashes.

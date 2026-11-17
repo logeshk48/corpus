@@ -92,7 +92,7 @@ export function sipReminders(list: Investment[], now = new Date()): MoneyReminde
   const out: MoneyReminder[] = [];
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   for (const p of pendingSips(list, now))
-    out.push({ id: `sip:${p.h.id}:${p.month}:ask`, iouId: '', href: '/invest', when: new Date(p.date.getFullYear(), p.date.getMonth(), p.date.getDate() + 1, 9), title: `Did your ${formatINR(p.amount)} SIP go through?`, body: `${p.h.name} · tap Yes or Skipped in Invest`, urgency: 'today' });
+    out.push({ id: `sip:${p.h.id}:${p.month}:ask`, iouId: '', href: '/invest', when: new Date(p.date.getFullYear(), p.date.getMonth(), p.date.getDate() + 1, 9), title: `Did your ${formatINR(p.amount)} SIP go through?`, body: `${p.h.name}. Tap Yes or Skipped in Invest`, urgency: 'today' });
   for (const h of list) {
     const n = nextSip(h, now);
     if (!n) continue;
@@ -104,7 +104,7 @@ export function sipReminders(list: Investment[], now = new Date()): MoneyReminde
       href: '/invest',
       when: new Date(day.getFullYear(), day.getMonth(), day.getDate() - 1, 9), // the day before, 9 AM
       title: `SIP ${formatINR(n.amount)} ${days <= 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}`,
-      body: `${h.name} · keep it in your bank so the mandate doesn't bounce`,
+      body: `${h.name}. Keep it in your bank so the mandate doesn't bounce`,
       urgency: days <= 0 ? 'today' : days === 1 ? 'soon' : 'later',
     });
   }
