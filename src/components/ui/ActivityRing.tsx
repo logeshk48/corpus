@@ -1,27 +1,37 @@
+import { useEffect, useId } from 'react';
 import { View } from 'react-native';
+import Animated, { Easing, useAnimatedProps, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
-// Apple Activity-style ring without SVG: overlapping round dots along a circle form a smooth arc
-// with round ends. `progress` 0–1 is the filled part, starting at 12 o'clock.
+const ACircle = Animated.createAnimatedComponent(Circle);
+
+// A smooth ring drawn with SVG: a soft track, and the filled part as one stroke with round ends and a
+// gentle gradient in its colour. It sweeps to its value when shown and when the value changes.
+// `progress` 0–1 starts at 12 o'clock. Decoration only; the number next to it carries the meaning.
 export default function ActivityRing({ size, thickness, progress, color, track }: { size: number; thickness: number; progress: number; color: string; track: string }) {
+  const reduce = useReducedMotion();
+  const id = useId().replace(/:/g, '');
   const r = (size - thickness) / 2;
-  const n = Math.max(24, Math.ceil((2 * Math.PI * r) / (thickness * 0.35)));
-  const filled = Math.round(Math.min(1, Math.max(0, progress)) * n);
-  const dots = [];
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * 2 * Math.PI - Math.PI / 2;
-    dots.push(
-      <View
-        key={i}
-        style={{
-          position: 'absolute', width: thickness, height: thickness, borderRadius: thickness / 2,
-          left: size / 2 + r * Math.cos(a) - thickness / 2, top: size / 2 + r * Math.sin(a) - thickness / 2,
-          backgroundColor: i < filled ? color : track,
-        }}
-      />,
-    );
-  }
-  // draw the track first, then the filled arc on top so its end cap sits over the track
-  const trackDots = dots.slice(filled);
-  const fillDots = dots.slice(0, filled);
-  return <View style={{ width: size, height: size }} pointerEvents="none">{trackDots}{fillDots}</View>;
+  const c = 2 * Math.PI * r;
+  const p = useSharedValue(reduce ? progress : 0);
+  useEffect(() => {
+    const to = Math.min(1, Math.max(0, progress));
+    p.value = reduce ? to : withTiming(to, { duration: 900, easing: Easing.out(Easing.cubic) });
+  }, [progress, reduce, p]);
+  const props = useAnimatedProps(() => ({ strokeDashoffset: c * (1 - p.value) }));
+  return (
+    <View style={{ width: size, height: size }} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+        <Defs>
+          <LinearGradient id={`g${id}`} x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={color} stopOpacity={0.55} />
+            <Stop offset="1" stopColor={color} stopOpacity={1} />
+          </LinearGradient>
+        </Defs>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={thickness} fill="none" />
+        <ACircle cx={size / 2} cy={size / 2} r={r} stroke={`url(#g${id})`} strokeWidth={thickness} fill="none"
+          strokeLinecap="round" strokeDasharray={`${c} ${c}`} animatedProps={props} />
+      </Svg>
+    </View>
+  );
 }

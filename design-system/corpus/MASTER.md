@@ -236,3 +236,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - Categories are one swipeable row; the picked one lifts with a ring in its own colour.
 - Save is never a dead button: tapped too early it shakes the missing part (amount or categories) and its label says what is needed. After saving it turns green with a tick, money in gets a small colour burst, then the form clears.
 - Everything respects Reduce Motion.
+
+## SVG (react-native-svg 15)
+- Rings (ActivityRing) are one SVG stroke with round caps and a soft gradient in their colour; they sweep to their value (900 ms ease-out), still under Reduce Motion.
+- Add shows "what this does to today": a half-circle gauge around the amount, green to amber to red against today's safe-to-spend, a knob at the end, and the words under it ("Leaves ₹31 for today", "₹120 over what you can spend today"). Only for Spent, only when Safe to spend is known.
+- Put accessibility props on a wrapping View, not on <Svg> (web warns).
+- SVG is native: the phone needs a new dev build after it was added.

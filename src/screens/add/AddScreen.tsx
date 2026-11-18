@@ -3,6 +3,8 @@ import Aura from '@/components/fx/Aura';
 import { celebrate } from '@/components/fx/Celebrate';
 import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
 import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
+import TodayArc from '@/components/charts/TodayArc';
+import { useSafeToday } from '@/hooks/useSafeToday';
 import { DayStepper, Tap } from '@/components/ui';
 import { EXPENSE_CATEGORIES, findCategory, INCOME_CATEGORIES } from '@/constants/categories';
 import { Spring } from '@/constants/motion';
@@ -50,6 +52,7 @@ export default function AddScreen() {
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
   const { showToast } = useToast();
+  const safe = useSafeToday();
   const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string; first?: string; type?: string; date?: string; category?: string; paste?: string }>();
   const [amount, setAmount] = useState(params.amount ?? '');
   const [type, setType] = useState<TxType>('expense');
@@ -202,7 +205,11 @@ export default function AddScreen() {
           )}
           {/* the digits you see animate; the real input sits invisibly on top, so tapping the amount opens the number keyboard */}
           <View>
-            <AmountDisplay amount={amount} income={type === 'income'} shake={shakeAmount} />
+            {type === 'expense' && safe ? (
+              <TodayArc amount={amt} safeToday={safe.safeToday}>
+                <AmountDisplay amount={amount} income={false} shake={shakeAmount} />
+              </TodayArc>
+            ) : <AmountDisplay amount={amount} income={type === 'income'} shake={shakeAmount} />}
             <TextInput
               ref={amountRef} value={amount} onChangeText={(t) => setAmount(clean(t))}
               keyboardType="decimal-pad" autoFocus caretHidden contextMenuHidden
@@ -275,7 +282,7 @@ const s = StyleSheet.create({
   pillOn: { backgroundColor: Corpus.gold },
   pillText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
   bottom: { paddingHorizontal: 16, paddingTop: 8, gap: 10, backgroundColor: Corpus.bg },
-  hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0, color: Corpus.bg, fontSize: Type.h1 },
+  hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, height: 170, opacity: 0, color: Corpus.bg, fontSize: Type.h1 },
   save: { height: 56, borderRadius: 28, backgroundColor: Corpus.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveOff: { backgroundColor: Corpus.card },
   saveText: { fontSize: Type.input, fontFamily: Font.displayBold, color: Corpus.onGold },
