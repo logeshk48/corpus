@@ -213,3 +213,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - SMS items grouped by day. Each: category chip, who it went to, category and account ending, amount. "Show the message" reveals the original so people can check. A likely duplicate (same amount, same day, already logged) gets an amber note and "Skip, it is the same" becomes the main action.
 - Where SMS can't be read (web, iPhone), the screen is a paste box with a live preview row.
 - Ask: rules, not AI; said up front. Welcome shows example questions in three groups (spending, saving and income, today/bills/people). Each answer leads with the one number, a sentence, a small ledger, an Open button, and 2–3 "Ask next" chips that follow from that answer (Google conversation design: suggestions relate to the last response).
+
+## Safe to spend + Can I afford it (step 15, researched)
+- Safe to spend sheet is a cascade (skill: waterfall for components adding up to a total): what came in, then each thing taken out with its sign, an icon and a bar of what is left after it, then "Left for N days", then shared per day, minus today, equals today's number. One-number apps like PocketGuard confuse people when the inputs aren't shown; ours shows every input.
+- Can I afford it: price and what it is, Pay in full / On EMI, answer as you type. The verdict is a pill with word + icon + colour, then the one number (a month or a day left), then plain lines.
+- Two research-based nudges: the price in days of usual income, and for unplanned buys a pause (a day from ₹5,000, a week from ₹25,000) because waiting lets the urgency fade.
+- "Save for it" (start a jar) sits in the sheet footer only when the answer is Not yet.

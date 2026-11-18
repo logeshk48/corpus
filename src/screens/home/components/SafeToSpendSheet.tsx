@@ -1,160 +1,132 @@
-import { Corpus } from '@/constants/theme';
-import { styles as sheet } from '@/screens/budgets/components/BudgetEditorSheet.styles';
+import { Sheet } from '@/components/ui';
+import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { SafeToSpendResult } from '@/utils/safeToSpend';
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { styles } from './SafeToSpendSheet.styles';
+import { StyleSheet, Text, View } from 'react-native';
 
-type Props = {
-  visible: boolean;
-  result: SafeToSpendResult;
-  onClose: () => void;
-};
+type Props = { visible: boolean; result: SafeToSpendResult; onClose: () => void };
+type Step = { label: string; value: number; icon: string; note?: string };
 
-const STATUS_COLOR = { ok: Corpus.gold, tight: Corpus.warning, over: Corpus.danger };
-
-function Row({ label, value, sign }: { label: string; value: number; sign?: '+' | '−' }) {
-  return (
-    <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>
-        {sign ?? ''}
-        {formatINR(Math.abs(value))}
-      </Text>
-    </View>
-  );
-}
-
+// How today's number is worked out, step by step: what came in, each thing taken out (with what is left after it),
+// then the rest shared across the days left. Each step shows its sign and an icon, not colour alone.
 export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
   if (!visible) return null;
 
-  return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
-        <Pressable style={sheet.backdrop} onPress={onClose} />
-        <View style={[sheet.sheet, { maxHeight: '90%' }]}>
-          <View style={sheet.handle} />
-          <View style={sheet.header}>
-            <View style={sheet.iconCircle}>
-              <Ionicons name="calculator-outline" size={18} color={Corpus.gold} />
-            </View>
-            <View style={sheet.titleBlock}>
-              <Text style={sheet.title}>How today's number works</Text>
-              <Text style={sheet.subtitle}>Your money for the month, shared fairly across the days left</Text>
-            </View>
-            <Pressable style={sheet.closeButton} onPress={onClose} hitSlop={8}>
-              <Ionicons name="close" size={18} color={Corpus.textMuted} />
-            </Pressable>
+  if (result.status === 'noData') {
+    return (
+      <Sheet title="How today's number works" subtitle="Your money for the month, shared fairly across the days left" onClose={onClose}>
+        {[
+          'Corpus takes what came in this month, or your monthly budget.',
+          'It takes out what you have spent, bills still due, SIPs and what your jars need.',
+          'What is left is shared equally across the days until your next pay day.',
+        ].map((t, i) => (
+          <View key={i} style={s.howRow}>
+            <View style={s.num}><Text style={s.numText}>{i + 1}</Text></View>
+            <Text style={[s.line, { flex: 1 }]}>{t}</Text>
           </View>
+        ))}
+        <Text style={s.small}>Add income on the Add screen, or set a monthly budget in Budgets, to see your number.</Text>
+      </Sheet>
+    );
+  }
 
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14 }}>
-            {result.status === 'noData' ? (
-              <View style={styles.steps}>
-                <Text style={styles.step}>1. Corpus takes this month's income (or your monthly budget).</Text>
-                <Text style={styles.step}>2. It subtracts what you've spent and what you've put into jars.</Text>
-                <Text style={styles.step}>3. It keeps aside what your jar goals still need this month.</Text>
-                <Text style={styles.step}>4. The rest is shared equally across the days left in the month.</Text>
-                <Text style={styles.note}>
-                  Add your income on the Add tab (choose Income), or set a monthly budget in Settings,
-                  to see your number.
-                </Text>
+  const r = result;
+  const start = r.limitedByBudget ? r.monthlyBudget ?? 0 : r.income;
+  const steps: Step[] = [
+    { label: 'Spent so far', value: -r.spent, icon: 'cart' },
+    ...(!r.limitedByBudget && r.movedToJars !== 0 ? [{ label: r.movedToJars > 0 ? 'Moved into jars' : 'Taken out of jars', value: -r.movedToJars, icon: 'file-tray-stacked' }] : []),
+    ...(!r.limitedByBudget && r.plansDue > 0 ? [{ label: 'Kept for jar goals', value: -r.plansDue, icon: 'flag' }] : []),
+    ...(r.billsDue > 0 ? [{ label: 'Bills still to pay', value: -r.billsDue, icon: 'receipt' }] : []),
+    ...(!r.limitedByBudget && r.investing > 0 ? [{ label: 'SIPs this month', value: -r.investing, icon: 'trending-up', note: 'Invested, not spent, but not for spending either' }] : []),
+    ...(r.setAside > 0 ? [{ label: 'Kept aside (your setting)', value: -r.setAside, icon: 'lock-closed' }] : []),
+  ];
+  let left = start;
+  const rows = steps.map((st) => ({ ...st, after: (left += st.value) }));
+  const pct = (n: number): `${number}%` => `${start > 0 ? Math.max(0, Math.min(1, n / start)) * 100 : 0}%`;
+  const over = r.safeToday < 0;
+
+  return (
+    <Sheet title="How today's number works" subtitle="Your money for the month, shared fairly across the days left" onClose={onClose}>
+      {/* the cascade: start, each step taken out, what is left */}
+      <View style={s.box}>
+        <View style={s.stepRow}>
+          <View style={[s.icon, { backgroundColor: Corpus.incomeTint }]}><Ionicons name={r.limitedByBudget ? 'pie-chart' : 'arrow-down'} size={14} color={Corpus.income} /></View>
+          <Text style={[s.label, { flex: 1 }]}>{r.limitedByBudget ? 'Your monthly budget' : 'Came in this month'}</Text>
+          <Text style={s.value}>{formatINR(start)}</Text>
+        </View>
+        <View style={s.bar}><View style={{ width: '100%', backgroundColor: Corpus.income }} /></View>
+        {rows.map((st) => (
+          <View key={st.label} style={{ gap: 6 }}>
+            <View style={s.stepRow}>
+              <View style={s.icon}><Ionicons name={st.icon as keyof typeof Ionicons.glyphMap} size={14} color={Corpus.textMuted} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.label}>{st.label}</Text>
+                {!!st.note && <Text style={s.small}>{st.note}</Text>}
               </View>
-            ) : (
-              <>
-                <View style={styles.table}>
-                  {result.limitedByBudget ? (
-                    <>
-                      <Row label="Your monthly budget" value={result.monthlyBudget ?? 0} />
-                      <Row label="Spent this month" value={result.spent} sign="−" />
-                      {result.billsDue > 0 && (
-                        <Row label="Bills still due this month" value={result.billsDue} sign="−" />
-                      )}
-                      {result.setAside > 0 && (
-                        <Row label="Kept aside (your setting)" value={result.setAside} sign="−" />
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Row label="Income this month" value={result.income} sign="+" />
-                      <Row label="Spent this month" value={result.spent} sign="−" />
-                      {result.movedToJars !== 0 && (
-                        <Row
-                          label={result.movedToJars > 0 ? 'Moved into jars' : 'Taken out of jars'}
-                          value={result.movedToJars}
-                          sign={result.movedToJars > 0 ? '−' : '+'}
-                        />
-                      )}
-                      {result.plansDue > 0 && (
-                        <Row label="Kept for jar goals this month" value={result.plansDue} sign="−" />
-                      )}
-                      {result.plansPaused.map((pp) => (
-                        <Text key={pp.name} style={styles.pausedNote}>
-                          {pp.name} plan paused: it needs {formatINR(pp.need)} this month, more than half your income. Open the jar to pick a date that fits.
-                        </Text>
-                      ))}
-                      {result.billsDue > 0 && (
-                        <Row label="Bills still due this month" value={result.billsDue} sign="−" />
-                      )}
-                      {result.investing > 0 && (
-                        <Row label="SIPs this month (invested)" value={result.investing} sign="−" />
-                      )}
-                      {result.setAside > 0 && (
-                        <Row label="Kept aside (your setting)" value={result.setAside} sign="−" />
-                      )}
-                    </>
-                  )}
-                  <View style={styles.divider} />
-                  <View style={styles.row}>
-                    <Text style={styles.totalLabel}>Left for the rest of the month</Text>
-                    <Text style={[styles.totalValue, { color: result.available < 0 ? Corpus.danger : Corpus.text }]}>
-                      {result.available < 0 ? '−' : ''}
-                      {formatINR(Math.abs(result.available))}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.table}>
-                  <Row label={`Today's allowance (÷ ${result.daysLeft} days left)`} value={result.dailyAllowance} />
-                  <Row label="Spent today" value={result.spentToday} sign="−" />
-                  <View style={styles.divider} />
-                  <View style={styles.row}>
-                    <Text style={styles.totalLabel}>
-                      {result.safeToday < 0 ? 'Over today by' : 'Safe to spend today'}
-                    </Text>
-                    <Text style={[styles.totalValue, { color: STATUS_COLOR[result.status] }]}>
-                      {formatINR(Math.abs(result.safeToday))}
-                    </Text>
-                  </View>
-                </View>
-
-                {result.daysLeft > 1 && (
-                  <View style={styles.tomorrow}>
-                    <Ionicons name="sunny-outline" size={18} color={Corpus.gold} />
-                    <Text style={styles.tomorrowText}>
-                      If you spend nothing more today, from tomorrow you'll have{' '}
-                      <Text style={{ fontWeight: '600', color: Corpus.gold }}>
-                        {formatINR(result.tomorrowAllowance)}/day
-                      </Text>
-                      . Spending less today makes every next day a little richer.
-                    </Text>
-                  </View>
-                )}
-
-                <Text style={styles.note}>
-                  {result.limitedByBudget
-                    ? 'Your monthly budget is stricter than your income, so Corpus uses the budget. '
-                    : result.monthlyBudget
-                    ? 'Your income is stricter than your monthly budget, so Corpus uses your income. '
-                    : ''}
-                  Money in jars and bills still due are kept aside and never counted as spendable. Category budgets don't
-                  change this number; they warn you on the Budgets screen.
-                </Text>
-              </>
-            )}
-          </ScrollView>
+              <Text style={s.value}>{st.value <= 0 ? '−' : '+'}{formatINR(Math.abs(st.value))}</Text>
+            </View>
+            <View style={s.bar}><View style={{ width: pct(st.after), backgroundColor: st.after < 0 ? Corpus.danger : Corpus.textMuted }} /></View>
+          </View>
+        ))}
+        <View style={s.total}>
+          <Text style={[s.label, { flex: 1, fontFamily: Font.displayBold }]}>Left for {r.daysLeft} day{r.daysLeft === 1 ? '' : 's'}</Text>
+          <Text style={[s.totalValue, r.available < 0 && { color: Corpus.danger }]}>{r.available < 0 ? '−' : ''}{formatINR(Math.abs(r.available))}</Text>
         </View>
       </View>
-    </Modal>
+      {r.plansPaused.map((pp) => (
+        <View key={pp.name} style={s.warn}>
+          <Ionicons name="pause-circle" size={16} color={Corpus.warning} />
+          <Text style={[s.small, { flex: 1, color: Corpus.text }]}>{pp.name} plan is paused. It needs {formatINR(pp.need)} this month, more than half your income. Open the jar to pick a date that fits.</Text>
+        </View>
+      ))}
+
+      {/* from the month to today */}
+      <View style={s.box}>
+        <View style={s.stepRow}>
+          <Text style={[s.label, { flex: 1 }]}>Shared across {r.daysLeft} day{r.daysLeft === 1 ? '' : 's'}</Text>
+          <Text style={s.value}>{formatINR(r.dailyAllowance)} a day</Text>
+        </View>
+        <View style={s.stepRow}>
+          <Text style={[s.label, { flex: 1 }]}>Spent today</Text>
+          <Text style={s.value}>−{formatINR(r.spentToday)}</Text>
+        </View>
+        <View style={s.total}>
+          <Ionicons name={over ? 'alert-circle' : 'checkmark-circle'} size={18} color={over ? Corpus.danger : Corpus.income} />
+          <Text style={[s.label, { flex: 1, fontFamily: Font.displayBold }]}>{over ? 'Over today by' : 'Safe to spend today'}</Text>
+          <Text style={[s.totalValue, { color: over ? Corpus.danger : Corpus.income }]}>{formatINR(Math.abs(r.safeToday))}</Text>
+        </View>
+      </View>
+
+      {r.daysLeft > 1 && (
+        <View style={s.tip}>
+          <Ionicons name="sunny" size={18} color={Corpus.text} />
+          <Text style={[s.line, { flex: 1 }]}>Spend nothing more today and from tomorrow you have <Text style={s.strong}>{formatINR(r.tomorrowAllowance)} a day</Text>. Every rupee not spent today makes the next days a little bigger.</Text>
+        </View>
+      )}
+      <Text style={s.small}>
+        {r.limitedByBudget ? 'Your monthly budget is lower than what came in, so Corpus uses the budget. ' : r.monthlyBudget ? 'What came in is lower than your monthly budget, so Corpus uses that. ' : ''}
+        Jar money and bills still to pay are never counted as spendable. Category budgets don't change this number; they warn you on Budgets.
+      </Text>
+    </Sheet>
   );
 }
+
+const s = StyleSheet.create({
+  box: { backgroundColor: Corpus.bg, borderRadius: 18, padding: 14, gap: 10 },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  icon: { width: 26, height: 26, borderRadius: 8, backgroundColor: Corpus.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  label: { fontSize: Type.body, color: Corpus.text },
+  value: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  bar: { flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: Corpus.cardAlt, marginLeft: 36 },
+  total: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Corpus.border },
+  totalValue: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.text, ...tabular },
+  warn: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', backgroundColor: Corpus.warningTint, borderRadius: 14, padding: 12 },
+  tip: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: Corpus.bg, borderRadius: 14, padding: 12 },
+  line: { fontSize: Type.body, color: Corpus.text, lineHeight: 19, ...tabular },
+  strong: { fontFamily: Font.displayBold },
+  small: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
+  howRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  num: { width: 26, height: 26, borderRadius: 13, backgroundColor: Corpus.cardAlt, alignItems: 'center', justifyContent: 'center' },
+  numText: { fontSize: Type.small, fontFamily: Font.displayBold, color: Corpus.text },
+});

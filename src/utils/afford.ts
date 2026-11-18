@@ -1,4 +1,4 @@
-// "Can I afford this?" — a straight answer from your own numbers. No AI, no guessing.
+// "Can I afford this?": a straight answer from your own numbers. No AI, no guessing.
 import type { Transaction } from '@/types/transaction';
 import { formatINR } from './format';
 import type { SafeToSpendResult } from './safeToSpend';
@@ -62,6 +62,7 @@ export type AffordResult = {
   savePerMonth?: number;
   readyBy?: string;         // 'YYYY-MM'
   grows?: number;           // value in 10 years if invested instead
+  daysOfIncome?: number;    // the price in days of your usual income (a feel for what it costs)
 };
 
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -69,6 +70,11 @@ const monthLabel = (k: string) => new Date(`${k}-01T00:00:00`).toLocaleDateStrin
 const r = (n: number) => formatINR(Math.round(n));
 
 export function canAfford(p: AffordInput): AffordResult {
+  const res = decide(p);
+  return p.flow.income > 0 && p.price > 0 ? { ...res, daysOfIncome: Math.max(1, Math.round(p.price / (p.flow.income / 30))) } : res;
+}
+
+function decide(p: AffordInput): AffordResult {
   const now = p.now ?? new Date();
   const price = Math.max(0, p.price);
   const surplus = p.flow.income > 0 ? p.flow.income - p.flow.spend : null;
@@ -95,14 +101,14 @@ export function canAfford(p: AffordInput): AffordResult {
     const rate = Math.max(0, p.emiRate ?? 0);
     const emi = emiOf(price, n, rate);
     const interest = Math.max(0, emi * n - price);
-    const lines: string[] = [`${r(emi)} a month for ${n} months${interest > 0 ? ` — ${r(interest)} extra in interest` : ' (no-cost EMI)'}.`];
-    if (rate === 0) lines.push('No-cost EMIs often add a processing fee and GST on the interest — check the final amount before you agree.');
+    const lines: string[] = [`${r(emi)} a month for ${n} months${interest > 0 ? `, ${r(interest)} extra in interest` : ' (no-cost EMI)'}.`];
+    if (rate === 0) lines.push('No-cost EMIs often add a processing fee and GST on the interest. Check the final amount before you agree.');
     if (surplus == null) {
       lines.push('Corpus doesn’t know your monthly income yet, so it can’t check if the EMI fits. Add your income to get a real answer.');
       return { verdict: 'noData', title: 'Can’t check the EMI yet', lines, emi, interest, grows };
     }
     if (surplus <= 0) {
-      lines.push(`You already spend about ${r(p.flow.spend)} a month against ${r(p.flow.income)} coming in — nothing is left over for an EMI.`);
+      lines.push(`You already spend about ${r(p.flow.spend)} a month against ${r(p.flow.income)} coming in, so nothing is left over for an EMI.`);
       return { verdict: 'wait', title: 'An EMI would push you short', lines, emi, interest, grows };
     }
     const share = emi / surplus;
