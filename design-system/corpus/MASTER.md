@@ -219,3 +219,20 @@ Cards and text stay clean; the life is in the background and in moments.
 - Can I afford it: price and what it is, Pay in full / On EMI, answer as you type. The verdict is a pill with word + icon + colour, then the one number (a month or a day left), then plain lines.
 - Two research-based nudges: the price in days of usual income, and for unplanned buys a pause (a day from ₹5,000, a week from ₹25,000) because waiting lets the urgency fade.
 - "Save for it" (start a jar) sits in the sheet footer only when the answer is Not yet.
+
+## Add and Edit (researched)
+- Goal: an entry in under 5 seconds and 3 taps (trackers people abandon take ~30 s with many fields). NN/g EAS: eliminate, automate, simplify.
+- Amount first and big, then "What was it?" right under it (typing it picks the category from past entries), then the day as pills: Today, Yesterday, Earlier (opens a day stepper).
+- Usuals row when the amount is empty, matching past notes while typing; both fill everything in one tap.
+- Save button names the amount ("Save ₹120") and, when off, says why ("Enter an amount", "Pick a category").
+- No blocking pop-ups: saving shows a toast "Saved: ₹120 on milk" with Undo; Edit saves and returns with a toast; Delete can be undone.
+- Add and Edit share one AmountCard so they look and behave the same.
+
+## Add v2: payment-app feel (user asked: premium, Gen Z, animated)
+- No custom keypad (user rejected it): the phone's own number keyboard opens straight away. An invisible input sits over the big animated digits, so tapping the amount opens the keyboard.
+- Amount is huge with Indian commas; each digit springs up into place and pops out when deleted; the size steps down as it grows; a blinking caret.
+- Spent / Money in is a sliding pill that turns green for money in, together with the amount and the background.
+- The background glow takes the colour of the picked category and cross-fades when it changes.
+- Categories are one swipeable row; the picked one lifts with a ring in its own colour.
+- Save is never a dead button: tapped too early it shakes the missing part (amount or categories) and its label says what is needed. After saving it turns green with a tick, money in gets a small colour burst, then the form clears.
+- Everything respects Reduce Motion.

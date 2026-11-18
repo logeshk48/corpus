@@ -1,11 +1,11 @@
-import { Button, Screen, SectionLabel } from '@/components/ui';
+import { Button, Screen, Segmented } from '@/components/ui';
 import { askWeb } from '@/services/confirm';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
 import { Corpus } from '@/constants/theme';
 import { styles as form } from '@/screens/add/AddScreen.styles';
 import CategoryGrid from '@/screens/add/components/CategoryGrid';
-import SaveButton from '@/screens/add/components/SaveButton';
-import TypeToggle from '@/screens/add/components/TypeToggle';
+import AmountCard from '@/screens/add/components/AmountCard';
+import { withTimeOf } from '@/utils/dates';
 import {
   deleteTransaction,
   getTransaction,
@@ -17,18 +17,7 @@ import type { Transaction, TxType } from '@/types/transaction';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import DateStepper from '@/components/DateStepper';
+import { Alert, Platform, Text, View } from 'react-native';
 import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
 import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
 
@@ -38,17 +27,13 @@ import { useAccounts } from '@/hooks/useAccounts';
 import type { IncomeStream } from '@/types/incomeStream';
 import { styles } from './EditTransactionScreen.styles';
 
-function notify(message: string) {
-  if (Platform.OS === 'web') window.alert(message);
-  else Alert.alert('Corpus', message);
-}
 
 function confirmDelete(onConfirm: () => void) {
-  const message = 'Delete this transaction? This cannot be undone.';
+  const message = 'Delete this entry? You can undo it right after.';
   if (Platform.OS === 'web') {
-    askWeb(`Delete transaction?\n\n${message}`, 'Delete').then((y) => { if (y) onConfirm(); });
+    askWeb(`Delete this entry?\n\n${message}`, 'Delete').then((y) => { if (y) onConfirm(); });
   } else {
-    Alert.alert('Delete transaction', message, [
+    Alert.alert('Delete this entry', message, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: onConfirm },
     ]);
@@ -141,9 +126,10 @@ export default function EditTransactionScreen() {
         date: day.toISOString(), // stepper keeps the original time of day
       });
       goBack();
+      showToast({ message: 'Changes saved' });
     } catch (e) {
       console.error('Update failed:', e);
-      notify('Could not save changes. Try again.');
+      showToast({ message: 'Could not save changes. Try again.' });
     } finally {
       setBusy(false);
     }
@@ -160,86 +146,65 @@ export default function EditTransactionScreen() {
         if (deleted) {
           const { id: deletedId, ...data } = deleted;
           showToast({
-            message: 'Transaction deleted',
+            message: 'Entry deleted',
             actionLabel: 'Undo',
             onAction: () => restoreTransaction(deletedId, data),
           });
         }
       } catch (e) {
         console.error('Delete failed:', e);
-        notify('Could not delete. Try again.');
+        showToast({ message: 'Could not delete. Try again.' });
       } finally {
         setBusy(false);
       }
     });
   };
 
+  const amt = Number(amount) || 0;
+  const why = amt <= 0 ? 'Enter an amount' : !category ? 'Pick a category' : null;
+
   return (
-    <Screen title="Edit" subtitle={original ? (original.type === 'income' ? 'Money in' : 'Spent') : undefined} onBack={goBack} keyboard>
+    <Screen title="Edit" onBack={goBack} keyboard>
+      {loading ? (
+        <View style={{ height: 260, borderRadius: 26, backgroundColor: Corpus.card }} accessibilityLabel="Loading" accessibilityState={{ busy: true }} />
+      ) : notFound ? (
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={32} color={Corpus.textFaint} />
+          <Text style={styles.notFound}>This entry no longer exists</Text>
+        </View>
+      ) : (
+        <>
+          <Segmented
+            options={[{ value: 'expense', label: 'Spent' }, { value: 'income', label: 'Money in' }] as const}
+            value={type} onChange={handleTypeChange} tint={type === 'income' ? Corpus.income : undefined}
+          />
+          <AmountCard type={type} amount={amount} onAmount={setAmount} note={note} onNote={setNote} day={day} onDay={(d) => setDay(withTimeOf(d, day))} notePlaceholder="Add a note" />
 
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Corpus.gold} />
-          </View>
-        ) : notFound ? (
-          <View style={styles.center}>
-            <Ionicons name="alert-circle-outline" size={32} color={Corpus.textFaint} />
-            <Text style={styles.notFound}>This transaction no longer exists</Text>
-          </View>
-        ) : (
-          <>
-            <TypeToggle value={type} onChange={handleTypeChange} />
-
-            <View style={form.amountSection}>
-              <Text style={form.amountLabel}>AMOUNT</Text>
-              <View style={form.amountRow}>
-                <Text style={form.rupee}>₹</Text>
-                <TextInput
-                  style={[form.amountInput, type === 'income' && { color: Corpus.income }]}
-                  value={amount}
-                  onChangeText={setAmount}
-                  placeholder="0"
-                  placeholderTextColor={Corpus.textFaint}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-
-            {SHOW_ACCOUNTS && accounts.length > 0 && (
-              <>
-                <SectionLabel>{type === 'expense' ? 'PAID FROM' : 'RECEIVED IN'}</SectionLabel>
-                <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
-              </>
-            )}
-
-            <SectionLabel>DATE</SectionLabel>
-            <DateStepper value={day} onChange={setDay} />
-
-            {type === 'income' && (
-              <>
-                <SectionLabel>FROM</SectionLabel>
-                <StreamPicker value={streamId} onChange={handleStreamChange} />
-              </>
-            )}
-
-            <SectionLabel>CATEGORY</SectionLabel>
+          <View style={form.block}>
+            <Text style={form.blockTitle}>Category</Text>
             <CategoryGrid categories={categories} selected={category} onSelect={setCategory} />
+          </View>
 
-            <SectionLabel>NOTE (OPTIONAL)</SectionLabel>
-            <TextInput
-              style={form.noteInput}
-              value={note}
-              onChangeText={setNote}
-              placeholder="Add a note"
-              placeholderTextColor={Corpus.textFaint}
-              maxLength={60}
-            />
+          {type === 'income' && (
+            <View style={form.block}>
+              <Text style={form.blockTitle}>From</Text>
+              <StreamPicker value={streamId} onChange={handleStreamChange} />
+            </View>
+          )}
 
-            <SaveButton enabled={isValid && !busy} onPress={handleSave} />
+          {SHOW_ACCOUNTS && accounts.length > 0 && (
+            <View style={form.block}>
+              <Text style={form.blockTitle}>{type === 'expense' ? 'Paid from' : 'Received in'}</Text>
+              <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
+            </View>
+          )}
 
-            <Button variant="danger" icon="trash-outline" label="Delete transaction" onPress={handleDelete} disabled={busy} />
-          </>
-        )}
+          <View style={{ gap: 8 }}>
+            <Button icon="checkmark" label={why ?? 'Save changes'} onPress={handleSave} loading={busy} disabled={!!why || busy} />
+            <Button variant="danger" icon="trash-outline" label="Delete" onPress={handleDelete} disabled={busy} />
+          </View>
+        </>
+      )}
     </Screen>
   );
 }

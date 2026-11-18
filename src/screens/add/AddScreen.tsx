@@ -1,72 +1,90 @@
-import { Group, GroupRow, IconChip, Segmented } from '@/components/ui';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/constants/categories';
-import { CategoryChip, Chip, Corpus } from '@/constants/theme';
-import { Ionicons } from '@expo/vector-icons';
-import { addTransaction } from '@/services/transactions';
-import { useTransactions } from '@/hooks/useTransactions';
-import { findCategory } from '@/constants/categories';
-import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
-import { useEffect, useMemo, useState } from 'react';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import AccountPicker, { NO_ACCOUNT } from '@/components/AccountPicker';
+import Aura from '@/components/fx/Aura';
+import { celebrate } from '@/components/fx/Celebrate';
+import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
+import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
+import { DayStepper, Tap } from '@/components/ui';
+import { EXPENSE_CATEGORIES, findCategory, INCOME_CATEGORIES } from '@/constants/categories';
+import { Spring } from '@/constants/motion';
+import { CategoryChip, Chip, Corpus, Font, Type } from '@/constants/theme';
+import { useToast } from '@/context/ToastContext';
+import { useAccounts } from '@/hooks/useAccounts';
+import { useSettings } from '@/hooks/useSettings';
+import { useTransactions } from '@/hooks/useTransactions';
+import { canScan } from '@/services/scan';
+import { addTransaction, deleteTransaction } from '@/services/transactions';
+import type { IncomeStream } from '@/types/incomeStream';
+import { withTimeOf } from '@/utils/dates';
+import { frequentPicks, guessCategory, noteSuggestions } from '@/utils/quickAdd';
+import type { ParsedMoney } from '@/utils/receipt';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+// Typed amount → a clean amount: digits and one dot, up to 9 rupee digits and 2 paise digits, no leading zeros
+const clean = (t: string) => {
+  const [w = '', ...rest] = t.replace(/[^0-9.]/g, '').split('.');
+  const whole = w.replace(/^0+(?=\d)/, '').slice(0, 9);
+  return rest.length ? `${whole || '0'}.${rest.join('').slice(0, 2)}` : whole;
+};
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, ZoomIn, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import AmountDisplay from './components/AmountDisplay';
+import CategoryRow from './components/CategoryRow';
+import PasteSheet from './components/PasteSheet';
+import QuickChips, { type Chip as QuickChip } from './components/QuickChips';
+import TypeSwitch from './components/TypeSwitch';
+import type { TxType } from './components/TypeToggle';
 
 // Accounts are hidden for now (code kept). Set true to bring the "Paid from" picker back.
 const SHOW_ACCOUNTS = false;
-import { useAccounts } from '@/hooks/useAccounts';
-import { useSettings } from '@/hooks/useSettings';
-import { Alert, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { withTimeOf } from '@/utils/dates';
-import StreamPicker, { NO_STREAM } from '@/components/StreamPicker';
-import type { IncomeStream } from '@/types/incomeStream';
-import { styles } from './AddScreen.styles';
-import CategoryGrid from './components/CategoryGrid';
-import QuickChips, { type Chip as QuickChip } from './components/QuickChips';
-import type { TxType } from './components/TypeToggle';
+const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+const yesterday = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1, 12); };
 
-function notify(title: string, message: string) {
-  if (Platform.OS === 'web') {
-    window.alert(message);
-  } else {
-    Alert.alert(title, message);
-  }
-}
-
-import PasteSheet from './components/PasteSheet';
-import { canScan } from '@/services/scan';
-import type { ParsedMoney } from '@/utils/receipt';
-
+// Add: a big amount (your phone's number keyboard opens straight away), what it was, the day,
+// a category (often picked for you), and Save. The background takes the colour of
+// what you pick, and Save turns into a tick when it is in.
 export default function AddScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const reduce = useReducedMotion();
+  const { showToast } = useToast();
   const params = useLocalSearchParams<{ amount?: string; note?: string; catchup?: string; first?: string; type?: string; date?: string; category?: string; paste?: string }>();
   const [amount, setAmount] = useState(params.amount ?? '');
   const [type, setType] = useState<TxType>('expense');
   const [category, setCategory] = useState<string | null>(null);
   const [note, setNote] = useState(params.note ?? '');
+  const [day, setDay] = useState(() => new Date());
+  const [earlier, setEarlier] = useState(false);
+  const [streamId, setStreamId] = useState(NO_STREAM);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [noteFocus, setNoteFocus] = useState(false);
+  const [shakeAmount, setShakeAmount] = useState(0);
+  const [shakeCat, setShakeCat] = useState(0);
+  // true once the person picks a category themselves; then we stop guessing
+  const [categoryTouched, setCategoryTouched] = useState(false);
   useEffect(() => {
     if (params.amount) setAmount(params.amount);
     if (params.note) setNote(params.note);
   }, [params.amount, params.note]);
-  // Coming from "Edit" on a bank SMS: money in/out, the SMS date and the guessed category
+  // Coming from "Edit first" on a bank SMS: money in/out, the SMS date and the guessed category
   useEffect(() => {
     if (params.type === 'income' || params.type === 'expense') setType(params.type);
-    if (params.date && !isNaN(Date.parse(params.date))) setDay(new Date(params.date));
+    if (params.date && !isNaN(Date.parse(params.date))) { const d = new Date(params.date); setDay(d); if (!sameDay(d, new Date()) && !sameDay(d, yesterday())) setEarlier(true); }
     if (params.category) { setCategory(params.category); setCategoryTouched(true); }
   }, [params.type, params.date, params.category]);
-  const [day, setDay] = useState(() => new Date());
-  const [streamId, setStreamId] = useState(NO_STREAM);
-  const [saving, setSaving] = useState(false);
-  // true once the person picks a category themselves — then we stop guessing
-  const [categoryTouched, setCategoryTouched] = useState(false);
+  useEffect(() => { if (params.catchup) setEarlier(true); }, [params.catchup]);
+
   const { accounts } = useAccounts();
   const { settings } = useSettings();
   const [accountId, setAccountId] = useState(NO_ACCOUNT);
-  // default: your chosen default account, or the only one you have
   useEffect(() => {
     if (accountId !== NO_ACCOUNT) return;
     const def = accounts.find((a) => a.id === settings.defaultAccountId) ?? (accounts.length === 1 ? accounts[0] : undefined);
     if (def) setAccountId(def.id);
-  }, [accounts, settings.defaultAccountId]);
+  }, [accounts, settings.defaultAccountId, accountId]);
 
   // ── Quick add: learned from the last 12 months of entries ──
   const { transactions: history } = useTransactions('last12Months');
@@ -74,40 +92,26 @@ export default function AddScreen() {
   const suggestions = useMemo(() => noteSuggestions(history, note, type), [history, note, type]);
   const guess = useMemo(() => guessCategory(note, history, type), [history, note, type]);
 
-  const pickCategory = (id: string) => {
-    setCategory(id);
-    setCategoryTouched(true);
-  };
+  const pickCategory = (id: string) => { setCategory(id); setCategoryTouched(true); };
   const changeNote = (text: string) => {
     setNote(text);
     if (categoryTouched) return;
     const g = guessCategory(text, history, type);
     if (g) setCategory(g.category);
   };
-  // Tapping a chip fills whatever is still empty (and the note)
   const applyChip = (c: QuickChip) => {
     setNote(c.note);
     if (!categoryTouched) setCategory(c.category);
     if (c.amount && (amount === '' || Number(amount) === 0)) setAmount(String(c.amount));
   };
   const autoGuessed = !categoryTouched && !!guess && category === guess.category;
-
   const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-  const isValid = Number(amount) > 0 && category !== null;
+  const amt = Number(amount) || 0;
+  const isValid = amt > 0 && category !== null;
 
-  const handleTypeChange = (newType: TxType) => {
-    setType(newType);
-    setCategory(null);
-    setCategoryTouched(false);
-    setStreamId(NO_STREAM);
-  };
-
-  // Picking a stream also picks the matching income category (ids line up)
-  const handleStreamChange = (id: string, stream?: IncomeStream) => {
-    setStreamId(id);
-    if (stream) setCategory(stream.type);
-  };
-
+  const handleTypeChange = (t: TxType) => { setType(t); setCategory(null); setCategoryTouched(false); setStreamId(NO_STREAM); };
+  const handleStreamChange = (id: string, stream?: IncomeStream) => { setStreamId(id); if (stream) setCategory(stream.type); };
+  const amountRef = useRef<TextInput>(null);
 
   // Pasted bank SMS / receipt → fill the form (you still check and tap Save)
   const [showPaste, setShowPaste] = useState(false);
@@ -117,7 +121,7 @@ export default function AddScreen() {
     setStreamId(NO_STREAM);
     setAmount(p.amount ? String(p.amount) : '');
     setNote(p.merchant ?? '');
-    if (p.date) setDay(p.date);
+    if (p.date) { setDay(p.date); setEarlier(!sameDay(p.date, new Date()) && !sameDay(p.date, yesterday())); }
     const g = p.merchant ? guessCategory(p.merchant, history, p.type) : undefined;
     setCategory(g?.category ?? null);
     setCategoryTouched(false);
@@ -127,178 +131,152 @@ export default function AddScreen() {
     }
   };
 
-  const handleSave = async () => {
-    if (!isValid || !category) return;
-
+  const save = async () => {
+    // Nudge to what is missing instead of a dead button
+    if (amt <= 0) { setShakeAmount((n) => n + 1); amountRef.current?.focus(); return; }
+    if (!category) { setShakeCat((n) => n + 1); return; }
     setSaving(true);
     try {
       const id = await addTransaction({
-        type,
-        amount: Number(amount),
-        category,
-        note: note.trim() || undefined,
+        type, amount: amt, category, note: note.trim() || undefined,
         streamId: type === 'income' && streamId !== NO_STREAM ? streamId : undefined,
         accountId: accountId || undefined,
         date: withTimeOf(day, new Date()).toISOString(), // chosen day, current time
       });
-
-      notify(
-        'Saved',
-        `${type === 'expense' ? 'Expense' : 'Income'} of ₹${Number(amount).toLocaleString('en-IN')} saved`
-      );
-      setAmount('');
-      setCategory(null);
-      setCategoryTouched(false);
-      setNote('');
-      setDay(new Date()); // next entry defaults to today again
-      setStreamId(NO_STREAM);
-      if (params.first) router.replace('/' as Href); // first expense done → straight to Home
-    } catch (e: any) {
+      const label = findCategory(type, category)?.label ?? category;
+      setSaved(true);
+      if (type === 'income') celebrate();
+      showToast({ message: `Saved: ₹${amt.toLocaleString('en-IN')} ${type === 'income' ? 'in from' : 'on'} ${note.trim() || label}`, actionLabel: 'Undo', onAction: () => deleteTransaction(id) });
+      setTimeout(() => {
+        setSaved(false);
+        setAmount(''); setCategory(null); setCategoryTouched(false); setNote('');
+        setDay(new Date()); setEarlier(false); setStreamId(NO_STREAM);
+      }, 900);
+      if (params.first) setTimeout(() => router.replace('/' as Href), 900); // first entry done → straight to Home
+    } catch (e) {
       console.error('Save failed:', e);
-      notify('Could not save', 'Something went wrong. Check your connection and try again.');
+      showToast({ message: 'Could not save. Check your connection and try again.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const today = new Date();
-  const isToday = day.toDateString() === today.toDateString();
-  const dayLabel = isToday ? 'Today'
-    : day.toDateString() === new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1).toDateString() ? 'Yesterday'
-    : day.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-  const stepDay = (d: number) => {
-    const n = new Date(day.getFullYear(), day.getMonth(), day.getDate() + d);
-    if (n <= today) setDay(n);
-  };
-  const catNow = category ? findCategory(type, category) : undefined;
-  const amt = Number(amount) || 0;
+  // The background takes the colour of what you pick (green for money in)
+  const glow = type === 'income' ? Chip.green : category ? CategoryChip[category] ?? Chip.gray : Chip.indigo;
+  const btn = useSharedValue(1);
+  useEffect(() => { if (saved && !reduce) { btn.value = 0.94; btn.value = withSpring(1, Spring.press); } }, [saved, reduce, btn]);
+  const btnStyle = useAnimatedStyle(() => ({ transform: [{ scale: btn.value }] }));
+
+  const isToday = sameDay(day, new Date());
+  const isYest = sameDay(day, yesterday());
+  const pill = (label: string, on: boolean, go: () => void) => (
+    <Pressable key={label} onPress={go} style={({ pressed }) => [s.pill, on && s.pillOn, pressed && { opacity: 0.75 }]} accessibilityRole="radio" accessibilityState={{ selected: on }}>
+      <Text style={[s.pillText, on && { color: Corpus.onGold }]}>{label}</Text>
+    </Pressable>
+  );
+  const ready = amt > 0 && !!category;
+  const label = saved ? 'Saved' : amt <= 0 ? 'Enter an amount' : !category ? 'Pick a category' : `Save ₹${amt.toLocaleString('en-IN')}`;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <View style={styles.headRow}>
-          <Text style={styles.heading} accessibilityRole="header">Add</Text>
-          <Pressable style={styles.glassBtn} onPress={() => setShowPaste(true)} accessibilityRole="button">
-            <Ionicons name={canScan ? 'scan' : 'clipboard-outline'} size={17} color={Corpus.gold} />
-            <Text style={styles.glassText}>{canScan ? 'Scan or paste' : 'Paste SMS'}</Text>
-          </Pressable>
+    <View style={s.root}>
+      <Animated.View key={glow} entering={FadeIn.duration(500)} exiting={FadeOut.duration(400)} style={s.aura} pointerEvents="none">
+        <Aura color={glow} />
+      </Animated.View>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={s.head}>
+          <Text style={s.heading} accessibilityRole="header">Add</Text>
+          <Tap onPress={() => setShowPaste(true)} style={s.glassBtn} accessibilityRole="button" accessibilityLabel={canScan ? 'Scan a receipt or paste an SMS' : 'Paste a bank SMS'}>
+            <Ionicons name={canScan ? 'scan' : 'clipboard-outline'} size={17} color={Corpus.text} />
+            <Text style={s.glassText}>{canScan ? 'Scan' : 'Paste SMS'}</Text>
+          </Tap>
         </View>
+        <View style={{ paddingHorizontal: 16 }}><TypeSwitch value={type} onChange={handleTypeChange} /></View>
 
-        {params.first && (
-          <View style={styles.firstBanner}>
-            <Text style={styles.firstTitle}>Last step: log one thing you spent today</Text>
-            <Text style={styles.firstText}>
-              Chai, auto, lunch — anything. That’s the whole habit: a few seconds a day. Things you log twice become one-tap buttons on Home.
-            </Text>
-          </View>
-        )}
-
-        <Segmented
-          options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }] as const}
-          value={type}
-          onChange={handleTypeChange}
-          tint={type === 'income' ? Corpus.income : undefined}
-        />
-
-        <View style={styles.amountCard}>
-          <View style={styles.amountRow}>
-            <Text style={[styles.rupee, amt > 0 && { color: type === 'income' ? Corpus.income : Corpus.text }]}>₹</Text>
-            <TextInput
-              style={[styles.amountInput, type === 'income' && { color: Corpus.income }]}
-              value={amount}
-              onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
-              placeholder="0"
-              placeholderTextColor={Corpus.textFaint}
-              keyboardType="decimal-pad"
-              autoFocus
-              accessibilityLabel="Amount"
-            />
-          </View>
-          <View style={styles.summary}>
-            {catNow ? <IconChip icon={catNow.icon} color={CategoryChip[catNow.id] ?? Chip.gray} size={22} /> : null}
-            <Text style={styles.summaryText} numberOfLines={1}>
-              {[catNow?.label ?? 'Pick a category', note.trim() || null, dayLabel].filter(Boolean).join(' · ')}
-            </Text>
-          </View>
-        </View>
-
-        {amount === '' && picks.length > 0 && (
-          <View style={styles.block}>
-            <Text style={styles.blockTitle}>Your usuals</Text>
-            <QuickChips items={picks} type={type} onPick={applyChip} />
-          </View>
-        )}
-
-        <View style={styles.block}>
-          <Text style={styles.blockTitle}>Category</Text>
-          <CategoryGrid categories={categories} selected={category} onSelect={pickCategory} />
-          {autoGuessed && note.trim() !== '' && (
-            <Text style={styles.guessHint}>
-              Picked {findCategory(type, guess!.category)?.label} {guess!.source === 'history' ? 'from your past entries' : 'from the note'} — tap another to change it
-            </Text>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {params.first && (
+            <View style={s.first}>
+              <Text style={s.firstTitle}>Last step: log one thing you spent today</Text>
+              <Text style={s.small}>Chai, an auto, lunch, anything. A few seconds a day is the whole habit.</Text>
+            </View>
           )}
-        </View>
-
-        {type === 'income' && (
-          <View style={styles.block}>
-            <Text style={styles.blockTitle}>From</Text>
-            <StreamPicker value={streamId} onChange={handleStreamChange} />
-          </View>
-        )}
-
-        {SHOW_ACCOUNTS && accounts.length > 0 && (
-          <View style={styles.block}>
-            <Text style={styles.blockTitle}>{type === 'expense' ? 'Paid from' : 'Received in'}</Text>
-            <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
-          </View>
-        )}
-
-        <Group title="Details">
-          <GroupRow
-            icon="calendar" color={Chip.red} title="Date"
-            right={
-              <View style={styles.stepper}>
-                <Pressable style={styles.stepBtn} onPress={() => stepDay(-1)} accessibilityLabel="Day before" hitSlop={6}>
-                  <Ionicons name="chevron-back" size={18} color={Corpus.gold} />
-                </Pressable>
-                <Pressable onPress={() => setDay(new Date())} accessibilityLabel={`${dayLabel}, tap for today`}>
-                  <Text style={styles.stepText}>{dayLabel}</Text>
-                </Pressable>
-                <Pressable style={[styles.stepBtn, isToday && { opacity: 0.3 }]} onPress={() => stepDay(1)} disabled={isToday} accessibilityLabel="Day after" hitSlop={6}>
-                  <Ionicons name="chevron-forward" size={18} color={Corpus.gold} />
-                </Pressable>
-              </View>
-            }
-          />
-          <View style={styles.noteRow}>
-            <IconChip icon="create" color={Chip.gray} />
+          {/* the digits you see animate; the real input sits invisibly on top, so tapping the amount opens the number keyboard */}
+          <View>
+            <AmountDisplay amount={amount} income={type === 'income'} shake={shakeAmount} />
             <TextInput
-              style={styles.noteInput}
-              value={note}
-              onChangeText={changeNote}
-              placeholder={type === 'expense' ? 'Note — e.g. Filter coffee' : 'Note — e.g. Client payment'}
-              placeholderTextColor={Corpus.textFaint}
-              maxLength={60}
-              accessibilityLabel="Note"
+              ref={amountRef} value={amount} onChangeText={(t) => setAmount(clean(t))}
+              keyboardType="decimal-pad" autoFocus caretHidden contextMenuHidden
+              returnKeyType="done" onSubmitEditing={save}
+              style={s.hiddenInput} accessibilityLabel="Amount"
             />
           </View>
-        </Group>
-        <QuickChips items={suggestions} type={type} onPick={applyChip} />
-        {params.catchup ? <Text style={styles.guessHint}>Filling in missed days — use the arrows to pick the day</Text> : null}
 
-        <Pressable
-          style={({ pressed }) => [styles.save, !(isValid && !saving) && styles.saveOff, pressed && { opacity: 0.85 }]}
-          onPress={handleSave}
-          disabled={!(isValid && !saving)}
-          accessibilityRole="button"
-        >
-          <Ionicons name="checkmark-circle" size={20} color={isValid ? Corpus.onGold : Corpus.textFaint} />
-          <Text style={[styles.saveText, !isValid && { color: Corpus.textFaint }]}>
-            {saving ? 'Saving…' : amt > 0 ? `Save ${type === 'income' ? 'income' : 'expense'} · ₹${amt.toLocaleString('en-IN')}` : 'Enter an amount'}
-          </Text>
-        </Pressable>
-      </ScrollView>
+          <View style={[s.noteBox, noteFocus && { borderColor: Corpus.text }]}>
+            <Ionicons name="create-outline" size={18} color={Corpus.textMuted} />
+            <TextInput
+              style={s.note} value={note} onChangeText={changeNote}
+              placeholder={type === 'income' ? 'Who paid you?' : 'What was it? Swiggy, auto, chai'}
+              placeholderTextColor={Corpus.textFaint} maxLength={60} accessibilityLabel="What was it"
+              onFocus={() => setNoteFocus(true)} onBlur={() => setNoteFocus(false)} returnKeyType="done"
+            />
+          </View>
+          <View style={s.pills} accessibilityRole="radiogroup">
+            {pill('Today', isToday && !earlier, () => { setEarlier(false); setDay(new Date()); })}
+            {pill('Yesterday', isYest && !earlier, () => { setEarlier(false); setDay(yesterday()); })}
+            {pill('Earlier', earlier, () => { setEarlier(true); if (isToday) setDay(yesterday()); })}
+          </View>
+          {earlier && <Animated.View entering={FadeIn.duration(200)}><DayStepper label="Day" value={day} onChange={setDay} /></Animated.View>}
+
+          {suggestions.length > 0 ? <QuickChips items={suggestions} type={type} onPick={applyChip} />
+            : amount === '' && picks.length > 0 ? <QuickChips items={picks} type={type} onPick={applyChip} /> : null}
+
+          <CategoryRow categories={categories} selected={category} onSelect={pickCategory} shake={shakeCat} />
+          {autoGuessed && note.trim() !== '' && (
+            <Text style={[s.small, { textAlign: 'center' }]}>Picked {findCategory(type, guess!.category)?.label} {guess!.source === 'history' ? 'from your past entries' : 'from what you typed'}. Tap another to change it.</Text>
+          )}
+          {type === 'income' && <StreamPicker value={streamId} onChange={handleStreamChange} />}
+          {SHOW_ACCOUNTS && accounts.length > 0 && <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />}
+        </ScrollView>
+
+        <View style={[s.bottom, { paddingBottom: TAB_BAR_SPACE + Math.max(insets.bottom, 10) - 6 }]}>
+          <Animated.View style={btnStyle}>
+            <Tap onPress={save} disabled={saving || saved} scaleTo={0.97}
+              style={[s.save, saved ? { backgroundColor: Corpus.income } : type === 'income' && ready ? { backgroundColor: Corpus.income } : !ready && s.saveOff]}
+              accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !ready }}>
+              {saved
+                ? <Animated.View key="ok" entering={ZoomIn.springify().damping(12)}><Ionicons name="checkmark-circle" size={22} color={Corpus.onGold} /></Animated.View>
+                : <Ionicons name={ready ? 'checkmark' : amt <= 0 ? 'keypad-outline' : 'grid-outline'} size={20} color={ready ? Corpus.onGold : Corpus.textMuted} />}
+              <Text style={[s.saveText, !ready && !saved && { color: Corpus.textMuted }]}>{saving ? 'Saving' : label}</Text>
+            </Tap>
+          </Animated.View>
+        </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
       <PasteSheet visible={showPaste} onClose={() => setShowPaste(false)} history={history} onFill={fillFrom} />
-    </SafeAreaView>
+    </View>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Corpus.bg },
+  aura: { position: 'absolute', top: 0, left: 0, right: 0, height: 460 },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 },
+  heading: { fontSize: Type.h1 + 4, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.6 },
+  glassBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.glass, borderWidth: 0.5, borderColor: Corpus.glassEdge },
+  glassText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+  content: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12, gap: 12 },
+  first: { backgroundColor: Corpus.card, borderRadius: 18, padding: 14, gap: 4 },
+  firstTitle: { fontSize: Type.label, fontFamily: Font.displayBold, color: Corpus.text },
+  small: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
+  noteBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 22, backgroundColor: Corpus.card, borderWidth: 1.5, borderColor: Corpus.card, paddingHorizontal: 16 },
+  note: { flex: 1, fontSize: Type.input, color: Corpus.text, paddingVertical: 12, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null) },
+  pills: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  pill: { minHeight: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: Corpus.card, justifyContent: 'center' },
+  pillOn: { backgroundColor: Corpus.gold },
+  pillText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+  bottom: { paddingHorizontal: 16, paddingTop: 8, gap: 10, backgroundColor: Corpus.bg },
+  hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0, color: Corpus.bg, fontSize: Type.h1 },
+  save: { height: 56, borderRadius: 28, backgroundColor: Corpus.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  saveOff: { backgroundColor: Corpus.card },
+  saveText: { fontSize: Type.input, fontFamily: Font.displayBold, color: Corpus.onGold },
+});
