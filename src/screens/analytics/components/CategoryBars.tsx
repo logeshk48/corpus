@@ -61,7 +61,7 @@ export default function CategoryBars({ data, previous, budgets, previousLabel = 
                 ? `Same as ${previousLabel}`
                 : `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}% vs ${previousLabel}`}
               {limit !== undefined
-                ? `${pct !== null || before === 0 ? ' · ' : ''}${over ? `over budget by ${formatINR(d.amount - limit)}` : `budget ${formatINR(limit)}`}`
+                ? `${pct !== null || before === 0 ? '. ' : ''}${over ? `over budget by ${formatINR(d.amount - limit)}` : `budget ${formatINR(limit)}`}`
                 : ''}
             </Text>
           </Pressable>

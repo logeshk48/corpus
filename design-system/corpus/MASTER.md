@@ -242,3 +242,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - Add shows "what this does to today": a half-circle gauge around the amount, green to amber to red against today's safe-to-spend, a knob at the end, and the words under it ("Leaves ₹31 for today", "₹120 over what you can spend today"). Only for Spent, only when Safe to spend is known.
 - Put accessibility props on a wrapping View, not on <Svg> (web warns).
 - SVG is native: the phone needs a new dev build after it was added.
+
+## Insights (researched)
+- A month told as a story: the headline first (spent so far, change against the same days last month, where it went), then "What stands out" as swipeable one-idea cards, then detail. Research: recaps people engage with are personal, give context to every number, and read from one screen; finance recaps should help habits, not shame.
+- Donut only for ≤ 5 slices (top 4 + Everything else) with a legend of label, % and amount next to it; slices sweep in.
+- Month switcher is a row of pills that opens on This month.
+- Trend lines use monotone curves (no overshoot: never draw money that isn't there) with soft gradient fills that draw in; months are tappable pills under the chart, legend above.
+- Sections fade up one after another when the month changes.

@@ -110,9 +110,9 @@ export function insights(tx: Transaction[], key: string, now: Date = new Date())
   const previous = monthTotals(tx, shiftMonth(key, -1), isCurrent ? now.getDate() : undefined);
 
   if (cats.length === 1) {
-    out.push(`All your spending was on ${cats[0].label} — ${fmt(cats[0].amount)}.`);
+    out.push(`All your spending was on ${cats[0].label}: ${fmt(cats[0].amount)}.`);
   } else if (cats.length > 1) {
-    out.push(`${cats[0].label} was your biggest spend — ${fmt(cats[0].amount)}, ${cats[0].share}% of the month.`);
+    out.push(`${cats[0].label} was your biggest spend: ${fmt(cats[0].amount)}, ${cats[0].share}% of the month.`);
   }
 
   const days = dailySpending(tx, key, now).filter((d) => !d.future);
@@ -120,7 +120,7 @@ export function insights(tx: Transaction[], key: string, now: Date = new Date())
   if (top && top.amount > 0) {
     const date = new Date(Number(key.slice(0, 4)), Number(key.slice(5)) - 1, top.day);
     out.push(
-      `Your biggest day was ${date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })} — ${fmt(top.amount)}.`
+      `Your biggest day was ${date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}, ${fmt(top.amount)}.`
     );
   }
 
@@ -134,16 +134,16 @@ export function insights(tx: Transaction[], key: string, now: Date = new Date())
     const weAvg = we / weN;
     const wdAvg = wd / wdN;
     if (wdAvg === 0 && weAvg > 0) {
-      out.push(`All your spending so far happened on weekends — about ${fmt(weAvg)} per weekend day.`);
+      out.push(`All your spending so far happened on weekends, about ${fmt(weAvg)} per weekend day.`);
     } else if (wdAvg > 0 && weAvg > wdAvg * 1.25) {
       const ratio = weAvg / wdAvg;
       out.push(
         ratio >= 5
-          ? `Weekends cost you far more — ${fmt(weAvg)} a day vs ${fmt(wdAvg)} on weekdays.`
+          ? `Weekends cost you far more: ${fmt(weAvg)} a day against ${fmt(wdAvg)} on weekdays.`
           : `You spend ${ratio.toFixed(1)}× more per day on weekends (${fmt(weAvg)} vs ${fmt(wdAvg)}).`
       );
     } else if (weAvg > 0 && wdAvg > weAvg * 1.25) {
-      out.push(`Weekdays cost you more than weekends — ${fmt(wdAvg)} vs ${fmt(weAvg)} a day.`);
+      out.push(`Weekdays cost you more than weekends: ${fmt(wdAvg)} against ${fmt(weAvg)} a day.`);
     }
   }
 
@@ -153,17 +153,17 @@ export function insights(tx: Transaction[], key: string, now: Date = new Date())
       isCurrent
         ? c > 0
           ? `So far you've spent ${c}% more than by this point in ${monthLabel(shiftMonth(key, -1), 'short')}.`
-          : `So far you've spent ${-c}% less than by this point in ${monthLabel(shiftMonth(key, -1), 'short')} — nice.`
+          : `So far you've spent ${-c}% less than by this point in ${monthLabel(shiftMonth(key, -1), 'short')}. Nice.`
         : c > 0
         ? `Spending was up ${c}% on ${monthLabel(shiftMonth(key, -1), 'short')}.`
-        : `Spending was down ${-c}% on ${monthLabel(shiftMonth(key, -1), 'short')} — nice.`
+        : `Spending was down ${-c}% on ${monthLabel(shiftMonth(key, -1), 'short')}. Nice.`
     );
   }
 
   if (current.savingsRate !== null) {
     out.push(
       current.savingsRate >= 20
-        ? `You kept ${current.savingsRate}% of your income — above the common 20% savings guideline.`
+        ? `You kept ${current.savingsRate}% of your income, above the common 20% savings guideline.`
         : current.savingsRate >= 0
         ? `You kept ${current.savingsRate}% of your income. A common guideline is 20%.`
         : `You spent ${fmt(-current.saved)} more than you earned this month.`

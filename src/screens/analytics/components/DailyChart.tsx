@@ -18,10 +18,10 @@ export default function DailyChart({ points, average, monthKey }: Props) {
   const sel = selected !== null ? points[selected - 1] : null;
 
   const readout = sel
-    ? `${new Date(y, m, sel.day).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · ${
+    ? `${new Date(y, m, sel.day).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}: ${
         sel.future ? 'not yet' : sel.amount > 0 ? formatINR(sel.amount) : 'no spending'
       }`
-    : `Daily average ${formatINR(Math.round(average))} · tap a day`;
+    : `Daily average ${formatINR(Math.round(average))}. Tap a day`;
 
   return (
     <View style={styles.wrap}>

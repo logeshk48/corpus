@@ -21,10 +21,10 @@ export default function CalendarHeatmap({ points, monthKey }: { points: DayPoint
     <View style={styles.wrap}>
       <Text style={[styles.readout, sel && { color: Corpus.text }]}>
         {sel
-          ? `${new Date(y, m, sel.day).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · ${
+          ? `${new Date(y, m, sel.day).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}: ${
               sel.future ? 'not yet' : sel.amount > 0 ? formatINR(sel.amount) : 'no spending'
             }`
-          : 'Brighter = more spent · tap a day'}
+          : 'Brighter means more spent. Tap a day'}
       </Text>
       <View style={styles.row}>
         {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
