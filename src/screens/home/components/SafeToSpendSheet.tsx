@@ -74,6 +74,12 @@ export default function SafeToSpendSheet({ visible, result, onClose }: Props) {
           <Text style={[s.totalValue, r.available < 0 && { color: Corpus.danger }]}>{r.available < 0 ? '−' : ''}{formatINR(Math.abs(r.available))}</Text>
         </View>
       </View>
+      {r.limitedByBudget && r.plansDue > 0 && (
+        <View style={s.tip}>
+          <Ionicons name="file-tray-stacked" size={16} color={Corpus.text} />
+          <Text style={[s.small, { flex: 1, color: Corpus.text }]}>{formatINR(r.plansDue)} for your jar goals is kept from what came in, outside this budget, so it is not taken out again here.</Text>
+        </View>
+      )}
       {r.plansPaused.map((pp) => (
         <View key={pp.name} style={s.warn}>
           <Ionicons name="pause-circle" size={16} color={Corpus.warning} />
