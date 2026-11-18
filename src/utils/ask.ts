@@ -1,4 +1,4 @@
-// Ask Corpus — plain-English questions about your own money, answered on the phone.
+// Ask Corpus: plain-English questions about your own money, answered on the phone.
 // Rules, not AI: every number comes straight from your entries.
 import { EXPENSE_CATEGORIES, findCategory } from '@/constants/categories';
 import type { Bill } from '@/types/bill';
@@ -10,7 +10,10 @@ import { upcomingBills } from './moneyHealth';
 import { guessCategory, normNote } from './quickAdd';
 import type { SafeToSpendResult } from './safeToSpend';
 
-export type Answer = { text: string; detail?: string[]; href?: string; hrefLabel?: string };
+// figure: the one number that answers it. rows: a short ledger (left, small line under it, amount on the right).
+// next: two or three questions that naturally follow this one.
+export type AnswerRow = { left: string; sub?: string; right: string };
+export type Answer = { text: string; figure?: string; detail?: string[]; rows?: AnswerRow[]; next?: string[]; href?: string; hrefLabel?: string };
 export type AskData = { tx: Transaction[]; bills: Bill[]; ious: Iou[]; safe: SafeToSpendResult | null; now?: Date };
 
 export const EXAMPLES = [
@@ -23,6 +26,12 @@ export const EXAMPLES = [
   'Bills due',
   'Who owes me?',
   'How much can I spend today?',
+];
+// The welcome screen shows one group per kind of question
+export const EXAMPLE_GROUPS: { title: string; icon: string; items: string[] }[] = [
+  { title: 'Spending', icon: 'cart', items: ['How much did I spend this month?', 'Where does my money go?', 'Swiggy last month', 'Biggest expenses this month'] },
+  { title: 'Saving and income', icon: 'trending-up', items: ['How much did I save last month?', 'How much came in this month?', 'Average a day this week'] },
+  { title: 'Today, bills and people', icon: 'calendar', items: ['How much can I spend today?', 'Bills due', 'Who owes me?'] },
 ];
 
 const r = (n: number) => formatINR(Math.round(n));
@@ -98,6 +107,10 @@ const change = (now: number, before: number, label: string) => {
   return `${d > 0 ? 'Up' : 'Down'} ${Math.round(Math.abs(d) * 100)}% from ${label} (${r(before)}).`;
 };
 
+const day = (d: Date | string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+// The same question for the period before ("this month" → "last month"), for a follow-up chip
+const other = (label: string) => (label === 'this month' ? 'last month' : label === 'this week' ? 'last week' : label === 'today' ? 'yesterday' : 'this month');
+
 export function ask(question: string, d: AskData): Answer {
   const now = d.now ?? new Date();
   const q = ` ${question.toLowerCase().replace(/[?!.,]/g, ' ').replace(/\s+/g, ' ').trim()} `;
@@ -107,73 +120,109 @@ export function ask(question: string, d: AskData): Answer {
   const exp = inP.filter((t) => t.type === 'expense');
   const inc = inP.filter((t) => t.type === 'income');
   const has = (re: RegExp) => re.test(q);
+  const nameOf = (t: Transaction) => t.note || findCategory(t.type === 'income' ? 'income' : 'expense', t.category)?.label || t.category;
 
   if (has(/\b(safe|can i spend|left to spend|spend today|allowance)\b/) && !has(/\b(on|at)\b \w/)) {
-    if (!d.safe || d.safe.status === 'noData') return { text: 'Corpus needs this month’s income or a monthly budget to work that out.', href: '/add', hrefLabel: 'Add income' };
-    return { text: d.safe.safeToday >= 0 ? `You can spend ${r(d.safe.safeToday)} today.` : `You’re ${r(-d.safe.safeToday)} over today’s amount.`, detail: [`${r(d.safe.available)} left for the next ${d.safe.daysLeft} days, after bills, SIPs and jars.`] };
+    if (!d.safe || d.safe.status === 'noData') return { text: 'Corpus needs this month’s income or a monthly budget to work that out.', href: '/add', hrefLabel: 'Add income', next: ['Bills due'] };
+    return {
+      figure: r(Math.max(0, d.safe.safeToday)),
+      text: d.safe.safeToday >= 0 ? 'You can spend this today.' : `You are ${r(-d.safe.safeToday)} over today’s amount.`,
+      detail: [`${r(d.safe.available)} left for the next ${d.safe.daysLeft} days, after bills, SIPs and jars.`],
+      next: ['Bills due', 'How much did I spend this week?', 'Where does my money go?'],
+    };
   }
   if (has(/\b(due|dues|upcoming|subscriptions?|renewals?)\b/) || (has(/\b(bills?|emis?)\b/) && !has(/\b(spen\w*|spent|paid|cost)\b/))) {
     const up = upcomingBills(d.bills, now, 30);
-    if (up.length === 0) return { text: d.bills.length ? 'Nothing due in the next 30 days.' : 'You haven’t added any bills yet.', href: '/bills', hrefLabel: 'Open bills' };
+    if (up.length === 0) return { text: d.bills.length ? 'Nothing due in the next 30 days.' : 'You haven’t added any bills yet.', href: '/bills', hrefLabel: 'Open Bills', next: ['How much can I spend today?'] };
     return {
-      text: `${up.length} bill${up.length > 1 ? 's' : ''} due in the next 30 days — ${r(sum(up.map((u) => ({ amount: u.amount }) as Transaction)))} in total.`,
-      detail: up.slice(0, 6).map((u) => `${u.due.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · ${u.bill.name} · ${r(u.amount)}`),
-      href: '/bills', hrefLabel: 'Open bills',
+      figure: r(up.reduce((a, u) => a + u.amount, 0)),
+      text: `Due in the next 30 days, across ${up.length} bill${up.length > 1 ? 's' : ''}.`,
+      rows: up.slice(0, 6).map((u) => ({ left: u.bill.name, sub: day(u.due), right: r(u.amount) })),
+      href: '/inbox', hrefLabel: 'Open Reminders', next: ['How much can I spend today?', 'Who owes me?'],
     };
   }
   if (has(/\b(owe|owes|lent|borrow|borrowed|people|friends?)\b/)) {
     const people = byPerson(d.ious, now).filter((p) => p.open.length > 0);
     const tt = totals(people);
-    if (people.length === 0) return { text: 'All square — nobody owes you and you owe nobody.', href: '/ious', hrefLabel: 'Open people' };
-    const theirs = people.filter((p) => p.net > 0).slice(0, 4).map((p) => `${p.person} owes you ${r(p.net)}${p.overdue ? ' (overdue)' : ''}`);
-    const mine = people.filter((p) => p.net < 0).slice(0, 4).map((p) => `You owe ${p.person} ${r(-p.net)}`);
-    return { text: `People owe you ${r(tt.toGet)}; you owe ${r(tt.toPay)}.`, detail: [...theirs, ...mine], href: '/ious', hrefLabel: 'Open people' };
+    if (people.length === 0) return { text: 'All square. Nobody owes you and you owe nobody.', href: '/ious', hrefLabel: 'Open People', next: ['Bills due'] };
+    return {
+      figure: r(tt.toGet),
+      text: `People owe you this. You owe ${r(tt.toPay)}.`,
+      rows: [
+        ...people.filter((p) => p.net > 0).slice(0, 4).map((p) => ({ left: p.person, sub: p.overdue ? 'Owes you, overdue' : 'Owes you', right: r(p.net) })),
+        ...people.filter((p) => p.net < 0).slice(0, 4).map((p) => ({ left: p.person, sub: 'You owe', right: r(-p.net) })),
+      ],
+      href: '/ious', hrefLabel: 'Open People', next: ['Bills due', 'How much can I spend today?'],
+    };
   }
   if (has(/\b(save|saved|saving|savings)\b/)) {
     const i = sum(inc), e = sum(exp);
-    if (i === 0) return { text: `No income logged ${when(P.label)}, so Corpus can’t tell what you saved. You spent ${r(e)}.` };
-    return { text: `You saved ${r(i - e)} ${when(P.label)} — ${Math.round(((i - e) / i) * 100)}% of the ${r(i)} that came in.`, detail: [`Spent ${r(e)}.`] };
+    const next = ['Where does my money go?', `How much did I save ${other(P.label)}?`];
+    if (i === 0) return { text: `No income logged ${when(P.label)}, so Corpus can’t tell what you saved. You spent ${r(e)}.`, next };
+    return { figure: r(i - e), text: `Saved ${when(P.label)}, ${Math.round(((i - e) / i) * 100)}% of the ${r(i)} that came in.`, detail: [`Spent ${r(e)}.`], next };
   }
   if (has(/\b(earn|earned|income|salary|received|got paid|came in)\b/)) {
     const i = sum(inc);
-    const top = [...new Map(inc.map((t) => [t.note || findCategory('income', t.category)?.label || t.category, 0])).keys()].slice(0, 4);
-    return { text: `${r(i)} came in ${when(P.label).replace(/^in /, "during ")}.`, detail: [change(i, sum(inPrev.filter((t) => t.type === 'income')), P.prev?.label ?? '') ?? '', top.length ? `From: ${top.join(', ')}` : ''].filter(Boolean) };
+    const by = new Map<string, number>();
+    for (const t of inc) by.set(nameOf(t), (by.get(nameOf(t)) ?? 0) + t.amount);
+    return {
+      figure: r(i), text: `Came in ${when(P.label).replace(/^in /, 'during ')}.`,
+      detail: [change(i, sum(inPrev.filter((t) => t.type === 'income')), P.prev?.label ?? '') ?? ''].filter(Boolean),
+      rows: [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => ({ left: k, right: r(v) })),
+      next: [`How much did I save ${P.label === 'this month' ? 'this month' : 'last month'}?`, `How much came in ${other(P.label)}?`],
+    };
   }
   if (has(/\b(biggest|largest|highest|most expensive|top)\b/) && !has(/\bcategor/)) {
     const top = [...exp].sort((a, b) => b.amount - a.amount).slice(0, 5);
-    if (top.length === 0) return { text: `No spending logged ${when(P.label)}.` };
-    return { text: `Your biggest spend ${when(P.label)}: ${r(top[0].amount)}${top[0].note ? ` on ${top[0].note}` : ''}.`, detail: top.map((t) => `${new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · ${t.note || findCategory('expense', t.category)?.label} · ${r(t.amount)}`) };
+    if (top.length === 0) return { text: `No spending logged ${when(P.label)}.`, next: [`Biggest expenses ${other(P.label)}`] };
+    return {
+      figure: r(top[0].amount), text: `Your biggest spend ${when(P.label)}${top[0].note ? `, on ${top[0].note}` : ''}.`,
+      rows: top.map((t) => ({ left: nameOf(t), sub: day(t.date), right: r(t.amount) })),
+      next: ['Where does my money go?', `Biggest expenses ${other(P.label)}`],
+    };
   }
   if (has(/\b(where|categor\w*|breakdown|split|go|goes|most on)\b/)) {
     const by = new Map<string, number>();
     for (const t of exp) by.set(t.category, (by.get(t.category) ?? 0) + t.amount);
     const tot = sum(exp);
-    if (tot === 0) return { text: `No spending logged ${when(P.label)}.` };
+    if (tot === 0) return { text: `No spending logged ${when(P.label)}.`, next: [`Where did my money go ${other(P.label)}?`] };
     const rows = [...by.entries()].sort((a, b) => b[1] - a[1]);
-    return { text: `${r(tot)} spent ${when(P.label)}. Most went on ${findCategory('expense', rows[0][0])?.label ?? rows[0][0]}.`, detail: rows.slice(0, 6).map(([c, v]) => `${findCategory('expense', c)?.label ?? c} · ${r(v)} · ${Math.round((v / tot) * 100)}%`), href: '/analytics', hrefLabel: 'Open analytics' };
+    const topLabel = findCategory('expense', rows[0][0])?.label ?? rows[0][0];
+    return {
+      figure: r(tot), text: `Spent ${when(P.label)}. Most went on ${topLabel}.`,
+      rows: rows.slice(0, 6).map(([c, v]) => ({ left: findCategory('expense', c)?.label ?? c, sub: `${Math.round((v / tot) * 100)}% of it`, right: r(v) })),
+      href: '/analytics', hrefLabel: 'Open Insights', next: [`Spent on ${topLabel} ${P.label === 'this month' ? 'this month' : 'last month'}`, 'Biggest expenses this month', `Where did my money go ${other(P.label)}?`],
+    };
   }
   if (has(/\b(average|avg|per day|daily|a day)\b/)) {
     const days = Math.max(1, Math.round((Math.min(P.end.getTime(), now.getTime()) - P.start.getTime()) / DAY));
-    return { text: `About ${r(sum(exp) / days)} a day ${when(P.label)} (${r(sum(exp))} over ${days} days).` };
+    return { figure: r(sum(exp) / days), text: `A day on average ${when(P.label)}.`, detail: [`${r(sum(exp))} over ${days} day${days > 1 ? 's' : ''}.`], next: ['How much can I spend today?', 'Where does my money go?'] };
   }
 
-  // Spending — overall, or on one thing
+  // Spending, overall or on one thing
   const isSpendQ = has(/\b(spen\w*|spent|cost|paid|pay|how much|expenses?)\b/);
   const cleaned = q.replace(P.phrase, ' ');
   const filter = findFilter(cleaned, d.tx);
   if (!isSpendQ && !filter) {
-    return { text: 'I can answer questions about your own entries. Try one of these:', detail: EXAMPLES.slice(0, 6) };
+    return { text: 'I answer questions about your own entries. Try one of these.', next: EXAMPLES.slice(0, 4) };
   }
   if (filter) {
     const hits = exp.filter(filter.test);
     const prevHits = inPrev.filter((t) => t.type === 'expense' && filter.test(t));
-    if (hits.length === 0 && !d.tx.some(filter.test)) return { text: `Couldn’t find anything for “${filter.label}” in your entries.`, detail: ['Try the name as you wrote it in the note, or a category like Food or Travel.'] };
+    if (hits.length === 0 && !d.tx.some(filter.test)) return { text: `Couldn’t find anything for “${filter.label}” in your entries.`, detail: ['Try the name as you wrote it in the note, or a category like Food or Travel.'], next: ['Where does my money go?'] };
     const total = sum(hits);
     return {
-      text: `${r(total)} on ${filter.label} ${when(P.label)}${hits.length ? ` — ${hits.length} time${hits.length > 1 ? 's' : ''}` : ''}.`,
-      detail: [filter.why ?? '', change(total, sum(prevHits), P.prev?.label ?? '') ?? '', ...hits.slice(0, 4).map((t) => `${new Date(t.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · ${t.note || findCategory('expense', t.category)?.label} · ${r(t.amount)}`)].filter(Boolean),
+      figure: r(total),
+      text: `On ${filter.label} ${when(P.label)}${hits.length ? `, ${hits.length} time${hits.length > 1 ? 's' : ''}` : ''}.`,
+      detail: [filter.why ?? '', change(total, sum(prevHits), P.prev?.label ?? '') ?? ''].filter(Boolean),
+      rows: hits.slice(0, 5).map((t) => ({ left: nameOf(t), sub: day(t.date), right: r(t.amount) })),
+      next: [`Spent on ${filter.label} ${other(P.label)}`, 'Where does my money go?'],
     };
   }
   const total = sum(exp);
-  return { text: `You spent ${r(total)} ${when(P.label)}.`, detail: [change(total, sum(inPrev.filter((t) => t.type === 'expense')), P.prev?.label ?? '') ?? ''].filter(Boolean), href: '/analytics', hrefLabel: 'Open analytics' };
+  return {
+    figure: r(total), text: `Spent ${when(P.label)}.`,
+    detail: [change(total, sum(inPrev.filter((t) => t.type === 'expense')), P.prev?.label ?? '') ?? ''].filter(Boolean),
+    href: '/analytics', hrefLabel: 'Open Insights', next: ['Where does my money go?', `Biggest expenses ${P.label === 'this month' ? 'this month' : 'last month'}`, `How much did I spend ${other(P.label)}?`],
+  };
 }

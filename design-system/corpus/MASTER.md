@@ -207,3 +207,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - Card balance: show the minimum-due trap (years and interest) next to 12-month ways out with real costs incl. fees and GST (card EMI ~16% + fee, personal loan ~13% + 2%). Tag the cheapest by cost.
 - Progress line only once something is paid off; in the first month say the plan has started.
 - The order of payoff is a numbered step line (it is a real sequence).
+
+## From your bank + Ask Corpus (step 14, researched)
+- SMS: the privacy promise is said in three plain lines with icons (this phone only, bank payments only, nothing saved until you tap Log). Android allows SMS reading only as all-or-nothing, so the promise has to be explicit; Play allows it for SMS-based money management with a declaration.
+- SMS items grouped by day. Each: category chip, who it went to, category and account ending, amount. "Show the message" reveals the original so people can check. A likely duplicate (same amount, same day, already logged) gets an amber note and "Skip, it is the same" becomes the main action.
+- Where SMS can't be read (web, iPhone), the screen is a paste box with a live preview row.
+- Ask: rules, not AI; said up front. Welcome shows example questions in three groups (spending, saving and income, today/bills/people). Each answer leads with the one number, a sentence, a small ledger, an Open button, and 2–3 "Ask next" chips that follow from that answer (Google conversation design: suggestions relate to the last response).
