@@ -24,6 +24,7 @@ export type Settings = {
   // Insurance, as you told us (the app can't see policies). Feeds the "Covered if something goes wrong" part of the score
   protection?: { health?: boolean; healthCover?: number; dependents?: boolean; term?: boolean; termCover?: number; answeredAt?: string };
   mixTarget?: { equity: number }; // % of investments you want in equity
+  hideAmounts?: boolean; // Invest: show •••• instead of rupee amounts (percentages stay), like a broker's privacy mode
   watchlist?: string[]; // stock symbols (RELIANCE.NS) and fund codes (mf:122639)
   gold?: { mode?: 'live' | 'custom'; customRate24k?: number; lastLive?: { rate: number; at: string } };
   upiId?: string;          // added to lent-money reminders, e.g. name@okaxis

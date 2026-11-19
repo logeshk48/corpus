@@ -258,3 +258,8 @@ Cards and text stay clean; the life is in the background and in moments.
 - Charts: StockChart (gradient area, dashed base at previous close on 1D, drag to scrub). The big price follows the finger and the line under it shows the change from the start of the range and the time.
 - Green and red only mean up and down against a stated base. Never decorative.
 - Copy: "+₹1,240 (+2.10%)", no arrows or triangles, no middle-dot chains.
+- Step 16b (Groww and Angel One patterns): the portfolio card is label-left, value-right rows (Invested, 1D returns, Total returns, XIRR), as on Groww. An eye toggle hides rupee amounts but keeps percentages, as on Angel One.
+- Rows show "LTP ₹152.81 (−1.89%)". Watchlist rows show the change in points and percent. Tapping the chosen sort again reverses it.
+- Stock sheet: "Performance" with today's and the 52-week low and high on a grey track with a triangle marker, and sentence-case labels (no ALL CAPS). "Your investment" lists Shares, Avg. price, Current value, Invested, Total returns and 1D returns.
+- Tab switches stay near-instant (120 ms). Groww users complain about slow tab animations.
+- Pull down to refresh prices.

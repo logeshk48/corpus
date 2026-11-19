@@ -5,7 +5,7 @@ import { Button, IconChip, Tap } from '@/components/ui';
 import { useSparks } from '@/hooks/useSparks';
 import { useTween } from '@/hooks/useTween';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import HoldingRow, { type RowData } from './HoldingRow';
+import HoldingRow, { HIDDEN, type RowData } from './HoldingRow';
 import IndexStrip from './IndexStrip';
 import UnderlineTabs from './UnderlineTabs';
 import { askWeb } from '@/services/confirm';
@@ -26,7 +26,7 @@ import { useRealized } from '@/hooks/useRealized';
 import { deleteRealized } from '@/services/realized';
 import { formatPct, formatPrice, fundClassOf, getLive, parseWatch, priceTime, refKey, shortSymbol, watchId, type LiveKind, type LivePrice } from '@/utils/market';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import InvestmentSheet, { type InvSheetMode } from './InvestmentSheet';
 import { m } from './Market.styles';
@@ -61,7 +61,7 @@ const CLASS: Record<string, { label: string; color: string }> = {
 export default function InvestScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const { investments, live, liveError, updatedAt, loading } = useInvestments();
+  const { investments, live, liveError, updatedAt, loading, refresh } = useInvestments();
   const { settings } = useSettings();
   const [mode, setMode] = useState<InvSheetMode | null>(null);
   const [search, setSearch] = useState<LiveKind | null>(null);
@@ -71,6 +71,18 @@ export default function InvestScreen() {
   const watchlist = settings.watchlist ?? [];
   const [tab, setTab] = useState<'holdings' | 'watchlist' | 'sips' | 'analysis'>('holdings');
   const [sort, setSort] = useState<'value' | 'returns' | 'today' | 'name'>('value');
+  const [asc, setAsc] = useState(false); // tap the chosen sort again to flip it
+  // privacy mode: hide rupee amounts, keep percentages (Angel One and Kite do the same)
+  const [hide, setHide] = useState(false);
+  useEffect(() => setHide(!!settings.hideAmounts), [settings.hideAmounts]);
+  const toggleHide = () => { setHide(!hide); saveSettings({ hideAmounts: !hide }).catch(() => {}); };
+  const money = (n: number) => (hide ? HIDDEN : formatINR(Math.round(n)));
+  const [pulling, setPulling] = useState(false);
+  const pull = async () => {
+    setPulling(true);
+    await Promise.all([refresh(), watchlist.length ? getLive(watchlist.map(parseWatch)).then(setWp).catch(() => {}) : null]);
+    setPulling(false);
+  };
   const [wp, setWp] = useState<Record<string, LivePrice>>({});
   const wKey = watchlist.join(',');
   useEffect(() => {
@@ -201,7 +213,8 @@ export default function InvestScreen() {
       today: (a: (typeof list)[number], b: (typeof list)[number]) => (b.l?.changePct ?? -999) - (a.l?.changePct ?? -999),
       name: (a: (typeof list)[number], b: (typeof list)[number]) => a.d.title.localeCompare(b.d.title),
     }[sort];
-    return list.sort(by);
+    const sorted = list.sort(by);
+    return asc ? sorted.reverse() : sorted;
   };
   const rows = rowsOf();
   const sipList = investments.filter((h) => h.sip);
@@ -214,7 +227,8 @@ export default function InvestScreen() {
     <View style={styles.safe}>
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 420 }} pointerEvents="none"><Aura color={totalUp ? Chip.green : Chip.red} second={Chip.teal} /></View>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_SPACE + 40 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={investments.length ? [3] : undefined}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_SPACE + 40 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={investments.length ? [3] : undefined}
+        refreshControl={<RefreshControl refreshing={pulling} onRefresh={pull} tintColor={Corpus.gold} colors={[Corpus.gold]} />}>
         <View style={styles.headRow}>
           <Text style={styles.heading} accessibilityRole="header">Invest</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -241,7 +255,10 @@ export default function InvestScreen() {
           <View style={[styles.card, styles.portfolio]}>
             <Shine />
             <View style={styles.row}>
-              <Text style={[styles.meta, { flex: 1 }]}>Current value</Text>
+              <Tap onPress={toggleHide} style={[styles.row, { gap: 6, flex: 1 }]} accessibilityRole="button" accessibilityLabel={hide ? 'Show amounts' : 'Hide amounts'} hitSlop={8}>
+                <Text style={styles.meta}>Current value</Text>
+                <Ionicons name={hide ? 'eye-off-outline' : 'eye-outline'} size={15} color={Corpus.textMuted} />
+              </Tap>
               {Object.keys(live).length > 0 && (
                 <View style={styles.livePill}>
                   <View style={[styles.liveDot, { backgroundColor: liveError ? Corpus.warning : Corpus.income }]} />
@@ -249,33 +266,39 @@ export default function InvestScreen() {
                 </View>
               )}
             </View>
-            <Text style={styles.bigValue} adjustsFontSizeToFit numberOfLines={1}>{formatINR(Math.round(valueV))}</Text>
-            <View style={styles.pfGrid}>
-              <View style={styles.pfCell}>
-                <Text style={styles.meta}>Invested</Text>
-                <Text style={styles.pfNum}>{formatINR(Math.round(invested))}</Text>
+            <Text style={styles.bigValue} adjustsFontSizeToFit numberOfLines={1}>{hide ? HIDDEN : formatINR(Math.round(valueV))}</Text>
+            <View style={styles.pfRows}>
+              <View style={styles.pfRow}>
+                <Text style={styles.pfLabel}>Invested</Text>
+                <Text style={styles.pfNum}>{money(invested)}</Text>
               </View>
-              <View style={[styles.pfCell, styles.ruled]}>
-                <Text style={styles.meta}>Total returns</Text>
-                <Text style={[styles.pfNum, { color: totalUp ? Corpus.income : Corpus.danger }]}>{totalUp ? '+' : '−'}{formatINR(Math.abs(Math.round(pf.gain)))}</Text>
-                <Text style={[styles.pfPct, { color: totalUp ? Corpus.income : Corpus.danger }]}>{totalUp ? '+' : '−'}{Math.abs(pf.pct).toFixed(2)}%</Text>
+              {hasStockLive && (
+                <View style={styles.pfRow}>
+                  <Text style={styles.pfLabel}>1D returns</Text>
+                  <Text style={[styles.pfNum, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>
+                    {hide ? '' : `${dayGain >= 0 ? '+' : '−'}${formatINR(Math.round(Math.abs(dayGain)))} `}({formatPct(pf.value - dayGain > 0 ? (dayGain / (pf.value - dayGain)) * 100 : 0)})
+                  </Text>
+                </View>
+              )}
+              <View style={styles.pfRow}>
+                <Text style={styles.pfLabel}>Total returns</Text>
+                <Text style={[styles.pfNum, { color: totalUp ? Corpus.income : Corpus.danger }]}>
+                  {hide ? '' : `${totalUp ? '+' : '−'}${formatINR(Math.abs(Math.round(pf.gain)))} `}({formatPct(pf.pct)})
+                </Text>
               </View>
-              <View style={[styles.pfCell, styles.ruled]}>
-                <Text style={styles.meta}>1D returns</Text>
-                {hasStockLive ? (
-                  <>
-                    <Text style={[styles.pfNum, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>{dayGain >= 0 ? '+' : '−'}{formatINR(Math.round(Math.abs(dayGain)))}</Text>
-                    <Text style={[styles.pfPct, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>{dayGain >= 0 ? '+' : '−'}{pf.value > 0 ? Math.abs((dayGain / (pf.value - dayGain)) * 100).toFixed(2) : '0.00'}%</Text>
-                  </>
-                ) : <Text style={[styles.pfNum, { color: Corpus.textMuted }]}>None</Text>}
-              </View>
+              {xirrAll != null && (
+                <View style={styles.pfRow}>
+                  <Text style={styles.pfLabel}>XIRR</Text>
+                  <Text style={[styles.pfNum, { color: xirrAll >= 0 ? Corpus.income : Corpus.danger }]}>{formatPct(xirrAll).replace(/\.(\d)\d%/, '.$1%')} a year</Text>
+                </View>
+              )}
+              {divs > 0 && (
+                <View style={styles.pfRow}>
+                  <Text style={styles.pfLabel}>Dividends received</Text>
+                  <Text style={[styles.pfNum, { color: Corpus.income }]}>{hide ? HIDDEN : `+${formatINR(divs)}`}</Text>
+                </View>
+              )}
             </View>
-            {(xirrAll != null || divs > 0) && (
-              <Text style={styles.meta}>
-                {xirrAll != null ? `${xirrAll >= 0 ? '+' : '−'}${Math.abs(xirrAll).toFixed(1)}% a year (XIRR, counts when each rupee went in)` : ''}
-                {xirrAll != null && divs > 0 ? '. ' : ''}{divs > 0 ? `${formatINR(divs)} dividends received` : ''}
-              </Text>
-            )}
           </View>
         )}
 
@@ -291,18 +314,19 @@ export default function InvestScreen() {
         )}
 
         {investments.length > 0 && tab === 'holdings' && (
-          <Animated.View key="h" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
+          <Animated.View key="h" entering={FadeIn.duration(120)} style={{ gap: 12 }}>
             <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {([['value', 'Current value'], ['returns', 'Returns %'], ['today', 'Today'], ['name', 'A to Z']] as const).map(([k, label]) => (
-                <Tap key={k} onPress={() => setSort(k)} style={[styles.chip, sort === k && styles.chipOn]} accessibilityRole="radio" accessibilityState={{ selected: sort === k }}>
+                <Tap key={k} onPress={() => (sort === k ? setAsc(!asc) : (setSort(k), setAsc(false)))} style={[styles.chip, sort === k && styles.chipOn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} accessibilityRole="radio" accessibilityState={{ selected: sort === k }} accessibilityHint={sort === k ? 'Tap again to reverse the order' : undefined}>
                   <Text style={[styles.chipText, sort === k && { color: Corpus.onGold }]}>{label}</Text>
+                  {sort === k && <Ionicons name={(k === 'name' ? !asc : asc) ? 'arrow-up' : 'arrow-down'} size={12} color={Corpus.onGold} />}
                 </Tap>
               ))}
             </ScrollView>
             <View style={[styles.card, { padding: 0, gap: 0, overflow: 'hidden' }]}>
               {rows.map(({ h, linked, d }, i) => (
-                <HoldingRow key={h.id} d={d} first={i === 0}
+                <HoldingRow key={h.id} d={d} first={i === 0} hide={hide}
                   onPress={() => (linked && targetOf(h) ? setTarget(targetOf(h)) : setMode({ kind: 'edit', h }))}
                   onLongPress={() => setMode({ kind: 'edit', h })}>
                   {!linked && (
@@ -315,7 +339,7 @@ export default function InvestScreen() {
                     </View>
                   )}
                   {jars.length > 0 && !jars.find((j) => j.id === h.goalId) && (
-                    <Tap onPress={() => setPickFor(h)} style={styles.jarAsk}><Ionicons name="file-tray-stacked-outline" size={13} color={Corpus.textMuted} /><Text style={styles.chipText}>Not in a jar. Add to {suggestJar(h, jars)?.jar.name ?? 'a jar'}?</Text></Tap>
+                    <Tap onPress={() => setPickFor(h)} style={styles.jarAsk} accessibilityRole="button"><Ionicons name="add-circle-outline" size={13} color={Corpus.gold} /><Text style={styles.jarAskText}>Add to {suggestJar(h, jars)?.jar.name ?? 'a jar'}</Text></Tap>
                   )}
                 </HoldingRow>
               ))}
@@ -325,7 +349,7 @@ export default function InvestScreen() {
         )}
 
         {investments.length > 0 && tab === 'watchlist' && (
-          <Animated.View key="w" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
+          <Animated.View key="w" entering={FadeIn.duration(120)} style={{ gap: 12 }}>
             {watchlist.length === 0 ? (
               <View style={[styles.card, { alignItems: 'center', gap: 8, paddingVertical: 24 }]}>
                 <IconChip icon="eye" color={Chip.indigo} size={44} />
@@ -342,7 +366,7 @@ export default function InvestScreen() {
                   const sub = ref.kind === 'stock' ? x?.name ?? 'Stock' : { fund: 'Mutual fund, NAV', nps: 'NPS, NAV', crypto: 'Crypto, 24h' }[ref.kind];
                   return (
                     <HoldingRow key={w} first={i === 0} onPress={() => setTarget({ ...ref, name: x?.name ?? title })}
-                      d={{ key: w, title, sub, value: x?.price ?? null, valueIsPrice: true, dayPct: x?.changePct ?? null, spark: sparks[refKey(ref)], ltp: x?.price ?? null }} />
+                      d={{ key: w, title, sub, value: x?.price ?? null, valueIsPrice: true, dayPct: x?.changePct ?? null, dayChange: ref.kind === 'stock' ? x?.change ?? null : null, spark: sparks[refKey(ref)], ltp: x?.price ?? null }} />
                   );
                 })}
               </View>
@@ -351,12 +375,12 @@ export default function InvestScreen() {
         )}
 
         {investments.length > 0 && tab === 'sips' && (
-          <Animated.View key="s" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
+          <Animated.View key="s" entering={FadeIn.duration(120)} style={{ gap: 12 }}>
             <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
             <View style={[styles.card, styles.row]}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.meta}>Going in every month</Text>
-                <Text style={styles.pfNum}>{formatINR(sipMonthly)}</Text>
+                <Text style={styles.pfNum}>{money(sipMonthly)}</Text>
               </View>
               <Button size="sm" icon="repeat" label="Start a SIP" onPress={() => (setSipPick(true), setSearch('fund'))} />
             </View>
@@ -366,7 +390,7 @@ export default function InvestScreen() {
                   const ns = nextSip(h);
                   const st = sipStreak(h);
                   return (
-                    <HoldingRow key={h.id} first={i === 0} onPress={() => setSipFor(h)}
+                    <HoldingRow key={h.id} first={i === 0} hide={hide} onPress={() => setSipFor(h)}
                       d={{ key: h.id, title: h.name, sub: h.sip!.active ? `On the ${h.sip!.day === 1 ? '1st' : `${h.sip!.day}th`}${ns ? `, next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : 'Stopped',
                         value: sipAmount(h.sip!, new Date()), valueIsPrice: false, note: st && st.streak > 1 ? `${st.streak} in a row${st.skipped ? `, ${st.skipped} missed this year` : ''}` : st?.skipped ? `${st.skipped} missed this year` : '' }} />
                   );
@@ -377,7 +401,7 @@ export default function InvestScreen() {
         )}
 
         {investments.length > 0 && tab === 'analysis' && (
-          <Animated.View key="a" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
+          <Animated.View key="a" entering={FadeIn.duration(120)} style={{ gap: 12 }}>
             {pf.allocation.length > 0 && (
               <MixCard
                 allocation={pf.allocation}

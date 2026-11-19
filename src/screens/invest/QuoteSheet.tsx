@@ -204,8 +204,8 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                   })() : (
                   <Text style={[m.small, { color: up ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
                     {showDay
-                      ? info?.change == null ? ' ' : `${formatChange(info.change)} (${formatPct(info.changePct)}) ${kind === 'stock' ? 'today' : kind === 'crypto' ? 'in 24h' : 'since last NAV'}`
-                      : `${formatPct(rr)} in ${LABEL[range]}`}
+                      ? info?.change == null ? ' ' : `${formatChange(info.change)} (${formatPct(info.changePct)}) ${kind === 'stock' ? '1D' : kind === 'crypto' ? '24h' : 'since last NAV'}`
+                      : `${formatPct(rr)} ${LABEL[range]}`}
                   </Text>
                   )}
                   <Text style={m.tiny}>
@@ -232,10 +232,13 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
 
                 {pos && holding && !trade && (
                   <View style={m.position}>
-                    <Text style={[m.cellLabel, { color: Corpus.gold }]}>YOUR HOLDING</Text>
-                    <Row l={`${trim(holding.units!)} ${UNIT[kind]} · avg ${formatPrice(pos.avg)}`} r={formatINR(Math.round(pos.value))} />
-                    <Row l={`Invested ${formatINR(holding.invested)}`} r={`${sign(pos.pl)}${formatINR(Math.round(Math.abs(pos.pl)))} (${formatPct(pos.pct)})`} color={pos.pl >= 0 ? Corpus.income : Corpus.danger} />
-                    {pos.today != null && <Row l={kind === 'stock' ? 'Today' : kind === 'crypto' ? 'Last 24h' : 'Last NAV change'} r={`${sign(pos.today)}${formatINR(Math.round(Math.abs(pos.today)))}`} color={pos.today >= 0 ? Corpus.income : Corpus.danger} />}
+                    <Text style={m.secTitle}>Your investment</Text>
+                    <Row l={kind === 'stock' ? 'Shares' : kind === 'crypto' ? 'Coins' : 'Units'} r={trim(holding.units!)} />
+                    <Row l="Avg. price" r={formatPrice(pos.avg)} />
+                    <Row l="Current value" r={formatINR(Math.round(pos.value))} />
+                    <Row l="Invested" r={formatINR(holding.invested)} />
+                    <Row l="Total returns" r={`${sign(pos.pl)}${formatINR(Math.round(Math.abs(pos.pl)))} (${formatPct(pos.pct)})`} color={pos.pl >= 0 ? Corpus.income : Corpus.danger} />
+                    {pos.today != null && <Row l={kind === 'stock' ? '1D returns' : kind === 'crypto' ? '24h returns' : 'Last NAV change'} r={`${sign(pos.today)}${formatINR(Math.round(Math.abs(pos.today)))}`} color={pos.today >= 0 ? Corpus.income : Corpus.danger} />}
                     {dividendTotal(holding) > 0 && (
                       <>
                         <Row l={`Dividends received (${holding.dividends!.length})`} r={`+${formatINR(dividendTotal(holding))}`} color={Corpus.income} />
@@ -275,7 +278,7 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                             </Text>
                             {tax.turnsLongOn && tax.waitSaves ? (
                               <Text style={[m.small, { color: Corpus.warning }]}>
-                                ⏳ Some of this turns long-term on {new Date(tax.turnsLongOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. Selling after that could save about {formatINR(tax.waitSaves)}.
+                                Some of this turns long-term on {new Date(tax.turnsLongOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. Selling after that could save about {formatINR(tax.waitSaves)}.
                               </Text>
                             ) : null}
                           </>
@@ -354,35 +357,45 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
   );
 }
 
+// Groww-style "Performance" and "Overview": low and high with a marker where the price sits, then the plain facts
 function Stats({ kind, info, rr, rangeLabel, isIndex }: { kind: LiveKind; info: Info; rr: number | null; rangeLabel: string; isIndex: boolean }) {
-  const fmt = (n?: number | null) => (isIndex ? n?.toLocaleString('en-IN', { maximumFractionDigits: 2 }) ?? '—' : formatPrice(n));
+  const fmt = (n?: number | null) => (n == null ? '' : isIndex ? n.toLocaleString('en-IN', { maximumFractionDigits: 2 }) : formatPrice(n));
   if (kind === 'stock')
     return (
-      <View style={m.grid}>
-        <Cell label="PREV. CLOSE" value={fmt(info.prevClose)} />
-        <Cell label="VOLUME" value={isIndex ? '—' : compactNum(info.volume)} />
-        <RangeCell label="TODAY’S RANGE" lo={info.dayLow} hi={info.dayHigh} now={info.price} fmt={fmt} />
-        <RangeCell label="52-WEEK RANGE" lo={info.low52} hi={info.high52} now={info.price} fmt={fmt} />
-        {info.high52 && info.price ? <Cell label="FROM 52W HIGH" value={formatPct(((info.price - info.high52) / info.high52) * 100)} /> : null}
-        {rr != null ? <Cell label={`RETURN (${rangeLabel})`} value={formatPct(rr)} /> : null}
+      <View style={{ gap: 14 }}>
+        <Text style={m.secTitle}>Performance</Text>
+        <PerfBar lo={info.dayLow} hi={info.dayHigh} now={info.price} fmt={fmt} loLabel="Today's low" hiLabel="Today's high" />
+        <PerfBar lo={info.low52} hi={info.high52} now={info.price} fmt={fmt} loLabel="52W low" hiLabel="52W high" />
+        <View style={m.grid}>
+          {info.prevClose != null && <Cell label="Prev. close" value={fmt(info.prevClose)} />}
+          {!isIndex && info.volume != null && <Cell label="Volume" value={compactNum(info.volume)} />}
+          {info.high52 && info.price ? <Cell label="From 52W high" value={formatPct(((info.price - info.high52) / info.high52) * 100)} /> : null}
+          {rr != null ? <Cell label={`Return (${rangeLabel})`} value={formatPct(rr)} /> : null}
+        </View>
       </View>
     );
   if (kind === 'crypto')
     return (
-      <View style={m.grid}>
-        <Cell label="MARKET CAP" value={info.marketCap ? `₹${compactNum(info.marketCap)}` : '—'} />
-        <Cell label="24H VOLUME" value={info.volume ? `₹${compactNum(info.volume)}` : '—'} />
-        {rr != null ? <Cell label={`RETURN (${rangeLabel})`} value={formatPct(rr)} /> : null}
+      <View style={{ gap: 12 }}>
+        <Text style={m.secTitle}>Overview</Text>
+        <View style={m.grid}>
+          {info.marketCap ? <Cell label="Market cap" value={`₹${compactNum(info.marketCap)}`} /> : null}
+          {info.volume ? <Cell label="24h volume" value={`₹${compactNum(info.volume)}`} /> : null}
+          {rr != null ? <Cell label={`Return (${rangeLabel})`} value={formatPct(rr)} /> : null}
+        </View>
       </View>
     );
   return (
-    <View style={m.grid}>
-      <Cell label="NAV" value={formatPrice(info.price)} />
-      <Cell label={`RETURN (${rangeLabel})`} value={formatPct(rr) || '—'} />
-      {info.returns?.['3Y'] != null && <Cell label="3Y (A YEAR)" value={formatPct(info.returns['3Y'])} />}
-      {info.returns?.['5Y'] != null && <Cell label="5Y (A YEAR)" value={formatPct(info.returns['5Y'])} />}
-      <Cell label={kind === 'nps' ? 'PENSION FUND' : 'FUND HOUSE'} value={info.house ?? '—'} />
-      {kind === 'fund' && <Cell label="CATEGORY" value={(info.category ?? '—').replace(/^.*?-\s*/, '')} />}
+    <View style={{ gap: 12 }}>
+      <Text style={m.secTitle}>Overview</Text>
+      <View style={m.grid}>
+        <Cell label="NAV" value={formatPrice(info.price)} />
+        {rr != null && <Cell label={`Return (${rangeLabel})`} value={formatPct(rr)} />}
+        {info.returns?.['3Y'] != null && <Cell label="3Y returns, a year" value={formatPct(info.returns['3Y'])} />}
+        {info.returns?.['5Y'] != null && <Cell label="5Y returns, a year" value={formatPct(info.returns['5Y'])} />}
+        {info.house ? <Cell label={kind === 'nps' ? 'Pension fund' : 'Fund house'} value={info.house} /> : null}
+        {kind === 'fund' && info.category ? <Cell label="Category" value={info.category.replace(/^.*?-\s*/, '')} /> : null}
+      </View>
     </View>
   );
 }
@@ -549,17 +562,22 @@ function Cell({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-function RangeCell({ label, lo, hi, now, fmt }: { label: string; lo?: number | null; hi?: number | null; now: number | null; fmt: (n?: number | null) => string }) {
-  const pos = lo != null && hi != null && now != null && hi > lo ? Math.min(1, Math.max(0, (now - lo) / (hi - lo))) : null;
+function PerfBar({ lo, hi, now, fmt, loLabel, hiLabel }: { lo?: number | null; hi?: number | null; now: number | null; fmt: (n?: number | null) => string; loLabel: string; hiLabel: string }) {
+  if (lo == null || hi == null) return null;
+  const pos = now != null && hi > lo ? Math.min(1, Math.max(0, (now - lo) / (hi - lo))) : null;
   return (
-    <View style={[m.cell, { paddingRight: 12 }]}>
-      <Text style={m.cellLabel}>{label}</Text>
-      <Text style={m.cellValueSm} numberOfLines={1}>{fmt(lo)} – {fmt(hi)}</Text>
-      {pos != null && (
-        <View style={m.bar}>
-          <View style={[m.barKnob, { left: `${pos * 100}%` }]} />
-        </View>
-      )}
+    <View style={m.perf} accessible accessibilityLabel={`${loLabel} ${fmt(lo)}, ${hiLabel} ${fmt(hi)}${pos != null ? `, now ${Math.round(pos * 100)}% of the way up` : ''}`}>
+      <View style={m.perfEnds}>
+        <Text style={m.small}>{loLabel}</Text>
+        <Text style={m.small}>{hiLabel}</Text>
+      </View>
+      <View style={m.perfTrack}>
+        {pos != null && <View style={[m.perfKnob, { left: `${pos * 100}%` }]} />}
+      </View>
+      <View style={m.perfEnds}>
+        <Text style={m.cellValueSm}>{fmt(lo)}</Text>
+        <Text style={m.cellValueSm}>{fmt(hi)}</Text>
+      </View>
     </View>
   );
 }
@@ -567,7 +585,7 @@ function Row({ l, r, color }: { l: string; r: string; color?: string }) {
   return (
     <View style={m.posRow}>
       <Text style={[m.small, { flex: 1 }]}>{l}</Text>
-      <Text style={[m.small, { color: color ?? Corpus.text, fontWeight: '600' }]}>{r}</Text>
+      <Text style={[m.small, { color: color ?? Corpus.text, fontWeight: '600', fontVariant: ['tabular-nums'] }]}>{r}</Text>
     </View>
   );
 }
