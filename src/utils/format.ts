@@ -26,3 +26,6 @@ function trim(v: number): string {
 export function formatINRLong(amount: number): string {
   return Math.abs(amount) >= 1_00_000 ? `${formatINR(amount)} · ${compactINR(amount).replace('−₹', '−').replace('₹', '')}` : formatINR(amount);
 }
+
+// 1 → 1st, 2 → 2nd, 11 → 11th, 23 → 23rd
+export const ordinal = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th'}`;

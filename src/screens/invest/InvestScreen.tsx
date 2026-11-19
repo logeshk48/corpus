@@ -17,7 +17,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { saveSettings } from '@/services/settings';
 import { addInvestment, addMoney, buyUnits, deleteInvestment, sellUnits, updateInvestment, updateValue } from '@/services/investments';
 import { investMeta, type Investment, type NewInvestment } from '@/types/investment';
-import { compactINR, formatINR, formatINRLong } from '@/utils/format';
+import { compactINR, formatINR, formatINRLong, ordinal as dayLabel } from '@/utils/format';
 import { currentValue, daysOld, gain, isStale, needsCheckup, portfolio, yearlyReturn } from '@/utils/investments';
 import { Ionicons } from '@expo/vector-icons';
 import { bookedThisYear, portfolioTax } from '@/utils/capitalGains';
@@ -245,11 +245,11 @@ export default function InvestScreen() {
         ) : investments.length === 0 ? (
           <View style={[styles.card, { alignItems: 'center', gap: 10, paddingVertical: 26 }]}>
             <IconChip icon="trending-up" color={Chip.green} size={52} />
-            <Text style={styles.emptyTitle}>All your investments in one place</Text>
-            <Text style={[styles.meta, { textAlign: 'center' }]}>Stocks, mutual funds, FDs, EPF, PPF, NPS and gold. See what it is worth, what you have made, and how it moves every day. Nothing is linked to your bank or demat.</Text>
-            <Button label="Search and add with live price" icon="search" onPress={() => setSearch('stock')} style={{ alignSelf: 'stretch', marginTop: 6 }} />
-            <Button variant="secondary" label="Paste from Zerodha, Groww or any app" icon="clipboard-outline" onPress={() => setImporting(true)} style={{ alignSelf: 'stretch' }} />
-            <Button variant="quiet" label="Add an FD, EPF, PPF or other" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch' }} />
+            <Text style={styles.emptyTitle}>No investments yet</Text>
+            <Text style={[styles.meta, { textAlign: 'center' }]}>Add stocks, mutual funds, FDs, EPF, PPF, NPS or gold to track their value and returns. Corpus does not connect to your bank or demat account.</Text>
+            <Button label="Search stocks and funds" icon="search" onPress={() => setSearch('stock')} style={{ alignSelf: 'stretch', marginTop: 6 }} />
+            <Button variant="secondary" label="Paste holdings from your broker" icon="clipboard-outline" onPress={() => setImporting(true)} style={{ alignSelf: 'stretch' }} />
+            <Button variant="quiet" label="Add FD, EPF, PPF or other" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch' }} />
           </View>
         ) : (
           <View style={[styles.card, styles.portfolio]}>
@@ -344,7 +344,7 @@ export default function InvestScreen() {
                 </HoldingRow>
               ))}
             </View>
-            <Text style={styles.note}>Tap a stock or fund for its chart, buy and sell. Hold any row to edit it. FD, EPF and PPF grow at their interest rate; others without a live price are what you enter.</Text>
+            <Text style={styles.note}>Tap a stock or fund to see its chart or record a buy or sale. Press and hold a row to edit it. FD, EPF and PPF grow at their interest rate. Others without a live price show the value you entered.</Text>
           </Animated.View>
         )}
 
@@ -391,7 +391,7 @@ export default function InvestScreen() {
                   const st = sipStreak(h);
                   return (
                     <HoldingRow key={h.id} first={i === 0} hide={hide} onPress={() => setSipFor(h)}
-                      d={{ key: h.id, title: h.name, sub: h.sip!.active ? `On the ${h.sip!.day === 1 ? '1st' : `${h.sip!.day}th`}${ns ? `, next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : 'Stopped',
+                      d={{ key: h.id, title: h.name, sub: h.sip!.active ? `On the ${dayLabel(h.sip!.day)}${ns ? `, next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : 'Stopped',
                         value: sipAmount(h.sip!, new Date()), valueIsPrice: false, note: st && st.streak > 1 ? `${st.streak} in a row${st.skipped ? `, ${st.skipped} missed this year` : ''}` : st?.skipped ? `${st.skipped} missed this year` : '' }} />
                   );
                 })}
@@ -466,14 +466,14 @@ export default function InvestScreen() {
                       : `You can book ${formatINR(tax.exemptionLeft)} of long-term equity gains tax-free before 31 March (sell and buy back).`}
                   </Text>
                 )}
-                <Text style={styles.note}>Rough estimate with 4% cess. Uses what's left of your ₹1.25 L after sales this year; ignores losses carried from past years. Not tax advice.</Text>
+                <Text style={styles.note}>Rough estimate, including 4% cess. It counts what is left of your ₹1.25 L tax-free limit after this year's sales and leaves out losses carried from past years. Not tax advice.</Text>
               </View>
             )}
 
             {checkup.length > 0 && (
               <View style={[styles.card, { borderColor: Corpus.warningLine }]}>
                 <Text style={styles.name}>Monthly check-up: {checkup.length} to update</Text>
-                <Text style={styles.meta}>These have no live price. Open your app or statement and type today's value. It takes a minute and keeps your net worth right.</Text>
+                <Text style={styles.meta}>These have no live price. Type today's value from your app or statement so your net worth stays right.</Text>
                 {checkup.map((h) => (
                   <View key={h.id} style={m.posRow}>
                     <View style={{ flex: 1 }}>
@@ -563,7 +563,7 @@ export default function InvestScreen() {
                 });
               } else {
                 await saveSip(h, sip);
-                showToast({ message: sip?.active ? `SIP of ${formatINR(sip.amount)} on the ${sip.day === 1 ? '1st' : `${sip.day}th`} saved` : 'SIP stopped' });
+                showToast({ message: sip?.active ? `SIP of ${formatINR(sip.amount)} on the ${dayLabel(sip.day)} saved` : 'SIP stopped' });
               }
               setSipFor(null);
             } catch (e) {
@@ -641,7 +641,7 @@ export default function InvestScreen() {
               const { profit, longProfit } = await sellUnits(h, u, p);
               const short = profit - longProfit;
               showToast({
-                message: `Sold ${u} · ${profit >= 0 ? 'profit' : 'loss'} ${formatINR(Math.abs(profit))}${profit > 0 && longProfit > 0 && short > 0 ? ` (${formatINR(longProfit)} long-term)` : profit > 0 ? (longProfit > 0 ? ' · long-term' : ' · short-term') : ''}`,
+                message: `Sold ${u}, ${profit >= 0 ? 'profit' : 'loss'} ${formatINR(Math.abs(profit))}${profit > 0 && longProfit > 0 && short > 0 ? ` (${formatINR(longProfit)} long-term)` : profit > 0 ? (longProfit > 0 ? ', long-term' : ', short-term') : ''}`,
               });
             } catch {
               showToast({ message: 'Could not save. Try again.' });

@@ -1,6 +1,5 @@
 import { Group, GroupRow, Screen, Segmented, SwitchKnob } from '@/components/ui';
 import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
-import Shine from '@/components/fx/Shine';
 import { Chip, Corpus, Font, Radius, Space, themeChoice, Type } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
@@ -8,7 +7,7 @@ import { logOut } from '@/services/auth';
 import { disableSms, enableSms, shareSupported, smsEnabled, smsSupported } from '@/services/bankSms';
 import { saveSettings } from '@/services/settings';
 import { setThemeChoice } from '@/services/theme';
-import { formatINR } from '@/utils/format';
+import { formatINR, ordinal as dayLabel } from '@/utils/format';
 import { WORK_MODES } from '@/utils/onboarding';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
@@ -16,7 +15,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import DeleteAccountSheet from './components/DeleteAccountSheet';
 import NotificationsSheet, { MODES, NOTIFY, quietLabel } from './components/NotificationsSheet';
-import ValueSheet, { dayLabel, type ValueKind } from './components/ValueSheet';
+import ValueSheet, { type ValueKind } from './components/ValueSheet';
 
 // Settings, the way Android and iOS both advise: a short overview where every row shows its current value,
 // tap a row to change just that one thing, switches save the moment you flip them, and rarely used groups
@@ -41,7 +40,6 @@ export default function SettingsScreen() {
   return (
     <Screen title="Settings" contentStyle={{ paddingBottom: TAB_BAR_SPACE + 32 }}>
       <Pressable onPress={() => setEdit('name')} style={({ pressed }) => [s.profile, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel={`${name}. Change your name`}>
-        <Shine />
         <View style={s.avatar}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={s.name} numberOfLines={1}>{name}</Text>
@@ -59,7 +57,7 @@ export default function SettingsScreen() {
 
       {smsSupported ? (
         <Group title="Bank SMS">
-          <GroupRow icon="chatbox-ellipses" color={Chip.teal} title="Ask after each payment" subtitle={smsOn ? 'On. Read on this phone only, never OTPs' : 'Off'}
+          <GroupRow icon="chatbox-ellipses" color={Chip.teal} title="Ask after each payment" subtitle={smsOn ? 'Only bank payment SMS, read on this phone' : 'Off'}
             onPress={toggleSms} chevron={false} right={<SwitchKnob on={smsOn} />} />
           <GroupRow icon="time" color={Chip.gray} title="Waiting bank payments" onPress={() => router.push('/sms-review' as Href)} />
         </Group>
@@ -69,23 +67,20 @@ export default function SettingsScreen() {
         </Group>
       ) : null}
 
-      <Group title="Alerts">
-        <GroupRow icon="notifications" color={Chip.red} title="Notifications" subtitle={`${mode}. Briefing at ${settings.briefingHour ?? 9} AM. Quiet hours ${quietLabel(settings.quietHours)}`} value={`${onCount} on`} onPress={() => setNotifs(true)} />
-      </Group>
-
-      <Group title="Look and privacy">
+      <Group title="App">
+        <GroupRow icon="notifications" color={Chip.red} title="Notifications" subtitle={`Briefing at ${settings.briefingHour ?? 9} AM, ${settings.quietHours === null ? 'no quiet hours' : `quiet ${quietLabel(settings.quietHours)}`}`} value={(settings.notifyMode ?? 'all') === 'all' ? `${onCount} on` : mode} onPress={() => setNotifs(true)} />
         <View style={s.themeRow}>
           <Text style={s.rowTitle}>Appearance</Text>
           <Segmented options={[{ value: 'system', label: 'Auto' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }] as const} value={themeChoice} onChange={setThemeChoice} />
-          <Text style={s.hint}>Auto follows your phone</Text>
+          <Text style={s.hint}>Auto matches your phone's setting</Text>
         </View>
-        <GroupRow icon="eye-off" color={Chip.purple} title="Hide amounts in Invest" subtitle={hide ? 'Rupee amounts show as ₹ ••••. Percentages stay' : 'Off'}
+        <GroupRow icon="eye-off" color={Chip.purple} title="Hide amounts in Invest" subtitle={hide ? 'Shows ₹ •••• instead of amounts' : 'Off'}
           onPress={() => saveSettings({ hideAmounts: !hide }).catch(() => {})} chevron={false} right={<SwitchKnob on={hide} />} />
         <GroupRow icon="cash" color={Chip.green} title="Currency" value="Indian rupee (₹)" />
       </Group>
 
       <Group title="Your data">
-        <GroupRow icon="document-text" color={Chip.blue} title="Reports and export" subtitle="Monthly reports, CSV of every entry" onPress={() => router.push('/reports' as Href)} />
+        <GroupRow icon="document-text" color={Chip.blue} title="Reports and export" subtitle="Monthly reports and a CSV of every entry" onPress={() => router.push('/reports' as Href)} />
       </Group>
 
       <Group>

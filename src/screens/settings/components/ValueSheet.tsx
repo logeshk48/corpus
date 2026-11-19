@@ -1,13 +1,11 @@
 import { Button, Field, Sheet, Stepper } from '@/components/ui';
 import { saveSettings } from '@/services/settings';
 import type { Settings } from '@/types/settings';
-import { formatINR } from '@/utils/format';
+import { formatINR, ordinal as ord } from '@/utils/format';
 import { useState } from 'react';
 
 export type ValueKind = 'name' | 'budget' | 'aside' | 'cycle';
 
-const ord = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
-export const dayLabel = ord;
 
 // One setting at a time, in its own sheet: type it, save it, done. Nothing waits on a "Save changes" button.
 export default function ValueSheet({ kind, settings, onClose }: { kind: ValueKind; settings: Settings; onClose: () => void }) {
@@ -35,15 +33,15 @@ export default function ValueSheet({ kind, settings, onClose }: { kind: ValueKin
   };
 
   const meta = {
-    name: { title: 'Your name', sub: 'Used in the greeting on Today' },
+    name: { title: 'Your name', sub: 'Shown in the greeting on Today' },
     budget: { title: 'Monthly budget', sub: 'The most you want to spend in a month. Budgets and Safe to spend use it.' },
     aside: { title: 'Kept aside', sub: 'Money in your account that is not for spending. Safe to spend leaves it out.' },
-    cycle: { title: 'Month starts on', sub: 'Pick your pay day so each month runs pay day to pay day.' },
+    cycle: { title: 'Month starts on', sub: 'Set it to your pay day so each month runs from one pay day to the next.' },
   }[kind];
 
   return (
     <Sheet title={meta.title} subtitle={meta.sub} onClose={onClose} footer={<Button label="Save" icon="checkmark" onPress={save} loading={busy} />}>
-      {kind === 'name' && <Field label="Name" value={text} onChangeText={setText} placeholder="What should Corpus call you?" maxLength={30} autoFocus error={err || undefined} onSubmitEditing={save} returnKeyType="done" />}
+      {kind === 'name' && <Field label="Name" value={text} onChangeText={setText} placeholder="First name" maxLength={30} autoFocus error={err || undefined} onSubmitEditing={save} returnKeyType="done" />}
       {(kind === 'budget' || kind === 'aside') && (
         <Field
           label={kind === 'budget' ? 'Budget a month' : 'Amount'}
@@ -53,7 +51,7 @@ export default function ValueSheet({ kind, settings, onClose }: { kind: ValueKin
           placeholder={kind === 'budget' ? '25000' : '0'}
           autoFocus
           error={err || undefined}
-          hint={n > 0 ? `${formatINR(n)}${kind === 'budget' ? ' a month, about ' + formatINR(Math.round(n / 30)) + ' a day' : ''}` : kind === 'budget' ? 'Leave empty to work it out from your spending' : 'Leave empty if everything is for spending'}
+          hint={n > 0 ? `${formatINR(n)}${kind === 'budget' ? ' a month, about ' + formatINR(Math.round(n / 30)) + ' a day' : ''}` : kind === 'budget' ? 'Leave empty for no budget' : 'Leave empty if everything is for spending'}
           onSubmitEditing={save}
           returnKeyType="done"
         />

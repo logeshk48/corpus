@@ -41,12 +41,12 @@ export default function NotificationsSheet({ settings, onClose }: { settings: Se
     <Sheet title="Notifications" subtitle="They show on your phone. On the web, the same reminders appear on Today." onClose={onClose}>
       <Choice label="How often" options={MODES} value={mode} onChange={(v) => saveSettings({ notifyMode: v })} />
       <Text style={s.hint}>
-        {mode === 'all' ? 'Each reminder on its own, plus the briefing. Never more than 3 a day besides the briefing.' : mode === 'digest' ? 'Just the morning briefing and the Sunday review. Everything else is inside the briefing.' : 'Only things due today or late, plus the briefing.'}
+        {mode === 'all' ? 'Each reminder arrives on its own, up to 3 a day plus the briefing.' : mode === 'digest' ? 'Only the morning briefing and the Sunday review. Other reminders are listed inside the briefing.' : 'Only things due today or late, plus the briefing.'}
       </Text>
       <Choice label="Briefing at" options={[7, 8, 9, 10].map((h) => ({ value: String(h), label: `${h} AM` }))} value={String(settings.briefingHour ?? 9)} onChange={(v) => saveSettings({ briefingHour: Number(v) })} />
       <Choice label="Quiet hours" options={QUIET} value={quietKey(settings.quietHours)} onChange={(k) => { const o = QUIET.find((x) => x.value === k)!; saveSettings({ quietHours: o.v ? { ...o.v } : null }); }} />
       <Text style={s.hint}>Anything that would arrive at night waits until morning.</Text>
-      <Text style={s.head} accessibilityRole="header">Remind me about</Text>
+      <Text style={s.head} accessibilityRole="header">Reminders</Text>
       <View style={{ gap: 4 }}>
         {NOTIFY.map((n) => (
           <Toggle key={n.k} icon={n.icon} title={n.label} hint={n.hint} value={settings.notify?.[n.k] !== false} onChange={(v) => saveSettings({ notify: { ...settings.notify, [n.k]: v } })} />
