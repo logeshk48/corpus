@@ -62,7 +62,7 @@ export default function SipSheet({ h, canBackfill, onSave, onClose }: {
               <Ionicons name="close" size={18} color={Corpus.textMuted} />
             </Pressable>
           </View>
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
             <View style={sheet.amountRow}>
               <Text style={sheet.rupee}>₹</Text>
               <TextInput style={sheet.amountInput} value={amount} onChangeText={(t) => setAmount(t.replace(/\D/g, ''))} placeholder="0" placeholderTextColor={Corpus.textFaint} keyboardType="number-pad" autoFocus={!cur} />

@@ -152,7 +152,7 @@ export default function InvestmentSheet({ mode, onClose, onSave, onAddMoney, onU
               <Ionicons name="close" size={18} color={Corpus.textMuted} />
             </Pressable>
           </View>
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
             {!h && (
               <View style={sheet.chips}>
                 {INVEST_TYPES.map((t) => (

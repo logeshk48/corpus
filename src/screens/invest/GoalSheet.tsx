@@ -48,7 +48,7 @@ export default function GoalSheet({ goal, list, onSave, onDelete, onClose }: {
               <Ionicons name="close" size={18} color={Corpus.textMuted} />
             </Pressable>
           </View>
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={f.body} keyboardShouldPersistTaps="handled">
             {!goal && (
               <View style={sheet.chips}>
                 {IDEAS.map((i) => (

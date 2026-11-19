@@ -150,7 +150,7 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
             </Pressable>
           </View>
 
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 14, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
             {err && !price ? (
               <View style={{ paddingVertical: 16, gap: 10 }}>
                 <Text style={[m.small, { textAlign: 'center' }]}>

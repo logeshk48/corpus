@@ -113,7 +113,7 @@ export default function ImportSheet({ onImport, onClose }: { onImport: (list: Ne
               <Ionicons name="close" size={18} color={Corpus.textMuted} />
             </Pressable>
           </View>
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 12, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
             {!rows ? (
               <>
                 <View style={sheet.chips}>

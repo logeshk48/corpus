@@ -112,7 +112,7 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
               </Pressable>
             ))}
           </View>
-          <ScrollView style={{ flexShrink: 1, marginTop: 6 }} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1, marginTop: 6 }} keyboardShouldPersistTaps="handled">
             {q.trim().length < 2 && tab === 'stock' && listed ? (
               <View style={{ gap: 8, paddingTop: 10 }}>
                 <Text style={m.tiny}>ALL {listed.length.toLocaleString('en-IN')} LISTED COMPANIES & ETFs · BROWSE A–Z</Text>

@@ -2,7 +2,7 @@ import Sparkline from '@/components/charts/Sparkline';
 import { Corpus, Font, tabular, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import { formatChange, formatPct, formatPrice } from '@/utils/market';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { Children, useEffect, useRef, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
@@ -74,7 +74,7 @@ export default function HoldingRow({ d, first, hide, onPress, onLongPress, child
       )}
     </Pressable>
       {/* buttons under a row live outside its tap area: a button inside a button is invalid on web */}
-      {children ? <View style={s.extra}>{children}</View> : null}
+      {Children.toArray(children).length > 0 ? <View style={s.extra}>{children}</View> : null}
     </View>
   );
 }
