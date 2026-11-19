@@ -3,7 +3,9 @@ import { Button, Field, Segmented } from '@/components/ui';
 import { Chip, Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { resetPassword, signIn, signUp } from '@/services/auth';
 import { friendlyAuthError } from '@/utils/authErrors';
-import { validateEmail, validatePassword } from '@/utils/validation';
+import { validateConfirm, validateEmail, validatePassword } from '@/utils/validation';
+import { useTween } from '@/hooks/useTween';
+import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -14,6 +16,9 @@ import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 const PRIVACY = 'https://corpus-fawn-eight.vercel.app/privacy';
 const APath = Animated.createAnimatedComponent(Path);
+const DEMO = 48; // the example daily number on the gauge
+const FILL = 0.72; // how far round the arc it reaches
+const MS = 1400;
 
 // The one moving thing on this screen: the daily number's arc draws itself in once.
 function Gauge({ width = 220 }: { width?: number }) {
@@ -24,11 +29,19 @@ function Gauge({ width = 220 }: { width?: number }) {
   const h = r + stroke;
   const len = Math.PI * r;
   const d = `M ${stroke / 2} ${r + stroke / 2} A ${r} ${r} 0 0 1 ${width - stroke / 2} ${r + stroke / 2}`;
-  const p = useSharedValue(reduce ? 0.72 : 0);
-  useEffect(() => { if (!reduce) p.value = withDelay(250, withTiming(0.72, { duration: 1100, easing: Easing.out(Easing.cubic) })); }, [reduce, p]);
+  const p = useSharedValue(reduce ? FILL : 0);
+  // the number counts up from ₹0 in step with the arc
+  const [goal, setGoal] = useState(reduce ? DEMO : 0);
+  const shown = useTween(goal, MS);
+  useEffect(() => {
+    if (reduce) return;
+    const t = setTimeout(() => setGoal(DEMO), 250);
+    p.value = withDelay(250, withTiming(FILL, { duration: MS, easing: Easing.out(Easing.cubic) }));
+    return () => clearTimeout(t);
+  }, [reduce, p]);
   const props = useAnimatedProps(() => ({ strokeDashoffset: len * (1 - p.value) }));
   return (
-    <View style={{ width, height: h }} accessible accessibilityLabel="Example: 1,240 rupees safe to spend today">
+    <View style={{ width, height: h }} accessible accessibilityLabel={`Example: ${formatINR(DEMO)} safe to spend today`}>
       <View style={StyleSheet.absoluteFill} importantForAccessibility="no-hide-descendants">
         <Svg width={width} height={h}>
           <Defs>
@@ -42,7 +55,7 @@ function Gauge({ width = 220 }: { width?: number }) {
         </Svg>
       </View>
       <View style={s.gaugeIn}>
-        <Text style={s.gaugeNum}>₹1,240</Text>
+        <Text style={s.gaugeNum}>{formatINR(Math.round(shown))}</Text>
         <Text style={s.gaugeSub}>safe to spend today</Text>
       </View>
     </View>
@@ -58,9 +71,11 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
   const signup = mode === 'signup';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const conf = useRef<TextInput>(null);
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const pw = useRef<TextInput>(null);
@@ -68,10 +83,10 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
   const switchTo = (m: 'login' | 'signup') => { setMode(m); setErrors({}); setFormError(null); setSent(null); };
 
   const submit = async () => {
-    const e = { email: validateEmail(email), password: validatePassword(password) };
+    const e = { email: validateEmail(email), password: validatePassword(password), confirm: signup ? validateConfirm(password, confirm) : undefined };
     setErrors(e);
     setSent(null);
-    if (e.email || e.password) return;
+    if (e.email || e.password || e.confirm) return;
     setBusy(true);
     setFormError(null);
     try {
@@ -132,7 +147,7 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
                   onSubmitEditing={() => pw.current?.focus()}
                   error={errors.email}
                 />
-                <View style={{ gap: 10 }}>
+                <View style={{ gap: signup ? Space.md : 10 }}>
                   <Field
                     ref={pw}
                     label="Password"
@@ -144,8 +159,8 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
                     autoCorrect={false}
                     autoComplete={signup ? 'new-password' : 'current-password'}
                     textContentType={signup ? 'newPassword' : 'password'}
-                    returnKeyType="go"
-                    onSubmitEditing={submit}
+                    returnKeyType={signup ? 'next' : 'go'}
+                    onSubmitEditing={() => (signup ? conf.current?.focus() : submit())}
                     error={errors.password}
                     right={
                       <Pressable onPress={() => setShow(!show)} hitSlop={10} style={s.eye} accessibilityRole="button" accessibilityLabel={show ? 'Hide password' : 'Show password'}>
@@ -153,6 +168,24 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
                       </Pressable>
                     }
                   />
+                  {signup && (
+                    <Field
+                      ref={conf}
+                      label="Confirm password"
+                      value={confirm}
+                      onChangeText={(t) => { setConfirm(t); if (errors.confirm) setErrors({ ...errors, confirm: undefined }); }}
+                      placeholder="Type it again"
+                      secureTextEntry={!show}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="new-password"
+                      textContentType="newPassword"
+                      returnKeyType="go"
+                      onSubmitEditing={submit}
+                      error={errors.confirm}
+                      hint={confirm && confirm === password ? 'Passwords match' : undefined}
+                    />
+                  )}
                   {!signup && (
                     <Pressable onPress={forgot} hitSlop={8} style={s.forgot} accessibilityRole="button">
                       <Text style={s.link}>Forgot password?</Text>
