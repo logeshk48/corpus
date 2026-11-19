@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import type { Target } from './MarketSearchSheet';
-import PriceChart from './PriceChart';
+import StockChart from '@/components/charts/StockChart';
 import { m } from './Market.styles';
 
 type Trade = 'add' | 'buy' | 'sell' | 'edit';
@@ -88,6 +88,7 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
   const [range, setRange] = useState<Range>(live ? '1d' : '1y');
   const [info, setInfo] = useState<Info | null>(null);
   const [points, setPoints] = useState<Point[]>([]);
+  const [scrub, setScrub] = useState<Point | null>(null); // the point under your finger on the chart
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
   const [trade, setTrade] = useState<Trade | null>(null);
@@ -159,7 +160,7 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                 </Text>
                 <Button size="sm" variant="secondary" icon="refresh" label="Try again" onPress={() => load(range)} />
                 {kind === 'stock' && !holding && !trade && (
-                  <Button icon="add" label="I own this — add with my own price" onPress={() => setTrade('add')} />
+                  <Button icon="add" label="I own this. Add it with my price" onPress={() => setTrade('add')} />
                 )}
                 {trade === 'add' && (
                   <TradeForm
@@ -188,24 +189,37 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
             ) : (
               <>
                 <View style={{ gap: 2 }}>
-                  <Text style={m.bigPrice}>{isIndex ? price?.toLocaleString('en-IN', { maximumFractionDigits: 2 }) ?? '—' : formatPrice(price)}</Text>
+                  <Text style={m.bigPrice}>{(() => { const v = scrub ? scrub.c : price; return isIndex ? v?.toLocaleString('en-IN', { maximumFractionDigits: 2 }) ?? '' : formatPrice(v); })()}</Text>
+                  {scrub ? (() => {
+                    const from = (range === '1d' && info?.prevClose) || points[0]?.c || scrub.c;
+                    const d = scrub.c - from;
+                    const pct = from ? (d / from) * 100 : 0;
+                    const when = new Date(scrub.t);
+                    const label = range === '1d' ? when.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : when.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: range === '5y' || range === '1y' ? 'numeric' : undefined });
+                    return (
+                      <Text style={[m.small, { color: d >= 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
+                        {formatChange(d)} ({formatPct(pct)}) <Text style={{ color: Corpus.textMuted, fontWeight: '400' }}>on {label}</Text>
+                      </Text>
+                    );
+                  })() : (
                   <Text style={[m.small, { color: up ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
                     {showDay
-                      ? info?.change == null ? ' ' : `${up ? '▲' : '▼'} ${formatChange(info.change)} (${formatPct(info.changePct)}) ${kind === 'stock' ? 'today' : kind === 'crypto' ? 'in 24h' : 'since last NAV'}`
-                      : `${up ? '▲' : '▼'} ${formatPct(rr)} in ${LABEL[range]}`}
+                      ? info?.change == null ? ' ' : `${formatChange(info.change)} (${formatPct(info.changePct)}) ${kind === 'stock' ? 'today' : kind === 'crypto' ? 'in 24h' : 'since last NAV'}`
+                      : `${formatPct(rr)} in ${LABEL[range]}`}
                   </Text>
+                  )}
                   <Text style={m.tiny}>
                     {kind === 'stock' && info?.time && Date.now() - new Date(info.time).getTime() > 5 * 86_400_000
-                      ? `⚠ Last traded ${new Date(info.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — rarely traded, price may be old`
+                      ? `Last traded ${new Date(info.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. Rarely traded, so the price may be old`
                       : kind === 'stock'
-                      ? `${marketStatus().open ? 'Live' : 'At last close'} · ${priceTime(info?.time)}${(info as { source?: string })?.source === 'BSE' ? ' · BSE' : ''}`
+                      ? `${marketStatus().open ? 'Live' : 'Last close'}, ${priceTime(info?.time)}${(info as { source?: string })?.source === 'BSE' ? ', from BSE' : ''}`
                       : kind === 'crypto'
-                        ? `Live · ${priceTime(info?.time)}`
-                        : `NAV as of ${info?.time ? new Date(info.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}`}
+                        ? `Live, ${priceTime(info?.time)}`
+                        : info?.time ? `NAV as of ${new Date(info.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
                   </Text>
                 </View>
 
-                {loading && !points.length ? <ActivityIndicator color={Corpus.gold} style={{ height: 140 }} /> : <PriceChart points={points} base={kind === 'stock' && range === '1d' ? info?.prevClose : undefined} />}
+                {loading && !points.length ? <ActivityIndicator color={Corpus.gold} style={{ height: 200 }} /> : <StockChart key={range} points={points} base={kind === 'stock' && range === '1d' ? info?.prevClose : undefined} onScrub={setScrub} />}
                 <View style={m.ranges}>
                   {RANGES[kind].map((r) => (
                     <Pressable key={r} style={[m.range, range === r && m.rangeOn]} onPress={() => setRange(r)}>
@@ -307,7 +321,7 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                     </View>
                   ) : (
                     <View style={{ gap: 8 }}>
-                      <Button icon="add" label="I own this — add to my holdings" onPress={() => setTrade('add')} />
+                      <Button icon="add" label="I own this. Add to holdings" onPress={() => setTrade('add')} />
                       {onStartSip && (kind === 'fund' || kind === 'nps' || kind === 'stock') && (
                         <Button
                           variant="secondary"
@@ -330,7 +344,7 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                     </View>
                   )
                 ) : null}
-                <Text style={m.tiny}>{SOURCE[kind]} For tracking only — not investment advice.</Text>
+                <Text style={m.tiny}>{SOURCE[kind]} For tracking only, not investment advice.</Text>
               </>
             )}
           </ScrollView>

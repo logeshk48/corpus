@@ -249,3 +249,12 @@ Cards and text stay clean; the life is in the background and in moments.
 - Month switcher is a row of pills that opens on This month.
 - Trend lines use monotone curves (no overshoot: never draw money that isn't there) with soft gradient fills that draw in; months are tappable pills under the chart, legend above.
 - Sections fade up one after another when the month changes.
+
+## Invest (broker-style, step 16)
+- Layout follows Groww and Kite: market strip on top, one portfolio card (Current value; Invested, Total returns, 1D returns in three ruled cells), then tabs.
+- Tabs: Holdings, Watchlist, SIPs, Analysis. Sliding underline, sticky under the header while scrolling.
+- Holding row: name and quantity left, a 1-month sparkline in the middle, value and P&L right, LTP and day change on the second line. The LTP flashes green or red when the price moves.
+- Sort chips on Holdings: Current value, Returns %, Today, A to Z.
+- Charts: StockChart (gradient area, dashed base at previous close on 1D, drag to scrub). The big price follows the finger and the line under it shows the change from the start of the range and the time.
+- Green and red only mean up and down against a stated base. Never decorative.
+- Copy: "+₹1,240 (+2.10%)", no arrows or triangles, no middle-dot chains.

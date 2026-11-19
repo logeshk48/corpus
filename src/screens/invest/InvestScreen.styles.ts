@@ -1,4 +1,4 @@
-import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -24,5 +24,21 @@ export const styles = StyleSheet.create({
   note: { fontSize: Type.small, color: Corpus.textFaint, lineHeight: 17 },
   emptyBox: { alignItems: 'center', gap: Space.sm, paddingVertical: 40, paddingHorizontal: Space.md },
   emptyTitle: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Corpus.card, borderWidth: 0.5, borderColor: Corpus.border, alignItems: 'center', justifyContent: 'center' },
+  portfolio: { padding: Space.lg, gap: 10, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  livePill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: Corpus.cardAlt },
+  liveDot: { width: 6, height: 6, borderRadius: 3 },
+  liveText: { fontSize: Type.small, color: Corpus.textMuted, ...tabular },
+  bigValue: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text, ...tabular },
+  pfGrid: { flexDirection: 'row', marginTop: 4, paddingTop: 12, borderTopWidth: 0.5, borderTopColor: Corpus.border },
+  pfCell: { flex: 1, gap: 2 },
+  ruled: { paddingLeft: 12, borderLeftWidth: 0.5, borderLeftColor: Corpus.border },
+  pfNum: { fontSize: Type.label, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  pfPct: { fontSize: Type.small, fontFamily: Font.display, ...tabular },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, minHeight: 36, justifyContent: 'center', borderRadius: 999, backgroundColor: Corpus.card, borderWidth: 0.5, borderColor: Corpus.border },
+  chipOn: { backgroundColor: Corpus.gold, borderColor: Corpus.gold },
+  chipText: { fontSize: Type.small, fontFamily: Font.display, color: Corpus.text },
+  jarAsk: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, alignSelf: 'flex-start' },
   emptyText: { fontSize: Type.body, color: Corpus.textMuted, textAlign: 'center', lineHeight: 19 },
 });

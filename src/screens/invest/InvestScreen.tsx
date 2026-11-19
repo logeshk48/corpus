@@ -1,7 +1,16 @@
-import { Button, SectionLabel } from '@/components/ui';
+import Aura from '@/components/fx/Aura';
+import Shine from '@/components/fx/Shine';
+import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
+import { Button, IconChip, Tap } from '@/components/ui';
+import { useSparks } from '@/hooks/useSparks';
+import { useTween } from '@/hooks/useTween';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import HoldingRow, { type RowData } from './HoldingRow';
+import IndexStrip from './IndexStrip';
+import UnderlineTabs from './UnderlineTabs';
 import { askWeb } from '@/services/confirm';
 import { ChartColors } from '@/constants/chartColors';
-import { Corpus, Font, Type } from '@/constants/theme';
+import { Chip, Corpus } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { isLinked, liveRefOf, useInvestments } from '@/hooks/useInvestments';
 import { useSettings } from '@/hooks/useSettings';
@@ -37,7 +46,6 @@ import { confirmSip, saveSip, saveSipWithHistory, skipSip } from '@/services/inv
 import { saveMix, subscribeMix, type MixSnap } from '@/services/investMix';
 import { holdingXirr, portfolioXirr } from '@/utils/returns';
 import { monthKey, nextSip, pendingSips, sipAmount, sipStreak } from '@/utils/sip';
-import MarketStrip from './MarketStrip';
 import QuoteSheet from './QuoteSheet';
 import { styles } from './InvestScreen.styles';
 
@@ -61,6 +69,8 @@ export default function InvestScreen() {
   const [target, setTarget] = useState<Target | null>(null);
   const [linkFor, setLinkFor] = useState<Investment | null>(null); // attach a live price to an existing manual holding
   const watchlist = settings.watchlist ?? [];
+  const [tab, setTab] = useState<'holdings' | 'watchlist' | 'sips' | 'analysis'>('holdings');
+  const [sort, setSort] = useState<'value' | 'returns' | 'today' | 'name'>('value');
   const [wp, setWp] = useState<Record<string, LivePrice>>({});
   const wKey = watchlist.join(',');
   useEffect(() => {
@@ -134,6 +144,9 @@ export default function InvestScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mixKey, loading]);
   const checkup = investments.filter((h) => needsCheckup(h));
+  // sparklines: a month of prices for every live holding and watchlist item
+  const sparkRefs = useMemo(() => [...investments.map(liveRefOf).filter((r): r is NonNullable<typeof r> => !!r), ...watchlist.map(parseWatch)], [investments, watchlist]);
+  const sparks = useSparks(sparkRefs, '1mo');
 
   const run = async (fn: () => Promise<unknown>, msg: string) => {
     try {
@@ -153,91 +166,218 @@ export default function InvestScreen() {
     else Alert.alert(`Remove ${h.name}?`, '', [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: go }]);
   };
 
+  // ── Rows for the tables ──
+  const rowsOf = () => {
+    const list = investments.map((h) => {
+      const g = gain(h);
+      const l = live[h.id];
+      const linked = isLinked(h);
+      const ref = liveRefOf(h);
+      const meta = investMeta(h.type);
+      const unitWord = h.type === 'stock' || h.type === 'goldbond' ? 'shares' : h.type === 'crypto' ? 'coins' : 'units';
+      const qty = h.units ? Math.round(h.units * 1000) / 1000 : 0;
+      const avg = h.units ? h.invested / h.units : null;
+      const ns = nextSip(h);
+      const jar = jars.find((j) => j.id === h.goalId);
+      const auto = currentValue(h).auto;
+      const old = isStale(h) && !linked;
+      return {
+        h, linked, ref, l, g,
+        d: {
+          key: h.id,
+          title: h.type === 'stock' && h.symbol ? shortSymbol(h.symbol) : h.name,
+          sub: linked && qty ? `${qty} ${unitWord}${avg ? `, avg ${formatPrice(avg)}` : ''}` : `${meta.label}, ${auto ? `grows at ${h.rate}% a year` : daysOld(h) <= 0 ? 'updated today' : `updated ${daysOld(h)} days ago`}`,
+          value: g.value, pnl: g.gain, pnlPct: g.pct,
+          ltp: l?.price ?? null, dayPct: l?.changePct ?? null, dayLabel: l?.kind === 'crypto' ? '24h' : l?.kind === 'stock' ? 'today' : 'last NAV',
+          spark: ref ? sparks[refKey(ref)] : undefined,
+          note: [h.sip?.active ? `SIP ${formatINR(sipAmount(h.sip, new Date()))}${ns ? `, next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : null, jar ? `For ${jar.name}` : null].filter(Boolean).join('. '),
+          warn: old,
+        } as RowData,
+      };
+    });
+    const by = {
+      value: (a: (typeof list)[number], b: (typeof list)[number]) => b.g.value - a.g.value,
+      returns: (a: (typeof list)[number], b: (typeof list)[number]) => b.g.pct - a.g.pct,
+      today: (a: (typeof list)[number], b: (typeof list)[number]) => (b.l?.changePct ?? -999) - (a.l?.changePct ?? -999),
+      name: (a: (typeof list)[number], b: (typeof list)[number]) => a.d.title.localeCompare(b.d.title),
+    }[sort];
+    return list.sort(by);
+  };
+  const rows = rowsOf();
+  const sipList = investments.filter((h) => h.sip);
+  const sipMonthly = sipList.filter((h) => h.sip?.active).reduce((a, h) => a + sipAmount(h.sip!, new Date()), 0);
+  const invested = pf.invested;
+  const totalUp = pf.gain >= 0;
+  const valueV = useTween(loading ? 0 : pf.value);
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <View style={styles.safe}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 420 }} pointerEvents="none"><Aura color={totalUp ? Chip.green : Chip.red} second={Chip.teal} /></View>
+      <SafeAreaView style={{ flex: 1 }} edges={['top']}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_SPACE + 40 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={investments.length ? [3] : undefined}>
         <View style={styles.headRow}>
-          <Text style={styles.heading}>Invest</Text>
-          {investments.length > 0 && (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button size="sm" variant="secondary" icon="repeat" label="SIP" onPress={() => (setSipPick(true), setSearch('fund'))} />
-              <Button size="sm" variant="secondary" icon="clipboard-outline" label="Import" onPress={() => setImporting(true)} />
-              <Button size="sm" icon="add" label="Add" onPress={() => setMode({ kind: 'new' })} />
-            </View>
-          )}
+          <Text style={styles.heading} accessibilityRole="header">Invest</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Tap onPress={() => setSearch('stock')} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Search stocks, funds, NPS, crypto"><Ionicons name="search" size={19} color={Corpus.text} /></Tap>
+            <Tap onPress={() => setImporting(true)} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Import from Zerodha, Groww or any app"><Ionicons name="download-outline" size={19} color={Corpus.text} /></Tap>
+            <Tap onPress={() => setMode({ kind: 'new' })} style={[styles.iconBtn, { backgroundColor: Corpus.gold }]} accessibilityRole="button" accessibilityLabel="Add an investment"><Ionicons name="add" size={22} color={Corpus.onGold} /></Tap>
+          </View>
         </View>
 
-        <MarketStrip onOpen={(symbol, name) => setTarget({ kind: 'stock', id: symbol, name })} />
-        <Pressable style={m.search} onPress={() => setSearch('stock')}>
-          <Ionicons name="search" size={16} color={Corpus.textMuted} />
-          <Text style={m.searchText}>Search stocks, funds, NPS, crypto</Text>
-        </Pressable>
+        <IndexStrip onOpen={(symbol, name) => setTarget({ kind: 'stock', id: symbol, name })} />
 
-        {watchlist.length > 0 && (
-          <View style={[styles.card, { paddingVertical: 4, gap: 0 }]}>
-            <Text style={[m.tiny, { paddingTop: 10 }]}>WATCHLIST</Text>
-            {watchlist.map((w) => {
-              const ref = parseWatch(w);
-              const x = wp[refKey(ref)];
-              const title = ref.kind === 'stock' ? shortSymbol(ref.id) : x?.name ?? ref.id.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
-              const sub = ref.kind === 'stock' ? x?.name ?? '' : { fund: 'Mutual fund · NAV', nps: 'NPS · NAV', crypto: 'Crypto · 24h' }[ref.kind];
-              return (
-                <Pressable key={w} style={m.row} onPress={() => setTarget({ ...ref, name: x?.name ?? title })}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={m.rowName} numberOfLines={1}>{title}</Text>
-                    <Text style={m.small} numberOfLines={1}>{sub}</Text>
-                  </View>
-                  <View style={m.rowRight}>
-                    <Text style={m.price}>{formatPrice(x?.price)}</Text>
-                    <Text style={[m.small, { color: (x?.changePct ?? 0) >= 0 ? Corpus.income : Corpus.danger }]}>{formatPct(x?.changePct)}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+        {loading ? (
+          <View style={[styles.card, { height: 180 }]} accessibilityLabel="Loading" accessibilityState={{ busy: true }} />
+        ) : investments.length === 0 ? (
+          <View style={[styles.card, { alignItems: 'center', gap: 10, paddingVertical: 26 }]}>
+            <IconChip icon="trending-up" color={Chip.green} size={52} />
+            <Text style={styles.emptyTitle}>All your investments in one place</Text>
+            <Text style={[styles.meta, { textAlign: 'center' }]}>Stocks, mutual funds, FDs, EPF, PPF, NPS and gold. See what it is worth, what you have made, and how it moves every day. Nothing is linked to your bank or demat.</Text>
+            <Button label="Search and add with live price" icon="search" onPress={() => setSearch('stock')} style={{ alignSelf: 'stretch', marginTop: 6 }} />
+            <Button variant="secondary" label="Paste from Zerodha, Groww or any app" icon="clipboard-outline" onPress={() => setImporting(true)} style={{ alignSelf: 'stretch' }} />
+            <Button variant="quiet" label="Add an FD, EPF, PPF or other" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch' }} />
+          </View>
+        ) : (
+          <View style={[styles.card, styles.portfolio]}>
+            <Shine />
+            <View style={styles.row}>
+              <Text style={[styles.meta, { flex: 1 }]}>Current value</Text>
+              {Object.keys(live).length > 0 && (
+                <View style={styles.livePill}>
+                  <View style={[styles.liveDot, { backgroundColor: liveError ? Corpus.warning : Corpus.income }]} />
+                  <Text style={styles.liveText}>{liveError ? 'Last known prices' : `Live, ${priceTime(updatedAt)}`}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.bigValue} adjustsFontSizeToFit numberOfLines={1}>{formatINR(Math.round(valueV))}</Text>
+            <View style={styles.pfGrid}>
+              <View style={styles.pfCell}>
+                <Text style={styles.meta}>Invested</Text>
+                <Text style={styles.pfNum}>{formatINR(Math.round(invested))}</Text>
+              </View>
+              <View style={[styles.pfCell, styles.ruled]}>
+                <Text style={styles.meta}>Total returns</Text>
+                <Text style={[styles.pfNum, { color: totalUp ? Corpus.income : Corpus.danger }]}>{totalUp ? '+' : '−'}{formatINR(Math.abs(Math.round(pf.gain)))}</Text>
+                <Text style={[styles.pfPct, { color: totalUp ? Corpus.income : Corpus.danger }]}>{totalUp ? '+' : '−'}{Math.abs(pf.pct).toFixed(2)}%</Text>
+              </View>
+              <View style={[styles.pfCell, styles.ruled]}>
+                <Text style={styles.meta}>1D returns</Text>
+                {hasStockLive ? (
+                  <>
+                    <Text style={[styles.pfNum, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>{dayGain >= 0 ? '+' : '−'}{formatINR(Math.round(Math.abs(dayGain)))}</Text>
+                    <Text style={[styles.pfPct, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>{dayGain >= 0 ? '+' : '−'}{pf.value > 0 ? Math.abs((dayGain / (pf.value - dayGain)) * 100).toFixed(2) : '0.00'}%</Text>
+                  </>
+                ) : <Text style={[styles.pfNum, { color: Corpus.textMuted }]}>None</Text>}
+              </View>
+            </View>
+            {(xirrAll != null || divs > 0) && (
+              <Text style={styles.meta}>
+                {xirrAll != null ? `${xirrAll >= 0 ? '+' : '−'}${Math.abs(xirrAll).toFixed(1)}% a year (XIRR, counts when each rupee went in)` : ''}
+                {xirrAll != null && divs > 0 ? '. ' : ''}{divs > 0 ? `${formatINR(divs)} dividends received` : ''}
+              </Text>
+            )}
           </View>
         )}
 
-        {loading ? (
-          <ActivityIndicator color={Corpus.gold} style={{ paddingVertical: 60 }} />
-        ) : investments.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={{ fontSize: Type.hero, fontFamily: Font.displayBold }}>🌱</Text>
-            <Text style={styles.emptyTitle}>All your investments in one place</Text>
-            <Text style={styles.emptyText}>
-              Mutual funds, stocks, FDs, EPF, PPF, NPS, gold bonds. Add what you have and see what it's worth, what you've gained, and how it's split. Nothing is linked to your bank or demat.
-            </Text>
-            <Button label="Search & add (live price)" icon="search" onPress={() => setSearch('stock')} style={{ alignSelf: 'stretch', marginTop: 12 }} />
-            <Button variant="secondary" label="Start a SIP" icon="repeat" onPress={() => (setSipPick(true), setSearch('fund'))} style={{ alignSelf: 'stretch' }} />
-            <Button variant="secondary" label="Paste from Zerodha / Groww / any app" icon="clipboard-outline" onPress={() => setImporting(true)} style={{ alignSelf: 'stretch' }} />
-            <Button variant="ghost" label="Add FD, EPF, PPF or other" icon="add" onPress={() => setMode({ kind: 'new' })} style={{ alignSelf: 'stretch' }} />
+        {investments.length > 0 && (
+          <View style={{ backgroundColor: Corpus.bg }}>
+            <UnderlineTabs value={tab} onChange={setTab} tabs={[
+              { value: 'holdings', label: `Holdings (${investments.length})` },
+              { value: 'watchlist', label: `Watchlist${watchlist.length ? ` (${watchlist.length})` : ''}` },
+              { value: 'sips', label: 'SIPs' },
+              { value: 'analysis', label: 'Analysis' },
+            ]} />
           </View>
-        ) : (
-          <>
-            <View style={styles.hero}>
-              <Text style={styles.heroLabel}>YOUR INVESTMENTS ARE WORTH</Text>
-              <Text style={styles.heroValue}>{formatINRLong(pf.value)}</Text>
-              <Text style={styles.heroSub}>{formatINR(pf.invested)} invested</Text>
-              <Text style={[styles.heroSub, { color: pf.gain >= 0 ? Corpus.income : Corpus.danger, fontWeight: '600' }]}>
-                {pf.gain >= 0 ? '▲' : '▼'} {formatINR(Math.abs(pf.gain))} ({pf.gain >= 0 ? '+' : '−'}{Math.abs(pf.pct).toFixed(1)}%) overall
-              </Text>
-              {xirrAll != null && (
-                <Text style={styles.heroSub}>
-                  {xirrAll >= 0 ? '+' : '−'}{Math.abs(xirrAll).toFixed(1)}% a year (XIRR) · counts when each rupee went in
-                </Text>
-              )}
-              {divs > 0 && <Text style={[styles.heroSub, { color: Corpus.income }]}>+ {formatINR(divs)} dividends received</Text>}
-              {hasStockLive && (
-                <Text style={[styles.heroSub, { color: dayGain >= 0 ? Corpus.income : Corpus.danger }]}>
-                  Today {dayGain >= 0 ? '+' : '−'}{formatINR(Math.round(Math.abs(dayGain))).replace('−', '')} on stocks
-                </Text>
-              )}
-              {Object.keys(live).length > 0 && (
-                <Text style={m.tiny}>{liveError ? 'Live prices paused — showing last known values' : `● Live · updated ${priceTime(updatedAt)}`}</Text>
-              )}
-            </View>
+        )}
 
+        {investments.length > 0 && tab === 'holdings' && (
+          <Animated.View key="h" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
             <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {([['value', 'Current value'], ['returns', 'Returns %'], ['today', 'Today'], ['name', 'A to Z']] as const).map(([k, label]) => (
+                <Tap key={k} onPress={() => setSort(k)} style={[styles.chip, sort === k && styles.chipOn]} accessibilityRole="radio" accessibilityState={{ selected: sort === k }}>
+                  <Text style={[styles.chipText, sort === k && { color: Corpus.onGold }]}>{label}</Text>
+                </Tap>
+              ))}
+            </ScrollView>
+            <View style={[styles.card, { padding: 0, gap: 0, overflow: 'hidden' }]}>
+              {rows.map(({ h, linked, d }, i) => (
+                <HoldingRow key={h.id} d={d} first={i === 0}
+                  onPress={() => (linked && targetOf(h) ? setTarget(targetOf(h)) : setMode({ kind: 'edit', h }))}
+                  onLongPress={() => setMode({ kind: 'edit', h })}>
+                  {!linked && (
+                    <View style={styles.actions}>
+                      {['mf', 'stock', 'nps', 'crypto', 'goldbond'].includes(h.type) && !liveRefOf(h) && (
+                        <Tap onPress={() => { setLinkFor(h); setSearch(searchFor(h)); }} style={[styles.chip, styles.chipOn]}><Text style={[styles.chipText, { color: Corpus.onGold }]}>Get live price</Text></Tap>
+                      )}
+                      {!currentValue(h).auto && <Tap onPress={() => setMode({ kind: 'value', h })} style={[styles.chip, d.warn && styles.chipOn]}><Text style={[styles.chipText, d.warn && { color: Corpus.onGold }]}>Update value</Text></Tap>}
+                      {h.type !== 'fd' && <Tap onPress={() => setMode({ kind: 'add', h })} style={styles.chip}><Text style={styles.chipText}>Add money</Text></Tap>}
+                    </View>
+                  )}
+                  {jars.length > 0 && !jars.find((j) => j.id === h.goalId) && (
+                    <Tap onPress={() => setPickFor(h)} style={styles.jarAsk}><Ionicons name="file-tray-stacked-outline" size={13} color={Corpus.textMuted} /><Text style={styles.chipText}>Not in a jar. Add to {suggestJar(h, jars)?.jar.name ?? 'a jar'}?</Text></Tap>
+                  )}
+                </HoldingRow>
+              ))}
+            </View>
+            <Text style={styles.note}>Tap a stock or fund for its chart, buy and sell. Hold any row to edit it. FD, EPF and PPF grow at their interest rate; others without a live price are what you enter.</Text>
+          </Animated.View>
+        )}
 
+        {investments.length > 0 && tab === 'watchlist' && (
+          <Animated.View key="w" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
+            {watchlist.length === 0 ? (
+              <View style={[styles.card, { alignItems: 'center', gap: 8, paddingVertical: 24 }]}>
+                <IconChip icon="eye" color={Chip.indigo} size={44} />
+                <Text style={styles.emptyTitle}>Nothing on your watchlist</Text>
+                <Text style={[styles.meta, { textAlign: 'center' }]}>Search a stock or fund and tap the star to follow its price here.</Text>
+                <Button size="sm" icon="search" label="Search" onPress={() => setSearch('stock')} />
+              </View>
+            ) : (
+              <View style={[styles.card, { padding: 0, gap: 0, overflow: 'hidden' }]}>
+                {watchlist.map((w, i) => {
+                  const ref = parseWatch(w);
+                  const x = wp[refKey(ref)];
+                  const title = ref.kind === 'stock' ? shortSymbol(ref.id) : x?.name ?? ref.id.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase());
+                  const sub = ref.kind === 'stock' ? x?.name ?? 'Stock' : { fund: 'Mutual fund, NAV', nps: 'NPS, NAV', crypto: 'Crypto, 24h' }[ref.kind];
+                  return (
+                    <HoldingRow key={w} first={i === 0} onPress={() => setTarget({ ...ref, name: x?.name ?? title })}
+                      d={{ key: w, title, sub, value: x?.price ?? null, valueIsPrice: true, dayPct: x?.changePct ?? null, spark: sparks[refKey(ref)], ltp: x?.price ?? null }} />
+                  );
+                })}
+              </View>
+            )}
+          </Animated.View>
+        )}
+
+        {investments.length > 0 && tab === 'sips' && (
+          <Animated.View key="s" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
+            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
+            <View style={[styles.card, styles.row]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.meta}>Going in every month</Text>
+                <Text style={styles.pfNum}>{formatINR(sipMonthly)}</Text>
+              </View>
+              <Button size="sm" icon="repeat" label="Start a SIP" onPress={() => (setSipPick(true), setSearch('fund'))} />
+            </View>
+            {sipList.length > 0 && (
+              <View style={[styles.card, { padding: 0, gap: 0, overflow: 'hidden' }]}>
+                {sipList.map((h, i) => {
+                  const ns = nextSip(h);
+                  const st = sipStreak(h);
+                  return (
+                    <HoldingRow key={h.id} first={i === 0} onPress={() => setSipFor(h)}
+                      d={{ key: h.id, title: h.name, sub: h.sip!.active ? `On the ${h.sip!.day === 1 ? '1st' : `${h.sip!.day}th`}${ns ? `, next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : 'Stopped',
+                        value: sipAmount(h.sip!, new Date()), valueIsPrice: false, note: st && st.streak > 1 ? `${st.streak} in a row${st.skipped ? `, ${st.skipped} missed this year` : ''}` : st?.skipped ? `${st.skipped} missed this year` : '' }} />
+                  );
+                })}
+              </View>
+            )}
+          </Animated.View>
+        )}
+
+        {investments.length > 0 && tab === 'analysis' && (
+          <Animated.View key="a" entering={FadeIn.duration(200)} style={{ gap: 12 }}>
             {pf.allocation.length > 0 && (
               <MixCard
                 allocation={pf.allocation}
@@ -257,12 +397,12 @@ export default function InvestScreen() {
                 <Text style={[styles.heroValue, { color: booked.total >= 0 ? Corpus.income : Corpus.danger }]}>
                   {booked.total >= 0 ? '+' : '−'}{formatINR(Math.abs(Math.round(booked.total)))}
                 </Text>
-                {booked.equityShort !== 0 && <Text style={styles.meta}>Short-term equity {formatINR(booked.equityShort)} · 20%</Text>}
-                {booked.equityLong !== 0 && <Text style={styles.meta}>Long-term equity {formatINR(booked.equityLong)} · {formatINR(booked.exemptionUsed)} of ₹1.25 L tax-free used, {formatINR(booked.exemptionLeft)} left</Text>}
-                {booked.otherLong !== 0 && <Text style={styles.meta}>Long-term gold / other {formatINR(booked.otherLong)} · 12.5%</Text>}
+                {booked.equityShort !== 0 && <Text style={styles.meta}>Short-term equity {formatINR(booked.equityShort)}, taxed 20%</Text>}
+                {booked.equityLong !== 0 && <Text style={styles.meta}>Long-term equity {formatINR(booked.equityLong)}. Used {formatINR(booked.exemptionUsed)} of the ₹1.25 L tax-free limit, {formatINR(booked.exemptionLeft)} left</Text>}
+                {booked.otherLong !== 0 && <Text style={styles.meta}>Long-term gold and other {formatINR(booked.otherLong)}, taxed 12.5%</Text>}
                 {booked.slab !== 0 && <Text style={styles.meta}>Slab-rate gains {formatINR(booked.slab)}</Text>}
-                {booked.crypto !== 0 && <Text style={styles.meta}>Crypto {formatINR(booked.crypto)} · 30%</Text>}
-                <Text style={[styles.meta, { color: Corpus.text, fontWeight: '600' }]}>Tax on this so far ≈ {formatINR(booked.tax)}</Text>
+                {booked.crypto !== 0 && <Text style={styles.meta}>Crypto {formatINR(booked.crypto)}, taxed 30%</Text>}
+                <Text style={[styles.meta, { color: Corpus.text, fontWeight: '600' }]}>Tax on this so far, about {formatINR(booked.tax)}</Text>
                 {fySales.slice(0, 5).map((r) => (
                   <Pressable
                     key={r.id}
@@ -273,31 +413,31 @@ export default function InvestScreen() {
                     }}
                   >
                     <Text style={styles.note}>
-                      {new Date(r.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · sold {r.units} {r.name} at {formatPrice(r.sellPrice)} → {r.shortGain + r.longGain >= 0 ? '+' : '−'}{formatINR(Math.abs(r.shortGain + r.longGain))}
+                      {new Date(r.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}: sold {r.units} {r.name} at {formatPrice(r.sellPrice)}, {r.shortGain + r.longGain >= 0 ? '+' : '−'}{formatINR(Math.abs(r.shortGain + r.longGain))}
                       {r.longGain !== 0 && r.shortGain !== 0 ? ' (part long-term)' : r.longGain !== 0 ? ' (long-term)' : ''}
                     </Text>
                   </Pressable>
                 ))}
-                {fySales.length > 5 && <Text style={styles.note}>+ {fySales.length - 5} more sales</Text>}
+                {fySales.length > 5 && <Text style={styles.note}>{fySales.length - 5} more sales</Text>}
               </View>
             )}
 
             {(tax.equityShort > 0 || tax.equityLong !== 0 || tax.otherLong > 0 || tax.slabGains > 0 || tax.crypto > 0) && (
               <View style={styles.card}>
                 <Text style={styles.name}>Tax if you sold everything today</Text>
-                <Text style={styles.heroValue}>≈ {formatINR(tax.estimate)}</Text>
-                {tax.equityShort > 0 && <Text style={styles.meta}>Short-term equity gains {formatINR(tax.equityShort)} · taxed 20%</Text>}
+                <Text style={styles.heroValue}>About {formatINR(tax.estimate)}</Text>
+                {tax.equityShort > 0 && <Text style={styles.meta}>Short-term equity gains {formatINR(tax.equityShort)}, taxed 20%</Text>}
                 {tax.equityLong !== 0 && (
                   <Text style={styles.meta}>
-                    Long-term equity gains {formatINR(tax.equityLong)} · first {formatINR(tax.exemptionLeft)} a year tax-free, then 12.5%
+                    Long-term equity gains {formatINR(tax.equityLong)}. The first {formatINR(tax.exemptionLeft)} is tax-free, then 12.5%
                   </Text>
                 )}
-                {tax.otherLong > 0 && <Text style={styles.meta}>Long-term gold / other fund gains {formatINR(tax.otherLong)} · 12.5%</Text>}
-                {tax.slabGains > 0 && <Text style={styles.meta}>Slab-rate gains (debt funds, short-term gold) {formatINR(tax.slabGains)} · counted at 30% here</Text>}
-                {tax.crypto > 0 && <Text style={styles.meta}>Crypto gains {formatINR(tax.crypto)} · flat 30%</Text>}
+                {tax.otherLong > 0 && <Text style={styles.meta}>Long-term gold and other fund gains {formatINR(tax.otherLong)}, taxed 12.5%</Text>}
+                {tax.slabGains > 0 && <Text style={styles.meta}>Slab-rate gains (debt funds, short-term gold) {formatINR(tax.slabGains)}, counted at 30% here</Text>}
+                {tax.crypto > 0 && <Text style={styles.meta}>Crypto gains {formatINR(tax.crypto)}, flat 30%</Text>}
                 {tax.equityLong > 0 && (
                   <Text style={[styles.meta, { color: Corpus.income }]}>
-                    💡 {tax.equityLong <= tax.exemptionLeft
+                    {tax.equityLong <= tax.exemptionLeft
                       ? `All ${formatINR(tax.equityLong)} of your long-term equity gains are tax-free this year. Booking them before 31 March (sell and buy back) resets your cost and saves tax later.`
                       : `You can book ${formatINR(tax.exemptionLeft)} of long-term equity gains tax-free before 31 March (sell and buy back).`}
                   </Text>
@@ -308,13 +448,13 @@ export default function InvestScreen() {
 
             {checkup.length > 0 && (
               <View style={[styles.card, { borderColor: Corpus.warningLine }]}>
-                <Text style={styles.name}>Monthly check-up · {checkup.length} to update</Text>
-                <Text style={styles.meta}>These don’t have a live price. Open your app or statement and type today’s value — 1 minute keeps your net worth right.</Text>
+                <Text style={styles.name}>Monthly check-up: {checkup.length} to update</Text>
+                <Text style={styles.meta}>These have no live price. Open your app or statement and type today's value. It takes a minute and keeps your net worth right.</Text>
                 {checkup.map((h) => (
                   <View key={h.id} style={m.posRow}>
                     <View style={{ flex: 1 }}>
                       <Text style={m.rowName} numberOfLines={1}>{h.name}</Text>
-                      <Text style={m.small}>{formatINR(h.value)} · {daysOld(h)} days ago</Text>
+                      <Text style={m.small}>{formatINR(h.value)}, {daysOld(h)} days ago</Text>
                     </View>
                     <Button size="sm" variant="secondary" icon="refresh" label="Update" onPress={() => setMode({ kind: 'value', h })} />
                   </View>
@@ -322,100 +462,10 @@ export default function InvestScreen() {
               </View>
             )}
 
-            <SectionLabel right="Tap to open · hold to edit">HOLDINGS</SectionLabel>
-            {[...investments]
-              .sort((a, b) => currentValue(b).value - currentValue(a).value)
-              .map((h) => {
-                const meta = investMeta(h.type);
-                const g = gain(h);
-                const cagr = yearlyReturn(h);
-                const xr = holdingXirr(h, g.value);
-                const ns = nextSip(h);
-                const streak = h.sip ? sipStreak(h) : null;
-                const auto = currentValue(h).auto;
-                const linked = isLinked(h);
-                const l = live[h.id];
-                const old = isStale(h) && !linked;
-                return (
-                  <Pressable key={h.id} style={styles.card} onPress={() => (linked && targetOf(h) ? setTarget(targetOf(h)) : setMode({ kind: 'edit', h }))} onLongPress={() => setMode({ kind: 'edit', h })}>
-                    <View style={styles.top}>
-                      <View style={styles.icon}>
-                        <Ionicons name={meta.icon as keyof typeof Ionicons.glyphMap} size={18} color={Corpus.gold} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.name}>{h.name}</Text>
-                        <Text style={[styles.meta, old && { color: Corpus.warning }]}>
-                          {linked
-                            ? `${Math.round(h.units! * 1000) / 1000} ${h.type === 'stock' ? 'shares' : h.type === 'crypto' ? 'coins' : 'units'} · ${l ? formatPrice(l.price) : 'last known'}`
-                            : `${meta.label} · ${auto ? `grows at ${h.rate}%` : daysOld(h) <= 0 ? 'updated today' : `updated ${daysOld(h)}d ago`}`}
-                        </Text>
-                        {l?.changePct != null && (
-                          <Text style={[styles.meta, { color: l.changePct >= 0 ? Corpus.income : Corpus.danger }]}>
-                            {l.changePct >= 0 ? '▲' : '▼'} {formatPct(l.changePct)} {l.kind === 'stock' ? 'today' : l.kind === 'crypto' ? '24h' : 'last NAV'}
-                          {dividendTotal(h) > 0 ? ` · ₹${dividendTotal(h).toLocaleString('en-IN')} dividends` : ''}
-                            {l.dayGain != null ? ` · ${l.dayGain >= 0 ? '+' : '−'}${formatINR(Math.round(Math.abs(l.dayGain))).replace('−', '')}` : ''}
-                          </Text>
-                        )}
-                      </View>
-                      <View>
-                        <Text style={styles.value}>{compactINR(g.value)}</Text>
-                        <Text style={[styles.meta, { textAlign: 'right', color: g.gain >= 0 ? Corpus.income : Corpus.danger }]}>
-                          {g.gain >= 0 ? '+' : '−'}{compactINR(Math.abs(g.gain)).replace('−', '')} ({Math.abs(g.pct).toFixed(1)}%)
-                        </Text>
-                      </View>
-                    </View>
-                    {xr != null ? (
-                      <Text style={styles.note}>{xr >= 0 ? '+' : '−'}{Math.abs(xr).toFixed(1)}% a year (XIRR)</Text>
-                    ) : cagr !== null ? (
-                      <Text style={styles.note}>About {cagr.toFixed(1)}% a year since {new Date(h.startDate).getFullYear()}</Text>
-                    ) : null}
-                    {h.sip && (
-                      <Text style={[styles.note, { color: h.sip.active ? Corpus.textMuted : Corpus.textFaint }]}>
-                        ↻ SIP {formatINR(sipAmount(h.sip, new Date()))} on the {h.sip.day === 1 ? '1st' : `${h.sip.day}th`}
-                        {h.sip.active ? (ns ? ` · next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : '') : ' · stopped'}
-                        {streak && streak.streak > 1 ? ` · ${streak.streak} in a row` : ''}
-                        {streak && streak.skipped ? ` · ${streak.skipped} missed this year` : ''}
-                      </Text>
-                    )}
-                    {(() => {
-                      const jar = jars.find((j) => j.id === h.goalId);
-                      const sug = jar ? null : suggestJar(h, jars);
-                      if (!jars.length) return null;
-                      return (
-                        <Text onPress={() => setPickFor(h)} style={[styles.jarPill, !jar && styles.jarPillOpen]} accessibilityRole="button" suppressHighlighting>
-                          {jar ? `For: ${jar.name}` : `Not in a jar. Add to ${sug?.jar.name ?? 'a jar'}?`}
-                        </Text>
-                      );
-                    })()}
-                    {linked ? (
-                      ['mf', 'stock', 'nps', 'goldbond'].includes(h.type) && (
-                        <View style={styles.actions}>
-                          <Button size="sm" variant="secondary" icon="repeat" label={h.sip ? 'SIP' : 'Set up SIP'} onPress={() => setSipFor(h)} />
-                        </View>
-                      )
-                    ) : (
-                    <View style={styles.actions}>
-                      {['mf', 'nps', 'ppf', 'goldbond', 'stock'].includes(h.type) && (
-                        <Button size="sm" variant="secondary" icon="repeat" label="SIP" onPress={() => setSipFor(h)} />
-                      )}
-                      {['mf', 'stock', 'nps', 'crypto', 'goldbond'].includes(h.type) && !liveRefOf(h) && (
-                        <Button size="sm" variant="primary" icon="pulse" label="Get live price" onPress={() => { setLinkFor(h); setSearch(searchFor(h)); }} />
-                      )}
-                      {h.type !== 'fd' && <Button size="sm" variant="secondary" icon="add" label="Add money" onPress={() => setMode({ kind: 'add', h })} />}
-                      {!auto && <Button size="sm" variant={old ? 'primary' : 'secondary'} icon="refresh" label="Update value" onPress={() => setMode({ kind: 'value', h })} />}
-                      {(h.type === 'epf' || h.type === 'ppf') && <Button size="sm" variant="secondary" icon="refresh" label="New passbook balance" onPress={() => setMode({ kind: 'value', h })} />}
-                    </View>
-                    )}
-                  </Pressable>
-                );
-              })}
-
-            <Text style={styles.note}>
-              ℹ️ Stocks and funds linked to a live price update by themselves (units × price). FD, EPF and PPF grow on their own at their interest rate; the rest are what you enter. "Add money" is new savings; "Update value" is a gain or loss. All of this counts in your net worth.
-            </Text>
-          </>
+          </Animated.View>
         )}
       </ScrollView>
+      </SafeAreaView>
       {mode && (
         <InvestmentSheet
           mode={mode}
@@ -576,6 +626,6 @@ export default function InvestScreen() {
           onEditHolding={(h, u, inv) => run(() => updateInvestment(h.id, { units: u, invested: inv, lots: [{ date: h.startDate, units: u, price: inv / u }] }), 'Holding updated')}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
