@@ -272,7 +272,7 @@ Cards and text stay clean; the life is in the background and in moments.
 - Switches use the shared spring SwitchKnob, and the whole row is the tap target.
 
 ## Sign in and Create account (step 18)
-- One AuthScreen for both, switched by a segmented control. Everything above the card is centred: the app icon, then the "Corpus" wordmark in Bricolage Grotesque Bold (Font.brand, used only for the wordmark), then a one-line tagline, then an example "₹1,240 safe to spend today" arc that draws in once.
+- One AuthScreen for both, switched by a segmented control. Everything above the card is centred: the app icon, then the "Corpus" wordmark in Bricolage Grotesque Bold (Font.brand, used only for the wordmark), then a one-line tagline, then a "safe to spend today" arc that tracks the form: ₹0 at the start, one step for each finished field up to ₹48, then ₹100 when you press the button. It drops back to ₹48 if sign-in fails.
 - Form research (Baymard, web.dev): no confirm-password field, a show-password eye instead. Autofill hints are set (email, current-password, new-password). The keyboard's Next and Go keys work. Errors sit under their field.
 - Forgot password sends a Firebase reset email. The message never says whether the email has an account.
 - Sign up shows a privacy policy link. The wordmark is "Corpus" in sentence case on both the splash and the sign-in screen.

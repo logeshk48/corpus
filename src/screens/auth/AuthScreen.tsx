@@ -10,18 +10,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useId, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { Easing, FadeIn, useAnimatedProps, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, useAnimatedProps, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 const PRIVACY = 'https://corpus-fawn-eight.vercel.app/privacy';
 const APath = Animated.createAnimatedComponent(Path);
-const DEMO = 48; // the example daily number on the gauge
-const FILL = 0.72; // how far round the arc it reaches
-const MS = 1400;
+const MS = 650;
 
-// The one moving thing on this screen: the daily number's arc draws itself in once.
-function Gauge({ width = 220 }: { width?: number }) {
+// The gauge fills as you fill the form: each finished field moves it one step (up to ₹48),
+// and pressing Sign in / Create account takes it the rest of the way to ₹100.
+function Gauge({ value, width = 220 }: { value: number; width?: number }) {
   const reduce = useReducedMotion();
   const id = useId().replace(/:/g, '');
   const stroke = 12;
@@ -29,19 +28,14 @@ function Gauge({ width = 220 }: { width?: number }) {
   const h = r + stroke;
   const len = Math.PI * r;
   const d = `M ${stroke / 2} ${r + stroke / 2} A ${r} ${r} 0 0 1 ${width - stroke / 2} ${r + stroke / 2}`;
-  const p = useSharedValue(reduce ? FILL : 0);
-  // the number counts up from ₹0 in step with the arc
-  const [goal, setGoal] = useState(reduce ? DEMO : 0);
-  const shown = useTween(goal, MS);
+  const p = useSharedValue(value / 100);
+  const shown = useTween(value, reduce ? 0 : MS);
   useEffect(() => {
-    if (reduce) return;
-    const t = setTimeout(() => setGoal(DEMO), 250);
-    p.value = withDelay(250, withTiming(FILL, { duration: MS, easing: Easing.out(Easing.cubic) }));
-    return () => clearTimeout(t);
-  }, [reduce, p]);
+    p.value = reduce ? value / 100 : withTiming(value / 100, { duration: MS, easing: Easing.out(Easing.cubic) });
+  }, [value, reduce, p]);
   const props = useAnimatedProps(() => ({ strokeDashoffset: len * (1 - p.value) }));
   return (
-    <View style={{ width, height: h }} accessible accessibilityLabel={`Example: ${formatINR(DEMO)} safe to spend today`}>
+    <View style={{ width, height: h }} accessible accessibilityLabel={`${formatINR(value)} of 100`}>
       <View style={StyleSheet.absoluteFill} importantForAccessibility="no-hide-descendants">
         <Svg width={width} height={h}>
           <Defs>
@@ -79,6 +73,13 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
   const [formError, setFormError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
   const pw = useRef<TextInput>(null);
+
+  // one step per finished field, ₹48 when the form is complete, ₹100 once you press the button
+  const steps = signup
+    ? [!validateEmail(email), !validatePassword(password), !!confirm && confirm === password]
+    : [!validateEmail(email), !validatePassword(password)];
+  const done = steps.filter(Boolean).length;
+  const gauge = busy ? 100 : Math.round((48 * done) / steps.length);
 
   const switchTo = (m: 'login' | 'signup') => { setMode(m); setErrors({}); setFormError(null); setSent(null); };
 
@@ -126,8 +127,7 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
               </View>
 
               <View style={s.hero}>
-                <Gauge />
-                <Text style={s.example}>An example of your daily number</Text>
+                <Gauge value={gauge} />
               </View>
 
               <View style={s.card}>
@@ -234,7 +234,6 @@ const s = StyleSheet.create({
   gaugeIn: { position: 'absolute', left: 0, right: 0, bottom: -4, alignItems: 'center' },
   gaugeNum: { fontSize: Type.h1, lineHeight: 34, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.5, ...tabular },
   gaugeSub: { fontSize: Type.small, color: Corpus.textMuted },
-  example: { fontSize: Type.small, color: Corpus.textFaint, textAlign: 'center' },
   card: { backgroundColor: Corpus.card, borderRadius: 24, padding: Space.lg - 4, gap: Space.md },
   eye: { paddingHorizontal: 4, alignSelf: 'stretch', justifyContent: 'center' },
   forgot: { alignSelf: 'flex-end' },
