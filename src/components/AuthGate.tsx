@@ -41,7 +41,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       {!initializing && children}
       {deciding && (
         <View style={styles.splash}>
-          <Text style={styles.brand}>CORPUS</Text>
+          <Text style={styles.brand}>Corpus</Text>
           <ActivityIndicator color={Corpus.gold} />
         </View>
       )}
@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 20,
   },
-  brand: { fontSize: Type.brand, fontFamily: Font.displayBold, color: Corpus.gold, letterSpacing: 2 },
+  brand: { fontSize: Type.brand, fontFamily: Font.brand, color: Corpus.text, letterSpacing: -0.8 },
 });

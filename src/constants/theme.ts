@@ -92,6 +92,7 @@ export const Corpus = isDark ? DARK : LIGHT;
 export const Font = {
   display: 'Inter-SemiBold',   // headings, card titles
   displayBold: 'Inter-Bold',   // amounts, large titles
+  brand: 'Bricolage-Bold',     // the Corpus wordmark only
 };
 // Amounts line up and don't jiggle while counting up
 export const tabular = { fontVariant: ['tabular-nums'] as ('tabular-nums')[] };
@@ -145,7 +146,7 @@ export const Type = {
   brand: 30,    // CORPUS wordmark
   amount: 34,   // hero amount at the top of a screen
   hero: 40,     // Home Safe-to-Spend number
-  entry: 44,    // the amount you're typing (Add, budget editor)
+  entry: 44,    // the amount you're typing (Add, budget editor); also the Corpus wordmark on sign-in
 };
 
 export const Space = {

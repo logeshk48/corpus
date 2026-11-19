@@ -19,6 +19,7 @@ export default function RootLayout() {
   const [fontsReady, fontError] = useFonts({
     'Inter-SemiBold': require('../../assets/fonts/Inter_600SemiBold.ttf'),
     'Inter-Bold': require('../../assets/fonts/Inter_700Bold.ttf'),
+    'Bricolage-Bold': require('../../assets/fonts/BricolageGrotesque_700Bold.ttf'),
   });
   if (!mounted || (!fontsReady && !fontError)) return null; // a blink on first launch; system font if loading fails
   return (

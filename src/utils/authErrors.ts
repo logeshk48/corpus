@@ -1,20 +1,20 @@
 export function friendlyAuthError(code: string): string {
   switch (code) {
     case 'auth/email-already-in-use':
-      return 'This email is already registered';
+      return 'This email already has an account. Sign in instead.';
     case 'auth/invalid-email':
-      return 'That email looks invalid';
+      return 'Check the email address. It does not look right.';
     case 'auth/weak-password':
-      return 'Password is too weak';
+      return 'Use at least 6 characters for the password.';
     case 'auth/user-not-found':
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return 'Incorrect email or password';
+      return 'The email or password is wrong.';
     case 'auth/too-many-requests':
-      return 'Too many attempts. Try again later';
+      return 'Too many tries. Wait a few minutes, or reset your password.';
     case 'auth/network-request-failed':
-      return 'Network error. Check your connection';
+      return 'No connection. Check your internet and try again.';
     default:
-      return 'Something went wrong. Please try again';
+      return 'Could not sign in. Try again.';
   }
 }

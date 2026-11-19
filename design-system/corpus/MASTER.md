@@ -270,3 +270,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - The reminder choices (how often, briefing time, quiet hours, the 7 switches) are one level down, in the Notifications sheet. The overview row sums them up, for example "Everything. Briefing at 9 AM", "7 on".
 - Groups: profile card, Money, Bank SMS, Alerts, Look and privacy, Your data, then Sign out and Delete account. Labels are sentence case with no ALL CAPS section labels.
 - Switches use the shared spring SwitchKnob, and the whole row is the tap target.
+
+## Sign in and Create account (step 18)
+- One AuthScreen for both, switched by a segmented control. Everything above the card is centred: the app icon, then the "Corpus" wordmark in Bricolage Grotesque Bold (Font.brand, used only for the wordmark), then a one-line tagline, then an example "₹1,240 safe to spend today" arc that draws in once.
+- Form research (Baymard, web.dev): no confirm-password field, a show-password eye instead. Autofill hints are set (email, current-password, new-password). The keyboard's Next and Go keys work. Errors sit under their field.
+- Forgot password sends a Firebase reset email. The message never says whether the email has an account.
+- Sign up shows a privacy policy link. The wordmark is "Corpus" in sentence case on both the splash and the sign-in screen.

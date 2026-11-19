@@ -32,28 +32,30 @@ Install the APK (it replaces nothing — it's a normal app, not the dev client).
 - New personal accounts must run a **closed test with at least 12 testers for 14 days** before going to production. Start this early.
 
 ## 4. Create the app in Play Console
-- App name: **Corpus — Money Tracker** · Default language English (India) · App · Free.
+- App name: **Corpus: Money Tracker**. Default language English (India). App. Free.
 - Package: `com.logesh.corpus` (permanent after the first upload).
 
 ### Store listing
 **Short description (≤80):**
-Know what you can spend today. Track spending, bills, SIPs and net worth.
+See what you can spend today. Track spends, bills, SIPs and net worth.
 
 **Full description:**
-Corpus answers one question every morning: how much can I safely spend today?
+Corpus tells you how much you can spend today without running short before pay day.
 
-It takes your income, bills, SIPs and savings goals, and shares what's left across the days until pay day. Log spends in a tap, scan a receipt, or share a bank SMS straight into Corpus.
+It looks at your income, bills, SIPs and savings goals, and spreads what is left across the days until your next pay day. Log a spend in one tap, scan a receipt, or share a bank SMS to Corpus.
 
-• Safe to spend today — on your own pay cycle
-• One-tap logging, receipt scan, share bank SMS to log
-• Bills, EMIs and card dues with reminders
-• Money with people: lent, borrowed, part payments
-• Live prices for stocks, mutual funds, NPS and crypto; SIP tracking and XIRR
-• Net worth, Wealth score and a 5/10/20-year projection
-• Can I afford this? and Ask Corpus — answers from your own numbers
-• Year report and tax summary for your ITR, CSV export
+What you can do
+• See what is safe to spend today, on your own pay cycle
+• Log spends in one tap, from a receipt photo, or from a shared bank SMS
+• Track bills, EMIs and card dues, with reminders before they are due
+• Keep track of money you lent or borrowed, including part payments
+• Follow live prices for stocks, mutual funds, NPS and crypto, with SIP tracking and XIRR
+• See your net worth, a Wealth score, and where you could be in 5, 10 and 20 years
+• Ask "Can I afford this?" and get an answer from your own numbers
+• Export a year report, a tax summary for your ITR, and a CSV of every entry
 
-Private by design: no bank login, no ads, no trackers. Receipts and SMS are read on your phone and never uploaded.
+Your data
+Corpus never asks for your bank login. It shows no ads and has no trackers. Receipt photos and SMS are read on your phone and are not uploaded.
 
 **Graphics:** icon 512×512 (export `assets/images/icon.png`), feature graphic 1024×500, at least 2 phone screenshots (take them from the preview build).
 

@@ -3,6 +3,7 @@ import {
     deleteUser,
     EmailAuthProvider,
     reauthenticateWithCredential,
+    sendPasswordResetEmail,
     signInWithEmailAndPassword,
     signOut,
 } from 'firebase/auth';
@@ -14,6 +15,11 @@ import { auth, db } from './firebase';
 export async function signUp(email: string, password: string) {
   const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
   return credential.user;
+}
+
+// Firebase emails a link to choose a new password. It says nothing about whether the email has an account.
+export async function resetPassword(email: string) {
+  await sendPasswordResetEmail(auth, email.trim());
 }
 
 export async function signIn(email: string, password: string) {

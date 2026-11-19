@@ -1,7 +1,7 @@
 import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Duration, EaseIn, Spring } from '@/constants/motion';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import {
@@ -83,7 +83,7 @@ export default function Sheet({ title, subtitle, onClose, children, footer }: {
 
 // A labelled input. `money` adds a ₹ prefix and the number keyboard.
 export function Field({ label, hint, error, money, right, ...input }: TextInputProps & {
-  label: string; hint?: string; error?: string; money?: boolean; right?: ReactNode;
+  label: string; hint?: string; error?: string; money?: boolean; right?: ReactNode; ref?: Ref<TextInput>;
 }) {
   const [focus, setFocus] = useState(false);
   return (
