@@ -138,7 +138,7 @@ export function Choice<T extends string>({ options, value, onChange, label, tile
 }
 
 // The switch knob springs across instead of jumping
-function Switch({ on }: { on: boolean }) {
+export function Switch({ on }: { on: boolean }) {
   const x = useSharedValue(on ? 18 : 0);
   useEffect(() => { x.value = withSpring(on ? 18 : 0, Spring.snappy); }, [on, x]);
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));

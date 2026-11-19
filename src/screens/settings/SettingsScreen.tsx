@@ -1,426 +1,115 @@
-import { Button, SectionLabel } from '@/components/ui';
-import DeleteAccountSheet from './components/DeleteAccountSheet';
-import { setThemeChoice } from '@/services/theme';
-import { disableSms, enableSms, shareSupported, smsEnabled, smsSupported } from '@/services/bankSms';
-import { Corpus, Space, themeChoice } from '@/constants/theme';
+import { Group, GroupRow, Screen, Segmented, SwitchKnob } from '@/components/ui';
+import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
+import Shine from '@/components/fx/Shine';
+import { Chip, Corpus, Font, Radius, Space, themeChoice, Type } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/hooks/useSettings';
 import { logOut } from '@/services/auth';
+import { disableSms, enableSms, shareSupported, smsEnabled, smsSupported } from '@/services/bankSms';
 import { saveSettings } from '@/services/settings';
+import { setThemeChoice } from '@/services/theme';
 import { formatINR } from '@/utils/format';
 import { WORK_MODES } from '@/utils/onboarding';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { styles } from './SettingsScreen.styles';
-import { Radius, Type } from '@/constants/theme';
-import { StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import DeleteAccountSheet from './components/DeleteAccountSheet';
+import NotificationsSheet, { MODES, NOTIFY, quietLabel } from './components/NotificationsSheet';
+import ValueSheet, { dayLabel, type ValueKind } from './components/ValueSheet';
 
-const chip = StyleSheet.create({
-  base: { borderRadius: Radius.sm, borderWidth: 0.5, borderColor: Corpus.border, backgroundColor: Corpus.cardAlt, paddingHorizontal: 12, paddingVertical: 7 },
-  on: { backgroundColor: Corpus.goldTint, borderColor: Corpus.gold },
-  text: { fontSize: Type.small, color: Corpus.textMuted, fontWeight: '600' },
-  textOn: { color: Corpus.gold },
-});
-
+// Settings, the way Android and iOS both advise: a short overview where every row shows its current value,
+// tap a row to change just that one thing, switches save the moment you flip them, and rarely used groups
+// (all the reminder choices) live one level down.
 export default function SettingsScreen() {
   const { user } = useAuth();
   const { settings, loading } = useSettings();
   const router = useRouter();
-  const earnLabel =
-    WORK_MODES.filter((m) => settings.workModes?.includes(m.id))
-      .map((m) => m.title)
-      .join(' + ') || 'Not set';
-
-  // Drafts: what's typed but not yet saved
-  const [name, setName] = useState('');
-  const [smsOn, setSmsOn] = useState(smsEnabled());
+  const [edit, setEdit] = useState<ValueKind | null>(null);
+  const [notifs, setNotifs] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [budget, setBudget] = useState('');
-  const [aside, setAside] = useState('');
-  const [cycle, setCycle] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [smsOn, setSmsOn] = useState(smsEnabled());
 
-  // When saved settings arrive (or change elsewhere), refresh the drafts
-  useEffect(() => {
-    setName(settings.displayName ?? '');
-    setBudget(settings.monthlyBudget ? String(settings.monthlyBudget) : '');
-    setAside(settings.setAside ? String(settings.setAside) : '');
-    setCycle(settings.cycleStartDay && settings.cycleStartDay > 1 ? String(settings.cycleStartDay) : '');
-  }, [settings.displayName, settings.monthlyBudget, settings.setAside, settings.cycleStartDay]);
-
-  const savedName = settings.displayName ?? '';
-  const savedBudget = settings.monthlyBudget;
-  const budgetNumber = budget.trim() === '' ? undefined : Number(budget);
-  const budgetInvalid =
-    budgetNumber !== undefined && (!Number.isFinite(budgetNumber) || budgetNumber <= 0);
-  const asideNumber = aside.trim() === '' ? undefined : Number(aside);
-  const cycleNumber = cycle.trim() === '' || Number(cycle) <= 1 ? undefined : Math.min(28, Number(cycle));
-  const isDirty =
-    name.trim() !== savedName ||
-    budgetNumber !== savedBudget ||
-    asideNumber !== settings.setAside ||
-    cycleNumber !== settings.cycleStartDay;
-  const canSave = isDirty && !budgetInvalid && !saving;
-
-  const shownName = savedName || user?.email?.split('@')[0] || 'Corpus member';
-  const initial = shownName.charAt(0).toUpperCase();
-
-  const handleSave = async () => {
-    if (!canSave) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await saveSettings({
-        displayName: name.trim() || undefined,
-        monthlyBudget: budgetNumber,
-        setAside: asideNumber,
-        cycleStartDay: cycleNumber,
-      });
-      setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 2000);
-    } catch (e) {
-      console.error('Save settings failed:', e);
-      setError('Could not save. Check your connection and try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const name = settings.displayName || user?.email?.split('@')[0] || 'You';
+  const earn = WORK_MODES.filter((m) => settings.workModes?.includes(m.id)).map((m) => m.title).join(', ') || 'Not set';
+  const cycle = settings.cycleStartDay ?? 1;
+  const onCount = NOTIFY.filter((n) => settings.notify?.[n.k] !== false).length;
+  const mode = MODES.find((m) => m.value === (settings.notifyMode ?? 'all'))!.label;
+  const toggleSms = async () => { if (!smsOn) setSmsOn(await enableSms()); else { disableSms(); setSmsOn(false); } };
+  const hide = !!settings.hideAmounts;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.heading}>Settings</Text>
-
-        {/* Profile card */}
-        <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-          <View>
-            <Text style={styles.profileName}>{shownName}</Text>
-            <Text style={styles.profileEmail}>{user?.email}</Text>
-          </View>
+    <Screen title="Settings" contentStyle={{ paddingBottom: TAB_BAR_SPACE + 32 }}>
+      <Pressable onPress={() => setEdit('name')} style={({ pressed }) => [s.profile, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel={`${name}. Change your name`}>
+        <Shine />
+        <View style={s.avatar}><Text style={s.avatarText}>{name.charAt(0).toUpperCase()}</Text></View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={s.name} numberOfLines={1}>{name}</Text>
+          <Text style={s.email} numberOfLines={1}>{user?.email}</Text>
         </View>
+        <Ionicons name="chevron-forward" size={17} color={Corpus.textFaint} />
+      </Pressable>
 
-        {loading ? (
-          <ActivityIndicator color={Corpus.gold} style={{ paddingVertical: 24 }} />
-        ) : (
-          <>
-            {/* PROFILE */}
-            <SectionLabel>PROFILE</SectionLabel>
-            <View style={styles.group}>
-              <View style={styles.row}>
-                <View style={styles.rowIcon}>
-                  <Ionicons name="person-outline" size={15} color={Corpus.gold} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowLabel}>Display name</Text>
-                  <TextInput
-                    style={styles.rowInput}
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="How should Corpus greet you?"
-                    placeholderTextColor={Corpus.textFaint}
-                    maxLength={30}
-                  />
-                </View>
-              </View>
-            </View>
+      <Group title="Money">
+        <GroupRow icon="wallet" color={Chip.orange} title="Monthly budget" value={loading ? '' : settings.monthlyBudget ? formatINR(settings.monthlyBudget) : 'Not set'} onPress={() => setEdit('budget')} />
+        <GroupRow icon="lock-closed" color={Chip.indigo} title="Kept aside" value={loading ? '' : settings.setAside ? formatINR(settings.setAside) : 'None'} onPress={() => setEdit('aside')} />
+        <GroupRow icon="calendar" color={Chip.red} title="Month starts on" value={cycle === 1 ? '1st' : `${dayLabel(cycle)}, pay day`} onPress={() => setEdit('cycle')} />
+        <GroupRow icon="briefcase" color={Chip.green} title="How you earn" value={earn} onPress={() => router.push('/onboarding' as Href)} />
+      </Group>
 
-            {/* MONEY */}
-            <SectionLabel>MONEY</SectionLabel>
-            <View style={styles.group}>
-              <View style={styles.row}>
-                <View style={styles.rowIcon}>
-                  <Ionicons name="wallet-outline" size={15} color={Corpus.gold} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowLabel}>Monthly budget</Text>
-                  <View style={styles.inlineRow}>
-                    <Text style={styles.rupee}>₹</Text>
-                    <TextInput
-                      style={[styles.rowInput, { flex: 1 }]}
-                      value={budget}
-                      onChangeText={setBudget}
-                      placeholder="e.g. 25000"
-                      placeholderTextColor={Corpus.textFaint}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  {budgetInvalid ? (
-                    <Text style={styles.fieldError}>Enter an amount greater than 0</Text>
-                  ) : savedBudget ? (
-                    <Text style={styles.rowHint}>Currently {formatINR(savedBudget)} per month</Text>
-                  ) : (
-                    <Text style={styles.rowHint}>Used by budgets and Safe-to-Spend</Text>
-                  )}
-                </View>
-              </View>
-            </View>
+      {smsSupported ? (
+        <Group title="Bank SMS">
+          <GroupRow icon="chatbox-ellipses" color={Chip.teal} title="Ask after each payment" subtitle={smsOn ? 'On. Read on this phone only, never OTPs' : 'Off'}
+            onPress={toggleSms} chevron={false} right={<SwitchKnob on={smsOn} />} />
+          <GroupRow icon="time" color={Chip.gray} title="Waiting bank payments" onPress={() => router.push('/sms-review' as Href)} />
+        </Group>
+      ) : shareSupported ? (
+        <Group title="Bank SMS">
+          <GroupRow icon="share" color={Chip.teal} title="Share bank SMS to Corpus" subtitle="Long-press a bank SMS, tap Share, pick Corpus" onPress={() => router.push('/sms-review' as Href)} />
+        </Group>
+      ) : null}
 
-            <View style={[styles.group, { marginTop: Space.sm }]}>
-              <View style={styles.row}>
-                <View style={styles.rowIcon}>
-                  <Ionicons name="lock-closed-outline" size={15} color={Corpus.gold} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowLabel}>Keep aside</Text>
-                  <View style={styles.inlineRow}>
-                    <Text style={styles.rupee}>₹</Text>
-                    <TextInput
-                      style={[styles.rowInput, { flex: 1 }]}
-                      value={aside}
-                      onChangeText={(t) => setAside(t.replace(/[^0-9]/g, ''))}
-                      placeholder="0"
-                      placeholderTextColor={Corpus.textFaint}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <Text style={styles.rowHint}>Money in your account that is not for spending. Corpus leaves it out of Safe to spend</Text>
-                </View>
-              </View>
-              <View style={[styles.row, styles.rowDivider]}>
-                <View style={styles.rowIcon}>
-                  <Ionicons name="calendar-outline" size={15} color={Corpus.gold} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowLabel}>My month starts on</Text>
-                  <TextInput
-                    style={styles.rowInput}
-                    value={cycle}
-                    onChangeText={(t) => setCycle(t.replace(/[^0-9]/g, '').slice(0, 2))}
-                    placeholder="1"
-                    placeholderTextColor={Corpus.textFaint}
-                    keyboardType="number-pad"
-                  />
-                  <Text style={styles.rowHint}>
-                    {Number(cycle) > 1 ? `Your month runs ${cycle}th to ${cycle}th, like your pay day` : 'Day of the month. Set your salary day so budgets match your pay cycle'}
-                  </Text>
-                </View>
-              </View>
-            </View>
+      <Group title="Alerts">
+        <GroupRow icon="notifications" color={Chip.red} title="Notifications" subtitle={`${mode}. Briefing at ${settings.briefingHour ?? 9} AM. Quiet hours ${quietLabel(settings.quietHours)}`} value={`${onCount} on`} onPress={() => setNotifs(true)} />
+      </Group>
 
-            {/* HOW YOU EARN */}
-            <SectionLabel>SETUP</SectionLabel>
-            <View style={styles.group}>
-              <Pressable style={styles.row} onPress={() => router.push('/onboarding' as Href)}>
-                <View style={styles.rowIcon}>
-                  <Ionicons name="compass-outline" size={15} color={Corpus.gold} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowLabel}>How you earn</Text>
-                  <Text style={styles.rowValue}>{earnLabel}</Text>
-                </View>
-                <Text style={styles.rowHint}>Run setup again</Text>
-                <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
-              </Pressable>
-            </View>
-
-            {shareSupported && !smsSupported && (
-              <>
-                <SectionLabel>BANK SMS</SectionLabel>
-                <Pressable style={[styles.group, styles.row]} onPress={() => router.push('/sms-review' as Href)}>
-                  <View style={styles.rowIcon}>
-                    <Ionicons name="share-outline" size={15} color={Corpus.gold} />
-                  </View>
-                  <View style={styles.rowBody}>
-                    <Text style={styles.rowLabel}>Share bank SMS to Corpus</Text>
-                    <Text style={styles.rowHint}>Messages → long-press a bank SMS → Share → Corpus. No SMS permission needed.</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
-                </Pressable>
-              </>
-            )}
-            {smsSupported && (
-              <>
-                <SectionLabel>BANK SMS</SectionLabel>
-                <View style={styles.group}>
-                  <View style={styles.row}>
-                    <View style={styles.rowIcon}>
-                      <Ionicons name="chatbox-ellipses-outline" size={15} color={Corpus.gold} />
-                    </View>
-                    <View style={styles.rowBody}>
-                      <Text style={styles.rowLabel}>Ask after each payment</Text>
-                      <Text style={styles.rowHint}>When your bank texts about a UPI, card or ATM payment, Corpus asks “log it?”. Read on this phone only — never OTPs or personal SMS.</Text>
-                    </View>
-                    <Switch
-                      value={smsOn}
-                      onValueChange={async (v) => { if (v) setSmsOn(await enableSms()); else { disableSms(); setSmsOn(false); } }}
-                      trackColor={{ true: Corpus.gold, false: Corpus.cardAlt }}
-                      thumbColor={Corpus.text}
-                    />
-                  </View>
-                  <Pressable style={[styles.row, styles.rowDivider]} onPress={() => router.push('/sms-review' as Href)}>
-                    <View style={styles.rowIcon}>
-                      <Ionicons name="time-outline" size={15} color={Corpus.gold} />
-                    </View>
-                    <View style={styles.rowBody}>
-                      <Text style={styles.rowLabel}>Waiting bank payments</Text>
-                      <Text style={styles.rowHint}>Log them, or catch up the last 30 days</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
-                  </Pressable>
-                </View>
-              </>
-            )}
-
-            {/* NOTIFICATIONS — each saves instantly */}
-            <SectionLabel>NOTIFICATIONS</SectionLabel>
-            <View style={styles.group}>
-              {(
-                [
-                  { k: 'daily', icon: 'sunny-outline', label: 'Morning briefing', hint: '9 AM: what you can spend today and what’s due' },
-                  { k: 'weekly', icon: 'stats-chart-outline', label: 'Weekly & monthly review', hint: 'Sunday 7 PM: your week · the 1st, 10 AM: last month’s report' },
-                  { k: 'people', icon: 'people-outline', label: 'Money with people', hint: 'Due dates, interest, instalments, “repay Arun”' },
-                  { k: 'cards', icon: 'card-outline', label: 'Bills, EMIs & card dues', hint: 'The day before and on the day (cards also 3 days before), with a ✓ Paid button' },
-                  { k: 'sips', icon: 'repeat-outline', label: 'SIP reminders', hint: 'Day before the debit, and “did it go through?” after' },
-                  { k: 'budget', icon: 'pie-chart-outline', label: 'Budget warning', hint: 'One evening alert once 80% of your month is used' },
-                  { k: 'checkin', icon: 'refresh-outline', label: 'Weekly balance check', hint: 'Sunday 7 PM if balances are old · 1st of the month for investments without a live price' },
-                ] as const
-              ).map((n, i) => {
-                const value = settings.notify?.[n.k] !== false;
-                return (
-                  <View key={n.k} style={[styles.row, i > 0 && styles.rowDivider]}>
-                    <View style={styles.rowIcon}>
-                      <Ionicons name={n.icon} size={15} color={Corpus.gold} />
-                    </View>
-                    <View style={styles.rowBody}>
-                      <Text style={styles.rowLabel}>{n.label}</Text>
-                      <Text style={styles.rowHint}>{n.hint}</Text>
-                    </View>
-                    <Switch
-                      value={value}
-                      onValueChange={(v) => saveSettings({ notify: { ...settings.notify, [n.k]: v } })}
-                      trackColor={{ true: Corpus.gold, false: Corpus.cardAlt }}
-                      thumbColor={Corpus.text}
-                    />
-                  </View>
-                );
-              })}
-            </View>
-            <Text style={styles.rowHint}>Notifications show on your phone app. On the web, the same reminders appear on Home.</Text>
-
-            {/* HOW OFTEN · QUIET HOURS · BRIEFING TIME */}
-            <View style={[styles.group, { padding: Space.md, gap: 10 }]}>
-              <Text style={styles.rowLabel}>How often</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {([
-                  { k: 'all', label: 'Everything' },
-                  { k: 'digest', label: 'Briefing + weekly only' },
-                  { k: 'urgent', label: 'Only urgent' },
-                ] as const).map((o) => {
-                  const on = (settings.notifyMode ?? 'all') === o.k;
-                  return (
-                    <Pressable key={o.k} onPress={() => saveSettings({ notifyMode: o.k })} style={[chip.base, on && chip.on]}>
-                      <Text style={[chip.text, on && chip.textOn]}>{o.label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <Text style={styles.rowHint}>
-                {(settings.notifyMode ?? 'all') === 'all'
-                  ? 'Each reminder on its own, plus the morning briefing. Never more than 3 a day besides the briefing.'
-                  : settings.notifyMode === 'digest'
-                    ? 'Just the morning briefing and the Sunday review — everything else is inside the briefing.'
-                    : 'Only things due today or overdue, plus the briefing. No early heads-ups.'}
-              </Text>
-
-              <Text style={[styles.rowLabel, { marginTop: 6 }]}>Quiet hours</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {([
-                  { k: 'off', label: 'Off', v: null },
-                  { k: '22-7', label: '10 PM – 7 AM', v: { from: 22, to: 7 } },
-                  { k: '22-8', label: '10 PM – 8 AM', v: { from: 22, to: 8 } },
-                  { k: '23-7', label: '11 PM – 7 AM', v: { from: 23, to: 7 } },
-                ] as const).map((o) => {
-                  const cur = settings.quietHours === undefined ? { from: 22, to: 8 } : settings.quietHours;
-                  const on = o.v === null ? cur === null : !!cur && cur.from === o.v.from && cur.to === o.v.to;
-                  return (
-                    <Pressable key={o.k} onPress={() => saveSettings({ quietHours: o.v ? { ...o.v } : null })} style={[chip.base, on && chip.on]}>
-                      <Text style={[chip.text, on && chip.textOn]}>{o.label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <Text style={styles.rowHint}>Anything that would land at night waits until the morning.</Text>
-
-              <Text style={[styles.rowLabel, { marginTop: 6 }]}>Morning briefing at</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {[7, 8, 9, 10].map((h) => {
-                  const on = (settings.briefingHour ?? 9) === h;
-                  return (
-                    <Pressable key={h} onPress={() => saveSettings({ briefingHour: h })} style={[chip.base, on && chip.on]}>
-                      <Text style={[chip.text, on && chip.textOn]}>{h}:00 AM</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* PREFERENCES */}
-            <SectionLabel>PREFERENCES</SectionLabel>
-            <View style={styles.group}>
-              <View style={styles.row}>
-                <View style={styles.rowIcon}>
-                  <Ionicons name="cash-outline" size={15} color={Corpus.gold} />
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowLabel}>Currency</Text>
-                  <Text style={styles.rowValue}>Indian Rupee (₹)</Text>
-                </View>
-              </View>
-              <View style={[styles.row, styles.rowDivider]}>
-                <View style={styles.rowIcon}>
-                  <Ionicons name="moon-outline" size={15} color={Corpus.gold} />
-                </View>
-                <View style={[styles.rowBody, { gap: 8 }]}>
-                  <Text style={styles.rowLabel}>Appearance</Text>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {([['system', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']] as const).map(([k, label]) => (
-                      <Pressable key={k} onPress={() => setThemeChoice(k)} style={[chip.base, themeChoice === k && chip.on]} accessibilityRole="button" accessibilityState={{ selected: themeChoice === k }}>
-                        <Text style={[chip.text, themeChoice === k && chip.textOn]}>{label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  <Text style={styles.rowHint}>Automatic follows your phone’s light / dark setting</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Save */}
-            {(isDirty || saving) && (
-              <Button label="Save changes" onPress={handleSave} loading={saving} disabled={!canSave} />
-            )}
-            {justSaved && <Text style={styles.savedNote}>Saved ✓</Text>}
-            {error && <Text style={styles.fieldError}>{error}</Text>}
-          </>
-        )}
-
-        {/* ACCOUNT */}
-        <SectionLabel>ACCOUNT</SectionLabel>
-        <View style={styles.group}>
-          <Pressable style={styles.logoutRow} onPress={() => logOut()}>
-            <Ionicons name="log-out-outline" size={18} color={Corpus.danger} />
-            <Text style={styles.logoutText}>Sign out</Text>
-          </Pressable>
-          <Pressable style={[styles.logoutRow, styles.rowDivider]} onPress={() => setShowDelete(true)}>
-            <Ionicons name="trash-outline" size={18} color={Corpus.textMuted} />
-            <Text style={[styles.logoutText, { color: Corpus.textMuted }]}>Delete account and data</Text>
-          </Pressable>
+      <Group title="Look and privacy">
+        <View style={s.themeRow}>
+          <Text style={s.rowTitle}>Appearance</Text>
+          <Segmented options={[{ value: 'system', label: 'Auto' }, { value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }] as const} value={themeChoice} onChange={setThemeChoice} />
+          <Text style={s.hint}>Auto follows your phone</Text>
         </View>
-        <DeleteAccountSheet visible={showDelete} onClose={() => setShowDelete(false)} onExport={() => { setShowDelete(false); router.push('/reports' as Href); }} />
+        <GroupRow icon="eye-off" color={Chip.purple} title="Hide amounts in Invest" subtitle={hide ? 'Rupee amounts show as ₹ ••••. Percentages stay' : 'Off'}
+          onPress={() => saveSettings({ hideAmounts: !hide }).catch(() => {})} chevron={false} right={<SwitchKnob on={hide} />} />
+        <GroupRow icon="cash" color={Chip.green} title="Currency" value="Indian rupee (₹)" />
+      </Group>
 
-        <Text style={styles.version}>Corpus · v1.0 · Earn. Spend. Invest. Grow.</Text>
-      </ScrollView>
-    </SafeAreaView>
+      <Group title="Your data">
+        <GroupRow icon="document-text" color={Chip.blue} title="Reports and export" subtitle="Monthly reports, CSV of every entry" onPress={() => router.push('/reports' as Href)} />
+      </Group>
+
+      <Group>
+        <GroupRow icon="log-out" color={Chip.gray} title="Sign out" onPress={() => logOut()} chevron={false} />
+        <GroupRow icon="trash" color={Chip.red} title="Delete account and data" onPress={() => setShowDelete(true)} chevron={false} />
+      </Group>
+
+      <Text style={s.version}>Corpus 1.0</Text>
+
+      {edit && <ValueSheet kind={edit} settings={settings} onClose={() => setEdit(null)} />}
+      {notifs && <NotificationsSheet settings={settings} onClose={() => setNotifs(false)} />}
+      <DeleteAccountSheet visible={showDelete} onClose={() => setShowDelete(false)} onExport={() => { setShowDelete(false); router.push('/reports' as Href); }} />
+    </Screen>
   );
 }
+
+const s = StyleSheet.create({
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md, overflow: 'hidden' },
+  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: Corpus.gold, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.onGold },
+  name: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text },
+  email: { fontSize: Type.body, color: Corpus.textMuted },
+  themeRow: { padding: Space.md, gap: 10 },
+  rowTitle: { fontSize: Type.input, color: Corpus.text },
+  hint: { fontSize: Type.small, color: Corpus.textMuted },
+  version: { fontSize: Type.small, color: Corpus.textFaint, textAlign: 'center', marginTop: Space.sm, borderRadius: Radius.sm },
+});

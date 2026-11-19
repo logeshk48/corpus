@@ -263,3 +263,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - Stock sheet: "Performance" with today's and the 52-week low and high on a grey track with a triangle marker, and sentence-case labels (no ALL CAPS). "Your investment" lists Shares, Avg. price, Current value, Invested, Total returns and 1D returns.
 - Tab switches stay near-instant (120 ms). Groww users complain about slow tab animations.
 - Pull down to refresh prices.
+
+## Settings (step 17)
+- Follows Android's settings guidance: a short overview where every row shows its current value, and you tap a row to change just that one thing.
+- Each value sheet has its own Save button. Switches save the moment you flip them. There is no page-wide "Save changes".
+- The reminder choices (how often, briefing time, quiet hours, the 7 switches) are one level down, in the Notifications sheet. The overview row sums them up, for example "Everything. Briefing at 9 AM", "7 on".
+- Groups: profile card, Money, Bank SMS, Alerts, Look and privacy, Your data, then Sign out and Delete account. Labels are sentence case with no ALL CAPS section labels.
+- Switches use the shared spring SwitchKnob, and the whole row is the tap target.

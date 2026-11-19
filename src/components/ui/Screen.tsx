@@ -7,7 +7,7 @@ import { useNavChrome, type ChromeOptions } from './NavChrome';
 
 // Each main screen has its own colour of light behind the title
 const TONES: Record<string, string> = {
-  Accounts: Chip.blue, Budgets: Chip.orange, People: Chip.pink, Jars: Chip.yellow, Income: Chip.green, 'Net worth': Chip.indigo, Bills: Chip.red, Reminders: Chip.teal, 'Wealth score': Chip.purple,
+  Accounts: Chip.blue, Budgets: Chip.orange, People: Chip.pink, Jars: Chip.yellow, Income: Chip.green, 'Net worth': Chip.indigo, Bills: Chip.red, Reminders: Chip.teal, 'Wealth score': Chip.purple, Settings: Chip.gray,
 };
 
 // Sections arrive one after another, 55 ms apart (fragments are opened up so each card counts)
