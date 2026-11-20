@@ -4,7 +4,7 @@ import { savedOf, type VaultEntryType, type VaultWithBalance } from '@/types/vau
 import { formatINR } from '@/utils/format';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import JarFill from './JarFill';
+import LiquidJar from '@/components/charts/LiquidJar';
 
 type Props = {
   jar: VaultWithBalance | null; // null = closed
@@ -54,7 +54,7 @@ export default function MoneySheet({ jar, type, initialAmount, onClose, onSubmit
       footer={<Button label={`${isIn ? 'Add' : 'Take out'} ${ok ? formatINR(value) : 'money'}`} tint={isIn ? jar.color : undefined} tintText="black" onPress={submit} loading={busy} disabled={!ok} />}
     >
       <View style={s.top}>
-        <JarFill level={level} color={jar.color} width={64} height={84} marks={!!jar.goal} />
+        <LiquidJar level={level} color={jar.color} width={64} height={84} marks={!!jar.goal} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <View style={s.amountRow}>
             <Text style={s.rupee}>₹</Text>

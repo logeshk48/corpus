@@ -285,3 +285,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - Step 19b: each step has its own Aura colour (teal, blue, green, orange, yellow, purple), which crossfades as you move. The first step greets you in the Bricolage wordmark font ("Welcome to Corpus" becomes "Hi, Logesh" as you type).
 - The budget step has a drag slider in ₹500 steps (a screen reader steps it by ₹500), three preset buttons and a spend / save split bar, all moving the live daily number. Check marks spring in when you pick.
 - The review opens with DailyGauge (shared with sign-in in components/charts): the ring sweeps and the daily number counts up together, then the Income, Budget and Jars groups arrive one after another. Finish fires celebrate().
+
+## Jars (step 20)
+- LiquidJar (components/charts) is a glass mason jar drawn in SVG. The liquid inside, in the jar's colour, rolls in a slow wave and springs up when money goes in.
+- Built from moving layers, not an animated SVG path, because animated path shapes do not render on web. Still under Reduce Motion, and hidden from screen readers.
+- The Jars list is a two-column grid of JarTiles: the jar, the name, the amount in bold, "62% of ₹84K" and a thin bar in the jar's colour. The + sits outside the tile's tap area. Tiles arrive one after another.
+- The jar detail hero is a large centred jar, 120 × 156, with the amount counting up under it.

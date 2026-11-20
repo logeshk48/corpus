@@ -1,7 +1,7 @@
 import Bullet from '@/components/charts/Bullet';
 import Shine from '@/components/fx/Shine';
 import { askWeb } from '@/services/confirm';
-import { Button, Group, IconChip, Screen } from '@/components/ui';
+import { Button, IconChip, Screen } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
 import { Chip, Corpus } from '@/constants/theme';
 import { useTween } from '@/hooks/useTween';
@@ -30,7 +30,8 @@ import { moneyMovedMessage } from './celebrate';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import JarCard from './components/JarCard';
+import JarTile from './components/JarTile';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import JarSheet, { type JarSheetMode } from './components/JarSheet';
 import MoneySheet from './components/MoneySheet';
 import StarterJars from './components/StarterJars';
@@ -52,6 +53,7 @@ export default function VaultsScreen() {
   const invested = vaults.reduce((a, v) => a + (v.invested ?? 0), 0) + looseValue;
   const total = cashTotal + invested;
   const [sorting, setSorting] = useState(false);
+  const [gridW, setGridW] = useState(0);
   // Two jars with the same name (e.g. two Savings) → offer to merge
   const dup = (() => {
     const seen = new Map<string, (typeof vaults)[number]>();
@@ -233,31 +235,26 @@ export default function VaultsScreen() {
               </View>
             )}
 
-            <Group animate title="Your jars">
-              {[
-                ...vaults.map((jar) => (
-                  <JarCard
-                    key={jar.id}
-                    jar={jar}
-                    context={context}
-                    onOpen={() => router.push({ pathname: '/vault/[id]', params: { id: jar.id } })}
-                    onAdd={() => setMoney({ jarId: jar.id, type: 'in' })}
-                  />
-                )),
-                ...(loose.length
-                  ? [
-                      <Pressable key="loose" onPress={() => setSorting(true)} style={({ pressed }) => [styles.loose, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button" accessibilityHint="Choose a jar for each investment">
-                        <IconChip icon="layers" color={Chip.indigo} size={36} />
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={styles.looseTitle}>Not in a jar yet</Text>
-                          <Text style={styles.looseSub}>{loose.length} investment{loose.length > 1 ? 's' : ''} worth {formatINR(looseValue)}</Text>
-                        </View>
-                        <View style={styles.sortBtn}><Text style={styles.sortText}>Sort</Text></View>
-                      </Pressable>,
-                    ]
-                  : []),
-              ]}
-            </Group>
+            <View style={{ gap: 10 }}>
+              <Text style={styles.section} accessibilityRole="header">Your jars</Text>
+              <View style={styles.grid} onLayout={(e) => setGridW(e.nativeEvent.layout.width)}>
+                {gridW > 0 && vaults.map((jar, i) => (
+                  <Animated.View key={jar.id} entering={FadeInDown.delay(80 + i * 70).duration(380)}>
+                    <JarTile jar={jar} width={(gridW - 12) / 2} onOpen={() => router.push({ pathname: '/vault/[id]', params: { id: jar.id } })} onAdd={() => setMoney({ jarId: jar.id, type: 'in' })} />
+                  </Animated.View>
+                ))}
+              </View>
+            </View>
+            {loose.length > 0 && (
+              <Pressable onPress={() => setSorting(true)} style={({ pressed }) => [styles.looseCard, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityHint="Choose a jar for each investment">
+                <IconChip icon="layers" color={Chip.indigo} size={36} />
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={styles.looseTitle}>Not in a jar yet</Text>
+                  <Text style={styles.looseSub}>{loose.length} investment{loose.length > 1 ? 's' : ''} worth {formatINR(looseValue)}</Text>
+                </View>
+                <View style={styles.sortBtn}><Text style={styles.sortText}>Sort</Text></View>
+              </Pressable>
+            )}
             {dup && (
               <Pressable onPress={merge} style={({ pressed }) => [styles.dup, pressed && { opacity: 0.8 }]} accessibilityRole="button">
                 <Ionicons name="git-merge" size={18} color={Corpus.warning} />

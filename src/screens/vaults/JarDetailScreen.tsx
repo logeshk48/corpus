@@ -2,7 +2,7 @@ import { Button, Group, IconButton, IconChip, Screen } from '@/components/ui';
 import { askWeb } from '@/services/confirm';
 import { Chip, Corpus } from '@/constants/theme';
 import { useTween } from '@/hooks/useTween';
-import JarFill from './components/JarFill';
+import LiquidJar from '@/components/charts/LiquidJar';
 import { useToast } from '@/context/ToastContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useVaults } from '@/hooks/useVaults';
@@ -174,19 +174,20 @@ export default function JarDetailScreen() {
     <>
       <Screen title={jar.name} tone={jar.color} right={<IconButton icon="create-outline" label="Edit jar" onPress={() => setJarMode({ kind: 'edit', jar })} />} onBack={goBack}>
         <View style={styles.hero}>
-          <JarFill level={jar.goal ? saved / jar.goal : saved > 0 ? 0.6 : 0} color={jar.color} width={92} height={120} marks={!!jar.goal} />
-          <View style={{ flex: 1, gap: 2 }}>
+          <LiquidJar level={jar.goal ? saved / jar.goal : saved > 0 ? 0.55 : 0} color={jar.color} width={120} height={156} marks={!!jar.goal} />
+          <View style={{ alignItems: 'center', gap: 4 }}>
             <Text style={styles.heroLabel}>{jar.invested ? 'Saved for this goal' : 'In this jar'}</Text>
             <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(balV))}</Text>
             {jar.goal ? (
               <Text style={[styles.goalText, reached && { color: Corpus.income }]}>
-                {reached ? `Goal of ${formatINR(jar.goal)} reached` : `${Math.round(goalPercent)}% of ${formatINR(jar.goal)}\n${formatINR(jar.goal - saved)} to go`}
+                {reached ? `Goal of ${formatINR(jar.goal)} reached` : `${Math.round(goalPercent)}% of ${formatINR(jar.goal)}, ${formatINR(jar.goal - saved)} to go`}
               </Text>
             ) : (
               <Pressable onPress={() => setJarMode({ kind: 'edit', jar })} accessibilityRole="button" hitSlop={6}>
                 <Text style={styles.goalText}>No goal yet. <Text style={styles.link}>Set one</Text></Text>
               </Pressable>
             )}
+            {!!jar.invested && <Text style={styles.goalText}>{jar.balance > 0 ? `${compactINR(jar.balance)} cash, ` : ''}{compactINR(jar.invested)} invested</Text>}
           </View>
         </View>
 

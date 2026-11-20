@@ -46,6 +46,7 @@ const LIGHT = {
   glass: 'rgba(255,255,255,0.74)',
   glassEdge: 'rgba(255,255,255,0.92)',
   shadow: 'rgba(0,0,0,0.12)',
+  sheen: '#FFFFFF',          // the light catching glass (jars)
   scrim: 'rgba(0,0,0,0.38)',  // behind sheets
   glow: 0.55,           // living-background strength
 };
@@ -79,6 +80,7 @@ const DARK: typeof LIGHT = {
   glass: 'rgba(36,36,38,0.78)',
   glassEdge: 'rgba(255,255,255,0.14)',
   shadow: 'rgba(0,0,0,0.55)',
+  sheen: '#FFFFFF',
   scrim: 'rgba(0,0,0,0.66)',
   glow: 0.5,
 };
