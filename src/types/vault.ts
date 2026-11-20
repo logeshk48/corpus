@@ -64,20 +64,20 @@ export const STARTER_VAULTS: (NewVault & { why: string })[] = [
     kind: 'tax',
     icon: 'shield-checkmark',
     color: '#C9A227',
-    why: 'Keep money aside for advance tax on freelance or business income',
+    why: 'Advance tax on freelance or business income',
   },
   {
     name: 'Emergency fund',
     kind: 'emergency',
     icon: 'medkit',
     color: '#4CAF7D',
-    why: 'A safety net for bad days — aim for 3 to 6 months of expenses',
+    why: 'For job loss, medical bills or repairs',
   },
   {
     name: 'Savings',
     kind: 'savings',
     icon: 'leaf',
     color: '#7FB7E0',
-    why: 'Money you are putting away for the future',
+    why: 'Money you put away for later',
   },
 ];

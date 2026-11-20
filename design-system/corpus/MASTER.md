@@ -276,3 +276,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - Form research (Baymard, web.dev): no confirm-password field, a show-password eye instead. Autofill hints are set (email, current-password, new-password). The keyboard's Next and Go keys work. Errors sit under their field.
 - Forgot password sends a Firebase reset email. The message never says whether the email has an account.
 - Sign up shows a privacy policy link. The wordmark is "Corpus" in sentence case on both the splash and the sign-in screen.
+
+## Setup (step 19)
+- Six steps, each a big plain question with one line under it and no ALL CAPS eyebrows. A single progress bar springs forward, and steps slide in from the right going forward and from the left going back.
+- Pick cards: the whole card is the tap target, with a square check for "pick all" and a round dot for "pick one". The chosen card gets a ring, and the "what this means for you" line opens only once chosen. Suggested options get a small green "Suggested" pill.
+- The budget step shows the live daily number (budget ÷ 30) and what is left to save, so the choice feels concrete.
+- The review uses the same Group lists as Settings. The welcome step's promise list (icon + title + text rows) was cut as filler, along with its incorrect "no SMS reading" line.

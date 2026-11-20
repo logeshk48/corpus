@@ -1,33 +1,17 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: Space.lg,
-    paddingTop: Space.sm,
-    height: 52,
-  },
-  progress: { flex: 1, flexDirection: 'row', gap: 6 },
-  seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: Corpus.cardAlt },
-  segOn: { backgroundColor: Corpus.gold },
-  stepCount: { fontSize: Type.small, color: Corpus.textMuted, minWidth: 34, textAlign: 'right' },
-  skip: { marginLeft: 'auto', paddingVertical: 8, paddingHorizontal: 4 },
-  skipText: { fontSize: Type.bodyLg, color: Corpus.textMuted },
-  content: { padding: Space.lg, paddingBottom: Space.xl },
-  footer: {
-    paddingHorizontal: Space.lg,
-    paddingTop: 12,
-    paddingBottom: Space.md,
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: Corpus.border,
-    backgroundColor: Corpus.bg,
-  },
-  footerHint: { fontSize: Type.small, color: Corpus.textFaint, textAlign: 'center' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: Space.lg, paddingTop: Space.sm, height: 56 },
+  headSide: { minWidth: 44, alignItems: 'flex-end' },
+  track: { flex: 1, height: 6, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 3, backgroundColor: Corpus.gold },
+  count: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'right' },
+  skipText: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.textMuted },
+  content: { padding: Space.lg, paddingTop: Space.md, paddingBottom: Space.xl },
+  footer: { paddingHorizontal: Space.lg, paddingTop: 12, paddingBottom: Space.md, gap: 10, backgroundColor: Corpus.bg },
+  footerHint: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center' },
   error: { fontSize: Type.body, color: Corpus.danger, textAlign: 'center' },
 });

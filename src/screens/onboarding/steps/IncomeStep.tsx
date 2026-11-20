@@ -1,47 +1,27 @@
-import { Corpus } from '@/constants/theme';
+import { Field, IconChip } from '@/components/ui';
+import { Chip } from '@/constants/theme';
 import type { WorkMode } from '@/types/settings';
-import { expectedIncome, WORK_MODES, type OnboardingAnswers } from '@/utils/onboarding';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
+import { expectedIncome, WORK_MODES, type OnboardingAnswers } from '@/utils/onboarding';
 import { Text, View } from 'react-native';
-import Field from '../components/Field';
 import { styles } from './Step.styles';
 import { fromDraft, toDraft, type StepProps } from './types';
 
-const COPY: Record<WorkMode, { key: 'salary' | 'freelance' | 'business'; nameLabel: string; namePh: string; amountLabel: string; hint: string }> = {
-  salaried: {
-    key: 'salary',
-    nameLabel: 'EMPLOYER (OPTIONAL)',
-    namePh: 'e.g. Infosys',
-    amountLabel: 'IN-HAND SALARY PER MONTH',
-    hint: 'What actually reaches your bank, after PF and TDS',
-  },
-  freelancer: {
-    key: 'freelance',
-    nameLabel: 'MAIN CLIENT (OPTIONAL)',
-    namePh: 'e.g. Zenith Studio',
-    amountLabel: 'A TYPICAL MONTH',
-    hint: 'Income uneven? Enter a lean month. It’s safer to plan on less',
-  },
-  founder: {
-    key: 'business',
-    nameLabel: 'BUSINESS NAME (OPTIONAL)',
-    namePh: 'e.g. Corpus Labs',
-    amountLabel: 'WHAT YOU PAY YOURSELF PER MONTH',
-    hint: 'Your personal draw, not the business’s revenue',
-  },
+const COPY: Record<WorkMode, { key: 'salary' | 'freelance' | 'business'; color: string; nameLabel: string; namePh: string; amountLabel: string; hint: string }> = {
+  salaried: { key: 'salary', color: Chip.blue, nameLabel: 'Employer (optional)', namePh: 'Infosys', amountLabel: 'In-hand salary a month', hint: 'What reaches your bank, after PF and TDS' },
+  freelancer: { key: 'freelance', color: Chip.purple, nameLabel: 'Main client (optional)', namePh: 'Zenith Studio', amountLabel: 'A normal month', hint: 'If it changes a lot, use a slow month. Planning on less is safer' },
+  founder: { key: 'business', color: Chip.orange, nameLabel: 'Business name (optional)', namePh: 'Your business', amountLabel: 'What you pay yourself a month', hint: 'Your own pay, not the business revenue' },
 };
 
 export default function IncomeStep({ answers, update }: StepProps) {
   const total = expectedIncome(answers);
   const modes = WORK_MODES.filter((m) => answers.modes.includes(m.id));
-
   return (
     <View style={styles.wrap}>
-      <Text style={styles.eyebrow}>YOUR INCOME</Text>
-      <Text style={styles.title}>Roughly how much comes in each month?</Text>
-      <Text style={styles.sub}>A rough number is fine. Corpus uses it to suggest a budget and to show how much of your income you’re saving.</Text>
-
+      <View style={styles.head}>
+        <Text style={styles.title} accessibilityRole="header">About how much comes in each month?</Text>
+        <Text style={styles.sub}>A rough number is fine. It is used to suggest a budget.</Text>
+      </View>
       {modes.map((m) => {
         const c = COPY[m.id];
         const value = answers[c.key] as OnboardingAnswers['salary'];
@@ -49,28 +29,20 @@ export default function IncomeStep({ answers, update }: StepProps) {
         return (
           <View key={m.id} style={styles.card}>
             <View style={styles.cardHead}>
-              <View style={styles.cardIcon}>
-                <Ionicons name={m.icon as keyof typeof Ionicons.glyphMap} size={15} color={Corpus.gold} />
-              </View>
+              <IconChip icon={m.icon} color={c.color} size={28} />
               <Text style={styles.cardTitle}>{m.title}</Text>
             </View>
+            <Field label={c.amountLabel} money value={toDraft(value.amount)} onChangeText={(t) => set({ amount: fromDraft(t.replace(/[^0-9]/g, '')) })} placeholder="0" hint={c.hint} />
             <Field label={c.nameLabel} value={value.label} onChangeText={(label) => set({ label })} placeholder={c.namePh} maxLength={40} />
-            <Field
-              label={c.amountLabel}
-              value={toDraft(value.amount)}
-              onChangeText={(t) => set({ amount: fromDraft(t) })}
-              placeholder="0"
-              hint={c.hint}
-              money
-            />
           </View>
         );
       })}
-
-      <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>{modes.length > 1 ? 'Together, about' : 'About'}</Text>
-        <Text style={styles.totalValue}>{total > 0 ? `${formatINR(total)}/mo` : '—'}</Text>
-      </View>
+      {modes.length > 0 && (
+        <View style={styles.total}>
+          <Text style={styles.totalLabel}>{modes.length > 1 ? 'Together' : 'In all'}</Text>
+          <Text style={styles.totalValue}>{total > 0 ? `${formatINR(total)} a month` : '₹0'}</Text>
+        </View>
+      )}
     </View>
   );
 }

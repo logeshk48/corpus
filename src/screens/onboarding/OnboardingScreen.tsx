@@ -1,5 +1,6 @@
 import { Button, IconButton } from '@/components/ui';
-import { Corpus } from '@/constants/theme';
+import { Spring } from '@/constants/motion';
+import Animated, { FadeInLeft, FadeInRight, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useToast } from '@/context/ToastContext';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useSettings } from '@/hooks/useSettings';
@@ -13,10 +14,9 @@ import {
   recommendedJars,
   type OnboardingAnswers,
 } from '@/utils/onboarding';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './OnboardingScreen.styles';
 import BudgetStep from './steps/BudgetStep';
@@ -27,9 +27,7 @@ import ReviewStep from './steps/ReviewStep';
 import type { StepProps } from './steps/types';
 import WelcomeStep from './steps/WelcomeStep';
 
-// 0 = welcome, 1–5 = the questions (shown in the progress bar)
 const STEPS = ['welcome', 'modes', 'income', 'budget', 'jars', 'review'] as const;
-const QUESTION_COUNT = STEPS.length - 1;
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -43,6 +41,10 @@ export default function OnboardingScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const [dir, setDir] = useState(1); // 1 = forward (slides in from the right), -1 = back
+  const prog = useSharedValue(1 / STEPS.length);
+  useEffect(() => { prog.value = withSpring((step + 1) / STEPS.length, Spring.snappy); }, [step, prog]);
+  const fill = useAnimatedStyle(() => ({ width: `${prog.value * 100}%` }));
 
   // Pre-fill from what's already saved (so "Run setup again" starts from your answers)
   const prefilled = useRef(false);
@@ -83,6 +85,7 @@ export default function OnboardingScreen() {
       update({ jars: recommendedJars(answers.modes) });
     }
     setError(null);
+    setDir(next > step ? 1 : -1);
     setStep(next);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   };
@@ -93,7 +96,7 @@ export default function OnboardingScreen() {
     try {
       await applySetupPlan(plan);
       const made = plan.streams.length + plan.vaults.length;
-      showToast({ message: made > 0 ? `Corpus is ready · ${made} things set up` : 'Corpus is ready' });
+      showToast({ message: made > 0 ? `Set up ${made} ${made === 1 ? 'thing' : 'things'}. Log your first spend` : 'All set. Log your first spend' });
       router.replace('/add?first=1' as Href);
     } catch (e) {
       console.error('Onboarding save failed:', e);
@@ -114,88 +117,46 @@ export default function OnboardingScreen() {
 
   const name = STEPS[step];
   const canContinue = name !== 'modes' || answers.modes.length > 0;
-  const label =
-    name === 'welcome'
-      ? 'Let’s begin'
-      : name === 'review'
-        ? 'Enter Corpus'
-        : name === 'budget' && !answers.monthlyBudget
-          ? 'Skip for now'
-          : 'Continue';
-  const hint =
-    name === 'modes' && answers.modes.length === 0
-      ? 'Pick at least one to continue'
-      : name === 'welcome'
-        ? 'Takes about a minute'
-        : undefined;
+  const label = name === 'review' ? 'Finish setup' : name === 'budget' && !answers.monthlyBudget ? 'Skip for now' : 'Continue';
+  const hint = name === 'modes' && answers.modes.length === 0 ? 'Pick at least one' : undefined;
+  const skippable = name === 'budget' || name === 'jars';
 
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView style={styles.column} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        {/* Header: back + progress, or Skip on the welcome screen */}
         <View style={styles.header}>
+          {step > 0 ? <IconButton icon="chevron-back" label="Back" onPress={() => goTo(step - 1)} /> : <View style={styles.headSide} />}
+          <View style={styles.track} accessibilityRole="progressbar" accessibilityValue={{ min: 1, max: STEPS.length, now: step + 1 }} accessibilityLabel={`Step ${step + 1} of ${STEPS.length}`}>
+            <Animated.View style={[styles.fill, fill]} />
+          </View>
           {step === 0 ? (
-            <Pressable style={styles.skip} onPress={skip} accessibilityRole="button">
-              <Text style={styles.skipText}>Skip for now</Text>
-            </Pressable>
+            <Pressable onPress={skip} hitSlop={8} style={styles.headSide} accessibilityRole="button"><Text style={styles.skipText}>Skip</Text></Pressable>
+          ) : skippable ? (
+            <Pressable hitSlop={8} style={styles.headSide} accessibilityRole="button" onPress={() => {
+              // skipping means "not now": nothing is created for this step
+              if (name === 'budget') update({ monthlyBudget: undefined });
+              if (name === 'jars') { seeded.current.jars = true; update({ jars: [] }); }
+              goTo(step + 1);
+            }}><Text style={styles.skipText}>Skip</Text></Pressable>
           ) : (
-            <>
-              <IconButton icon="chevron-back" label="Back" onPress={() => goTo(step - 1)} />
-              <View style={styles.progress}>
-                {Array.from({ length: QUESTION_COUNT }, (_, i) => (
-                  <View key={i} style={[styles.seg, i < step && styles.segOn]} />
-                ))}
-              </View>
-              {name === 'budget' || name === 'jars' ? (
-                <Pressable
-                  hitSlop={8}
-                  onPress={() => {
-                    // Skipping means "not now" — nothing is created for this step
-                    if (name === 'budget') update({ monthlyBudget: undefined });
-                    if (name === 'jars') {
-                      seeded.current.jars = true;
-                      update({ jars: [] });
-                    }
-                    goTo(step + 1);
-                  }}
-                >
-                  <Text style={styles.skipText}>Skip</Text>
-                </Pressable>
-              ) : (
-                <Text style={styles.stepCount}>
-                  {step}/{QUESTION_COUNT}
-                </Text>
-              )}
-            </>
+            <Text style={[styles.headSide, styles.count]}>{step + 1} of {STEPS.length}</Text>
           )}
         </View>
 
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View key={step}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <Animated.View key={step} entering={(dir > 0 ? FadeInRight : FadeInLeft).duration(260)}>
             {name === 'welcome' && <WelcomeStep answers={answers} update={update} />}
             {name === 'modes' && <ModesStep answers={answers} update={update} />}
             {name === 'income' && <IncomeStep answers={answers} update={update} />}
             {name === 'budget' && <BudgetStep answers={answers} update={update} />}
             {name === 'jars' && <JarsStep answers={answers} update={update} />}
             {name === 'review' && <ReviewStep answers={answers} update={update} plan={plan} />}
-          </View>
+          </Animated.View>
         </ScrollView>
 
         <View style={styles.footer}>
           {error && <Text style={styles.error}>{error}</Text>}
-          <Button
-            label={label}
-            icon={name === 'review' ? 'checkmark' : 'arrow-forward'}
-            iconRight
-            onPress={() => (name === 'review' ? finish() : goTo(step + 1))}
-            loading={saving}
-            disabled={!canContinue}
-          />
+          <Button label={label} icon={name === 'review' ? 'checkmark' : 'arrow-forward'} iconRight onPress={() => (name === 'review' ? finish() : goTo(step + 1))} loading={saving} disabled={!canContinue} />
           {hint && <Text style={styles.footerHint}>{hint}</Text>}
         </View>
       </KeyboardAvoidingView>
