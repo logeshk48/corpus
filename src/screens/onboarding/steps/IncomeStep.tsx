@@ -2,6 +2,7 @@ import { Field, IconChip } from '@/components/ui';
 import { Chip } from '@/constants/theme';
 import type { WorkMode } from '@/types/settings';
 import { formatINR } from '@/utils/format';
+import { useTween } from '@/hooks/useTween';
 import { expectedIncome, WORK_MODES, type OnboardingAnswers } from '@/utils/onboarding';
 import { Text, View } from 'react-native';
 import { styles } from './Step.styles';
@@ -15,6 +16,7 @@ const COPY: Record<WorkMode, { key: 'salary' | 'freelance' | 'business'; color: 
 
 export default function IncomeStep({ answers, update }: StepProps) {
   const total = expectedIncome(answers);
+  const shown = useTween(total, 400);
   const modes = WORK_MODES.filter((m) => answers.modes.includes(m.id));
   return (
     <View style={styles.wrap}>
@@ -40,7 +42,7 @@ export default function IncomeStep({ answers, update }: StepProps) {
       {modes.length > 0 && (
         <View style={styles.total}>
           <Text style={styles.totalLabel}>{modes.length > 1 ? 'Together' : 'In all'}</Text>
-          <Text style={styles.totalValue}>{total > 0 ? `${formatINR(total)} a month` : '₹0'}</Text>
+          <Text style={styles.totalValue}>{formatINR(Math.round(shown))}{total > 0 ? ' a month' : ''}</Text>
         </View>
       )}
     </View>

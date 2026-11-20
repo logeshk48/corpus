@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
+  aura: { position: 'absolute', top: 0, left: 0, right: 0, height: 380 },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: Space.lg, paddingTop: Space.sm, height: 56 },
   headSide: { minWidth: 44, alignItems: 'flex-end' },

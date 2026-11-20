@@ -282,3 +282,6 @@ Cards and text stay clean; the life is in the background and in moments.
 - Pick cards: the whole card is the tap target, with a square check for "pick all" and a round dot for "pick one". The chosen card gets a ring, and the "what this means for you" line opens only once chosen. Suggested options get a small green "Suggested" pill.
 - The budget step shows the live daily number (budget ÷ 30) and what is left to save, so the choice feels concrete.
 - The review uses the same Group lists as Settings. The welcome step's promise list (icon + title + text rows) was cut as filler, along with its incorrect "no SMS reading" line.
+- Step 19b: each step has its own Aura colour (teal, blue, green, orange, yellow, purple), which crossfades as you move. The first step greets you in the Bricolage wordmark font ("Welcome to Corpus" becomes "Hi, Logesh" as you type).
+- The budget step has a drag slider in ₹500 steps (a screen reader steps it by ₹500), three preset buttons and a spend / save split bar, all moving the live daily number. Check marks spring in when you pick.
+- The review opens with DailyGauge (shared with sign-in in components/charts): the ring sweeps and the daily number counts up together, then the Income, Budget and Jars groups arrive one after another. Finish fires celebrate().

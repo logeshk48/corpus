@@ -18,5 +18,10 @@ export const styles = StyleSheet.create({
   daily: { backgroundColor: Corpus.card, borderRadius: 20, padding: Space.lg, alignItems: 'center', gap: 2 },
   dailyNum: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1, ...tabular },
   dailyLabel: { fontSize: Type.body, color: Corpus.textMuted },
+  split: { alignSelf: 'stretch', gap: 8, marginTop: 14 },
+  splitBar: { height: 10, borderRadius: 5, backgroundColor: Corpus.income, overflow: 'hidden' },
+  splitSpend: { height: 10, backgroundColor: Corpus.gold, borderTopRightRadius: 5, borderBottomRightRadius: 5 },
+  splitRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  splitText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text, ...tabular },
   dailySave: { fontSize: Type.body, fontFamily: Font.display, marginTop: 8, textAlign: 'center' },
 });

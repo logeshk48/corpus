@@ -1,6 +1,9 @@
 import { Button, IconButton } from '@/components/ui';
 import { Spring } from '@/constants/motion';
-import Animated, { FadeInLeft, FadeInRight, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Aura from '@/components/fx/Aura';
+import { celebrate } from '@/components/fx/Celebrate';
+import { Chip } from '@/constants/theme';
+import Animated, { FadeIn, FadeInLeft, FadeInRight, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useToast } from '@/context/ToastContext';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useSettings } from '@/hooks/useSettings';
@@ -28,6 +31,8 @@ import type { StepProps } from './steps/types';
 import WelcomeStep from './steps/WelcomeStep';
 
 const STEPS = ['welcome', 'modes', 'income', 'budget', 'jars', 'review'] as const;
+// each step has its own light behind it, so moving forward feels like moving somewhere
+const TONE = [Chip.teal, Chip.blue, Chip.green, Chip.orange, Chip.yellow, Chip.purple];
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -95,6 +100,7 @@ export default function OnboardingScreen() {
     setError(null);
     try {
       await applySetupPlan(plan);
+      celebrate();
       const made = plan.streams.length + plan.vaults.length;
       showToast({ message: made > 0 ? `Set up ${made} ${made === 1 ? 'thing' : 'things'}. Log your first spend` : 'All set. Log your first spend' });
       router.replace('/add?first=1' as Href);
@@ -123,6 +129,7 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <Animated.View key={`aura${step}`} entering={FadeIn.duration(700)} style={styles.aura} pointerEvents="none"><Aura color={TONE[step]} second={TONE[(step + 1) % TONE.length]} /></Animated.View>
       <KeyboardAvoidingView style={styles.column} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           {step > 0 ? <IconButton icon="chevron-back" label="Back" onPress={() => goTo(step - 1)} /> : <View style={styles.headSide} />}

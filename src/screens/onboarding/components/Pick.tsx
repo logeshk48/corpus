@@ -2,7 +2,7 @@ import { IconChip, Tap } from '@/components/ui';
 import { Corpus, Font, Space, tabular, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 
 // One choice in a setup question: tap anywhere on it. Selected shows a filled check (or dot) and a ring,
 // so it never depends on colour alone. `more` opens under the title only when chosen.
@@ -23,7 +23,7 @@ export default function Pick({ title, line, more, tag, icon, color, right, selec
       </View>
       {!!right && <Text style={s.right}>{right}</Text>}
       <View style={[kind === 'check' ? s.box : s.radio, selected && s.boxOn]}>
-        {selected && (kind === 'check' ? <Ionicons name="checkmark" size={15} color={Corpus.onGold} /> : <View style={s.dot} />)}
+        {selected && <Animated.View entering={ZoomIn.springify().damping(14)}>{kind === 'check' ? <Ionicons name="checkmark" size={15} color={Corpus.onGold} /> : <View style={s.dot} />}</Animated.View>}
       </View>
     </Tap>
   );

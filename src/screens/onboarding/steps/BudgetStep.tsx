@@ -3,25 +3,27 @@ import { Corpus } from '@/constants/theme';
 import { useTween } from '@/hooks/useTween';
 import { formatINR } from '@/utils/format';
 import { budgetOptions, expectedIncome } from '@/utils/onboarding';
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
-import Pick from '../components/Pick';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import BudgetSlider from '../components/BudgetSlider';
 import { styles } from './Step.styles';
 import { fromDraft, toDraft, type StepProps } from './types';
 
-const LINE: Record<string, string> = {
-  saver: 'Saves 40% of what comes in',
-  balanced: 'Saves 30%',
-  relaxed: 'Saves 20%, the usual minimum',
-};
+const r500 = (n: number) => Math.round(n / 500) * 500;
 
-// The budget turns into the number Corpus shows every morning, so show that number live as you choose
+// The budget turns into the number Corpus shows every morning, so that number is the hero here:
+// drag the slider and watch the daily amount and the spend / save split move with it.
 export default function BudgetStep({ answers, update }: StepProps) {
   const income = expectedIncome(answers);
   const options = budgetOptions(income);
   const budget = answers.monthlyBudget;
-  const isPreset = options.some((o) => o.amount === budget);
   const saves = income > 0 && budget ? income - budget : undefined;
-  const daily = useTween(budget ? Math.round(budget / 30) : 0);
+  const daily = useTween(budget ? Math.round(budget / 30) : 0, 400);
+  const share = income > 0 && budget ? Math.min(1, budget / income) : 0;
+  const sv = useSharedValue(share);
+  useEffect(() => { sv.value = withTiming(share, { duration: 300 }); }, [share, sv]);
+  const spendBar = useAnimatedStyle(() => ({ width: `${sv.value * 100}%` }));
 
   return (
     <View style={styles.wrap}>
@@ -30,33 +32,48 @@ export default function BudgetStep({ answers, update }: StepProps) {
         <Text style={styles.sub}>Rent, bills and everyday spending together. Corpus turns it into a daily number.</Text>
       </View>
 
-      <View style={styles.daily} accessible accessibilityLabel={budget ? `About ${formatINR(Math.round(budget / 30))} a day` : 'No budget yet'}>
-        <Text style={styles.dailyNum}>{formatINR(Math.round(daily))}</Text>
+      <View style={styles.daily}>
+        <Text style={styles.dailyNum} accessibilityLabel={budget ? `About ${formatINR(Math.round(budget / 30))} a day` : 'No budget yet'}>{formatINR(Math.round(daily))}</Text>
         <Text style={styles.dailyLabel}>a day, before bills and jars</Text>
-        {saves !== undefined && (
-          <Text style={[styles.dailySave, { color: saves >= 0 ? Corpus.income : Corpus.danger }]}>
-            {saves >= 0 ? `Leaves ${formatINR(saves)} a month to save` : `${formatINR(-saves)} more than you earn each month`}
-          </Text>
+        {income > 0 && (
+          <View style={styles.split}>
+            <View style={styles.splitBar}>
+              <Animated.View style={[styles.splitSpend, spendBar]} />
+            </View>
+            <View style={styles.splitRow}>
+              <Text style={styles.splitText}>Spend {budget ? formatINR(budget) : '₹0'}</Text>
+              <Text style={[styles.splitText, { color: saves !== undefined && saves < 0 ? Corpus.danger : Corpus.income }]}>
+                {saves === undefined ? `Save ${formatINR(income)}` : saves >= 0 ? `Save ${formatINR(saves)}` : `${formatINR(-saves)} over`}
+              </Text>
+            </View>
+          </View>
         )}
       </View>
 
-      {options.length > 0 && (
-        <View style={styles.list}>
-          {options.map((o) => (
-            <Pick key={o.id} kind="radio" title={o.label} line={LINE[o.id]} tag={o.id === 'balanced' ? 'Suggested' : undefined} right={formatINR(o.amount)} selected={budget === o.amount} onPress={() => update({ monthlyBudget: o.amount })} />
-          ))}
+      {income > 0 && (
+        <View style={styles.card}>
+          <BudgetSlider
+            value={budget ?? options[1].amount}
+            min={r500(income * 0.4)}
+            max={r500(income)}
+            marks={options.map((o) => ({ label: o.label, amount: o.amount }))}
+            onChange={(v) => update({ monthlyBudget: v })}
+          />
+          <Text style={styles.note}>
+            {budget === options[0].amount ? 'Saver keeps 40% of what comes in.' : budget === options[1].amount ? 'Balanced keeps 30%. Most people start here.' : budget === options[2].amount ? 'Relaxed keeps 20%, the usual minimum.' : 'Drag the slider or pick one of the three.'}
+          </Text>
         </View>
       )}
 
       <View style={styles.card}>
-      <Field
-        label={options.length > 0 ? 'Or type your own' : 'Monthly budget'}
-        money
-        value={isPreset ? '' : toDraft(budget)}
-        onChangeText={(t) => update({ monthlyBudget: fromDraft(t.replace(/[^0-9]/g, '')) })}
-        placeholder={options.length > 0 ? 'Your amount' : '25000'}
-        hint={income === 0 ? 'No income entered, so there are no suggestions. You can skip this and set it later.' : undefined}
-      />
+        <Field
+          label={income > 0 ? 'Or type an exact amount' : 'Monthly budget'}
+          money
+          value={toDraft(budget)}
+          onChangeText={(t) => update({ monthlyBudget: fromDraft(t.replace(/[^0-9]/g, '')) })}
+          placeholder="25000"
+          hint={income === 0 ? 'No income entered, so there is nothing to suggest. You can skip this and set it later.' : undefined}
+        />
       </View>
     </View>
   );

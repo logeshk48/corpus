@@ -1,61 +1,18 @@
+import DailyGauge from '@/components/charts/DailyGauge';
 import Aura from '@/components/fx/Aura';
 import { Button, Field, Segmented } from '@/components/ui';
-import { Chip, Corpus, Font, Space, tabular, Type } from '@/constants/theme';
+import { Chip, Corpus, Font, Space, Type } from '@/constants/theme';
 import { resetPassword, signIn, signUp } from '@/services/auth';
 import { friendlyAuthError } from '@/utils/authErrors';
 import { validateConfirm, validateEmail, validatePassword } from '@/utils/validation';
-import { useTween } from '@/hooks/useTween';
-import { formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { Easing, FadeIn, useAnimatedProps, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 const PRIVACY = 'https://corpus-fawn-eight.vercel.app/privacy';
-const APath = Animated.createAnimatedComponent(Path);
-const MS = 650;
-
-// The gauge fills as you fill the form: each finished field moves it one step (up to ₹48),
-// and pressing Sign in / Create account takes it the rest of the way to ₹100.
-function Gauge({ value, width = 220 }: { value: number; width?: number }) {
-  const reduce = useReducedMotion();
-  const id = useId().replace(/:/g, '');
-  const stroke = 12;
-  const r = (width - stroke) / 2;
-  const h = r + stroke;
-  const len = Math.PI * r;
-  const d = `M ${stroke / 2} ${r + stroke / 2} A ${r} ${r} 0 0 1 ${width - stroke / 2} ${r + stroke / 2}`;
-  const p = useSharedValue(value / 100);
-  const shown = useTween(value, reduce ? 0 : MS);
-  useEffect(() => {
-    p.value = reduce ? value / 100 : withTiming(value / 100, { duration: MS, easing: Easing.out(Easing.cubic) });
-  }, [value, reduce, p]);
-  const props = useAnimatedProps(() => ({ strokeDashoffset: len * (1 - p.value) }));
-  return (
-    <View style={{ width, height: h }} accessible accessibilityLabel={`${formatINR(value)} of 100`}>
-      <View style={StyleSheet.absoluteFill} importantForAccessibility="no-hide-descendants">
-        <Svg width={width} height={h}>
-          <Defs>
-            <LinearGradient id={`g${id}`} x1="0" y1="0" x2={width} y2="0" gradientUnits="userSpaceOnUse">
-              <Stop offset="0" stopColor={Chip.teal} />
-              <Stop offset="1" stopColor={Corpus.income} />
-            </LinearGradient>
-          </Defs>
-          <Path d={d} stroke={Corpus.border} strokeWidth={stroke} strokeLinecap="round" fill="none" />
-          <APath d={d} stroke={`url(#g${id})`} strokeWidth={stroke} strokeLinecap="round" fill="none" strokeDasharray={`${len} ${len}`} animatedProps={props} />
-        </Svg>
-      </View>
-      <View style={s.gaugeIn}>
-        <Text style={s.gaugeNum}>{formatINR(Math.round(shown))}</Text>
-        <Text style={s.gaugeSub}>safe to spend today</Text>
-      </View>
-    </View>
-  );
-}
-
 // Sign in and Create account on one screen, switched by a segmented control. Following Baymard and
 // web.dev: no "confirm password" box (a show-password eye instead), autofill hints so the phone's password
 // manager can fill both fields, errors under the field they belong to, and a forgotten password one tap away.
@@ -127,7 +84,7 @@ export default function AuthScreen({ mode: start }: { mode: 'login' | 'signup' }
               </View>
 
               <View style={s.hero}>
-                <Gauge value={gauge} />
+                <DailyGauge amount={gauge} fill={gauge / 100} label="safe to spend today" ms={650} />
               </View>
 
               <View style={s.card}>
@@ -231,9 +188,6 @@ const s = StyleSheet.create({
   word: { fontSize: Type.entry, lineHeight: 50, fontFamily: Font.brand, color: Corpus.text, letterSpacing: -1.2, textAlign: 'center' },
   tagline: { fontSize: Type.input, lineHeight: 22, color: Corpus.textMuted, textAlign: 'center' },
   hero: { alignItems: 'center', gap: 8 },
-  gaugeIn: { position: 'absolute', left: 0, right: 0, bottom: -4, alignItems: 'center' },
-  gaugeNum: { fontSize: Type.h1, lineHeight: 34, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.5, ...tabular },
-  gaugeSub: { fontSize: Type.small, color: Corpus.textMuted },
   card: { backgroundColor: Corpus.card, borderRadius: 24, padding: Space.lg - 4, gap: Space.md },
   eye: { paddingHorizontal: 4, alignSelf: 'stretch', justifyContent: 'center' },
   forgot: { alignSelf: 'flex-end' },
