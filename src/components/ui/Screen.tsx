@@ -37,7 +37,7 @@ export default function Screen({ children, contentStyle, keyboard, tone, ...chro
       >
         {c.title}
         {flatten(children).map((child, i) => (
-          <Reanimated.View key={isValidElement(child) && child.key != null ? child.key : i} entering={FadeInDown.delay(Math.min(i, 8) * 55).duration(380)}>
+          <Reanimated.View key={isValidElement(child) && child.key != null ? `${i}${child.key}` : i} entering={FadeInDown.delay(Math.min(i, 8) * 55).duration(380)}>
             {child}
           </Reanimated.View>
         ))}

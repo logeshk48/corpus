@@ -296,3 +296,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - Each income source has its own colour, assigned in the order it was added (sourceColor), so two clients never share one. The same colour shows on the list icon, the progress bar, the donut slice and the detail page.
 - The hero adds a donut of this month's money by source, with a legend of name and %, plus a grey "No source" slice. That sits above the 6-month bars.
 - The "Got paid" pill is filled while a source has not paid yet this month and plain once it has, so the list shows who is still to pay. The detail page's Got paid button takes the source's colour.
+
+## Year report and Tax summary (step 22)
+- Both use the shared Screen frame, Stepper and Segmented. All ALL CAPS section labels, "·" chains, arrows, "⬇" and "•" are gone.
+- Year report: the hero is what you saved, big, with "32% of what came in" and an Earned / Spent / Invested strip. Below it: the AreaTrend chart (tap a month for its numbers), a "Where it went" donut with legend, Biggest spends as GroupRows with category icons, a "Look closer" group (last month's review, Tax summary), Data health, and Export rows with a CSV tag.
+- Tax summary: the hero is the ITR due date and the days left. Then cards with a title and a pill (Schedule CG, Other sources, Old regime only) and label-left, amount-right lines. Capital gains has a real "Download for your CA" button. "Before you file" is a list with an icon on each row.
+- Fix: Screen keyed flattened fragment children by their own keys, which clashed (".0" twice). Keys now include the position.

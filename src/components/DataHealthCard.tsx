@@ -19,7 +19,7 @@ export default function DataHealthCard({ h }: { h: ReturnType<typeof dataHealth>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={st.title}>
-            Data health · <Text style={{ color: c }}>{h.label}</Text>
+            Data health: <Text style={{ color: c }}>{h.label}</Text>
           </Text>
           <Text style={st.sub}>{todo.length ? `${todo.length} thing${todo.length > 1 ? 's' : ''} would make these numbers more accurate` : 'These numbers reflect your real money'}</Text>
         </View>
