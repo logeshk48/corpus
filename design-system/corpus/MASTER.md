@@ -291,3 +291,8 @@ Cards and text stay clean; the life is in the background and in moments.
 - Built from moving layers, not an animated SVG path, because animated path shapes do not render on web. Still under Reduce Motion, and hidden from screen readers.
 - The Jars list is a two-column grid of JarTiles: the jar, the name, the amount in bold, "62% of ₹84K" and a thin bar in the jar's colour. The + sits outside the tile's tap area. Tiles arrive one after another.
 - The jar detail hero is a large centred jar, 120 × 156, with the amount counting up under it.
+
+## Income (step 21)
+- Each income source has its own colour, assigned in the order it was added (sourceColor), so two clients never share one. The same colour shows on the list icon, the progress bar, the donut slice and the detail page.
+- The hero adds a donut of this month's money by source, with a legend of name and %, plus a grey "No source" slice. That sits above the 6-month bars.
+- The "Got paid" pill is filled while a source has not paid yet this month and plain once it has, so the list shows who is still to pay. The detail page's Got paid button takes the source's colour.

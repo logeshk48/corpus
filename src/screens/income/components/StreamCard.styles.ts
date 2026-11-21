@@ -13,5 +13,6 @@ export const styles = StyleSheet.create({
   amount: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.text, ...tabular },
   bar: { paddingLeft: 42 },
   paid: { flexDirection: 'row', alignItems: 'center', gap: 3, minHeight: 36, paddingLeft: 10, paddingRight: 13, borderRadius: 18, backgroundColor: Corpus.cardAlt },
+  paidOn: { backgroundColor: Corpus.gold },
   paidText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
 });

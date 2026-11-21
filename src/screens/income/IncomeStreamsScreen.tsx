@@ -1,5 +1,6 @@
 import Bullet from '@/components/charts/Bullet';
 import Shine from '@/components/fx/Shine';
+import Donut from '@/components/charts/Donut';
 import MonthBars, { lastMonths } from '@/components/charts/MonthBars';
 import { Button, Group, GroupRow, IconChip, Screen } from '@/components/ui';
 import { Chip, Corpus } from '@/constants/theme';
@@ -15,7 +16,7 @@ import { formatINR } from '@/utils/format';
 import { useRouter, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
-import StreamCard from './components/StreamCard';
+import StreamCard, { sourceColor } from './components/StreamCard';
 import GotPaidSheet from './components/GotPaidSheet';
 import { logPaid } from './logPaid';
 import { usualOf, type Usual } from '@/utils/incomeUsual';
@@ -59,6 +60,13 @@ export default function IncomeStreamsScreen() {
   const monthName = new Date().toLocaleDateString('en-IN', { month: 'long' });
   const sorted = [...streams].sort((a, b) => (received.get(b.id) ?? 0) - (received.get(a.id) ?? 0) || (b.expectedMonthly ?? 0) - (a.expectedMonthly ?? 0));
 
+  const colorOf = new Map(streams.map((s) => [s.id, sourceColor(streams, s.id)]));
+  // this month's money by source, biggest first (no-source income goes in as its own grey slice)
+  const slices = [
+    ...sorted.filter((s) => (received.get(s.id) ?? 0) > 0).map((s) => ({ id: s.id, name: s.name, value: received.get(s.id) ?? 0, color: colorOf.get(s.id)! })),
+    ...(unlinked > 0 ? [{ id: 'none', name: 'No source', value: unlinked, color: Chip.gray }] : []),
+  ].slice(0, 5);
+
   const create = async (s: NewIncomeStream) => {
     try {
       await addIncomeStream(s);
@@ -96,6 +104,23 @@ export default function IncomeStreamsScreen() {
                   {total === 0 ? `Nothing yet. A usual month brings about ${formatINR(avg)}` : total >= avg ? `${formatINR(total - avg)} more than your usual ${formatINR(avg)} a month` : `${formatINR(avg - total)} below your usual ${formatINR(avg)} so far`}
                 </Text>
               ) : null}
+              {slices.length > 0 && (
+                <View style={styles.split}>
+                  <Donut data={slices} size={112} thickness={14} track={Corpus.cardAlt}>
+                    <Text style={styles.donutNum}>{slices.length}</Text>
+                    <Text style={styles.donutLabel}>{slices.length === 1 ? 'source' : 'sources'}</Text>
+                  </Donut>
+                  <View style={styles.legend}>
+                    {slices.map((sl) => (
+                      <View key={sl.id} style={styles.legendRow}>
+                        <View style={[styles.dot, { backgroundColor: sl.color }]} />
+                        <Text style={styles.legendName} numberOfLines={1}>{sl.name}</Text>
+                        <Text style={styles.legendPct}>{Math.round((sl.value / total) * 100)}%</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
               {bars.some((b) => b.value > 0) && (
                 <View style={styles.chart}>
                   <MonthBars bars={bars} color={Corpus.income} target={expected || avg || undefined} targetLabel={expected ? 'Expected' : 'Your average'} appear={t} />
@@ -114,7 +139,7 @@ export default function IncomeStreamsScreen() {
               <Group animate title="Sources">
                 {[
                   ...sorted.map((s) => (
-                    <StreamCard key={s.id} stream={s} receivedThisMonth={received.get(s.id) ?? 0} usual={usual.get(s.id) ?? usualOf([])} onPaid={() => setPaying(s)} appear={t} onPress={() => router.push({ pathname: '/income/[id]', params: { id: s.id } })} />
+                    <StreamCard key={s.id} color={colorOf.get(s.id)} stream={s} receivedThisMonth={received.get(s.id) ?? 0} usual={usual.get(s.id) ?? usualOf([])} onPaid={() => setPaying(s)} appear={t} onPress={() => router.push({ pathname: '/income/[id]', params: { id: s.id } })} />
                   )),
                   ...(unlinked > 0
                     ? [<GroupRow key="unlinked" icon="help" color={Chip.gray} title="No source picked" subtitle="Income logged without a source" value={formatINR(unlinked)} valueColor={Corpus.text} onPress={() => router.push('/transactions' as Href)} />]

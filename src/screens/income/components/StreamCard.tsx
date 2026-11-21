@@ -9,6 +9,9 @@ import { Pressable, Text, View } from 'react-native';
 import { styles } from './StreamCard.styles';
 
 export const streamColor = (type: string) => CategoryChip[type] ?? Chip.gray;
+// one colour per source, in the order they were added, so two clients never share a colour (same on the list and the detail page)
+const PALETTE = [Chip.green, Chip.teal, Chip.blue, Chip.indigo, Chip.purple];
+export const sourceColor = (all: { id: string }[], id: string) => { const i = all.findIndex((x) => x.id === id); return i < 0 ? Chip.gray : PALETTE[i % PALETTE.length]; };
 
 // What to say about a source this month, in words (never colour alone)
 export function stateLine(s: IncomeStream, received: number, u: Usual): { text: string; icon?: string; color?: string } {
@@ -27,9 +30,11 @@ export function stateLine(s: IncomeStream, received: number, u: Usual): { text: 
 }
 
 // One income source as a row: what came in this month, how that compares, and a quick "Got paid"
-export default function StreamCard({ stream, receivedThisMonth, usual, onPress, onPaid, appear = 1 }: {
-  stream: IncomeStream; receivedThisMonth: number; usual: Usual; onPress?: () => void; onPaid: () => void; appear?: number;
+export default function StreamCard({ stream, receivedThisMonth, usual, onPress, onPaid, appear = 1, color }: {
+  stream: IncomeStream; receivedThisMonth: number; usual: Usual; onPress?: () => void; onPaid: () => void; appear?: number; color?: string;
 }) {
+  const tint = color ?? streamColor(stream.type);
+  const waiting = receivedThisMonth === 0;
   const meta = streamTypeMeta(stream.type);
   const fixed = stream.fixed && stream.expectedMonthly ? stream.expectedMonthly : null;
   const line = stateLine(stream, receivedThisMonth, usual);
@@ -38,7 +43,7 @@ export default function StreamCard({ stream, receivedThisMonth, usual, onPress, 
       <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: Corpus.cardAlt }]} accessibilityRole="button"
         accessibilityLabel={`${stream.name}: ${formatINR(receivedThisMonth)} this month. ${line.text}`}>
         <View style={styles.top}>
-          <IconChip icon={meta.icon} color={streamColor(stream.type)} />
+          <IconChip icon={meta.icon} color={tint} />
           <View style={styles.middle}>
             <View style={styles.nameRow}>
               <Text style={styles.name} numberOfLines={1}>{stream.name}</Text>
@@ -52,13 +57,13 @@ export default function StreamCard({ stream, receivedThisMonth, usual, onPress, 
         </View>
         {fixed ? (
           <View style={styles.bar}>
-            <Bullet value={receivedThisMonth} limit={fixed} color={Corpus.income} height={6} appear={appear} />
+            <Bullet value={receivedThisMonth} limit={fixed} color={tint} height={6} appear={appear} />
           </View>
         ) : null}
       </Pressable>
-      <Pressable onPress={onPaid} hitSlop={6} style={({ pressed }) => [styles.paid, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Got paid by ${stream.name}`}>
-        <Ionicons name="add" size={16} color={Corpus.text} />
-        <Text style={styles.paidText}>Got paid</Text>
+      <Pressable onPress={onPaid} hitSlop={6} style={({ pressed }) => [styles.paid, waiting && styles.paidOn, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel={`Got paid by ${stream.name}`}>
+        <Ionicons name="add" size={16} color={waiting ? Corpus.onGold : Corpus.text} />
+        <Text style={[styles.paidText, waiting && { color: Corpus.onGold }]}>Got paid</Text>
       </Pressable>
     </View>
   );

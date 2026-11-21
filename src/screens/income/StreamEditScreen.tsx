@@ -16,7 +16,7 @@ import { formatINR } from '@/utils/format';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Platform, Text, View } from 'react-native';
-import { stateLine, streamColor } from './components/StreamCard';
+import { sourceColor, stateLine } from './components/StreamCard';
 import GotPaidSheet from './components/GotPaidSheet';
 import { logPaid } from './logPaid';
 import { usualOf } from '@/utils/incomeUsual';
@@ -94,7 +94,7 @@ export default function StreamEditScreen() {
     );
   }
 
-  const color = streamColor(stream.type);
+  const color = sourceColor(streams, stream.id);
   return (
     <>
       <Screen title={stream.name} tone={color} subtitle={streamTypeMeta(stream.type).label} onBack={goBack} right={<IconButton icon="create-outline" label="Edit source" onPress={() => setEditing(true)} />}>
@@ -103,7 +103,7 @@ export default function StreamEditScreen() {
           <Text style={styles.big} numberOfLines={1} adjustsFontSizeToFit>{formatINR(Math.round(monthV))}</Text>
           {expected ? (
             <View style={{ gap: 2 }} accessible accessibilityLabel={`${formatINR(monthTotal)} of ${formatINR(expected)} expected`}>
-              <Bullet value={monthTotal} limit={expected} color={Corpus.income} height={10} appear={t} />
+              <Bullet value={monthTotal} limit={expected} color={color} height={10} appear={t} />
               <Text style={styles.sub}>{monthTotal >= expected ? `All ${formatINR(expected)} has come in` : `${formatINR(expected - monthTotal)} of ${formatINR(expected)} still to come`}</Text>
             </View>
           ) : (
@@ -129,7 +129,7 @@ export default function StreamEditScreen() {
           </View>
         </View>
 
-        <Button icon="add" label="Got paid" onPress={() => setPaying(true)} />
+        <Button icon="add" label="Got paid" tint={color} tintText={Corpus.sheen} onPress={() => setPaying(true)} />
 
         {paid.length > 0 && (
           <View style={styles.hero}>
