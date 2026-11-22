@@ -92,12 +92,12 @@ export function marketStatus(now = new Date()) {
   const mins = ist.getHours() * 60 + ist.getMinutes();
   const open = day >= 1 && day <= 5 && mins >= 555 && mins < 930;
   return { open, label: open
-      ? 'Market open · live'
+      ? 'Market open, live prices'
       : day === 0 || day === 6
-        ? 'Closed for the weekend · showing Friday’s close'
+        ? 'Closed for the weekend. Showing Friday’s close'
         : mins < 555
-          ? 'Opens 9:15 AM · showing yesterday’s close'
-          : 'Closed at 3:30 PM · showing today’s close' };
+          ? 'Opens at 9:15 AM. Showing yesterday’s close'
+          : 'Closed at 3:30 PM. Showing today’s close' };
 }
 
 export const shortSymbol = (s: string) => s.replace(/\.(NS|BO)$/, '');

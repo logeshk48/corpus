@@ -559,7 +559,7 @@ export default function InvestScreen() {
                 showToast({
                   message: history.alreadyIncluded
                     ? `${b.entries.length} past SIPs recorded`
-                    : `${b.entries.length} past SIPs added · ${b.units} units for ${formatINR(b.invested)}`,
+                    : `${b.entries.length} past SIPs added: ${b.units} units for ${formatINR(b.invested)}`,
                 });
               } else {
                 await saveSip(h, sip);

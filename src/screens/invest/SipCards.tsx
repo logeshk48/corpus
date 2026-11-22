@@ -39,12 +39,12 @@ export default function SipCards({ pending, list, onYes, onSkip }: { pending: In
           <View key={key} style={[m.position, { gap: 8 }]}>
             <Text style={m.rowName}>Did your {formatINR(p.amount)} SIP go through?</Text>
             <Text style={m.small}>
-              {p.h.name} · {when(p.date)}
-              {p.ageDays > 0 ? ` · assumed yes in ${Math.max(0, AUTO_DAYS - p.ageDays)} day${AUTO_DAYS - p.ageDays === 1 ? '' : 's'}` : ''}
+              {p.h.name}, {when(p.date)}
+              {p.ageDays > 0 ? `. Counted as done in ${Math.max(0, AUTO_DAYS - p.ageDays)} day${AUTO_DAYS - p.ageDays === 1 ? '' : 's'}` : ''}
             </Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Button style={{ flex: 1 }} size="sm" icon="checkmark" label="Yes, it went" loading={busy === key} onPress={() => act(key, () => onYes(p))} />
-              <Button style={{ flex: 1 }} size="sm" variant="secondary" label="Skipped / failed" onPress={() => act(key, () => onSkip(p))} />
+              <Button style={{ flex: 1 }} size="sm" variant="secondary" label="Skipped or failed" onPress={() => act(key, () => onSkip(p))} />
             </View>
           </View>
         );
@@ -53,7 +53,7 @@ export default function SipCards({ pending, list, onYes, onSkip }: { pending: In
         <View key={h.id} style={m.posRow}>
           <Text style={[m.small, { flex: 1 }]} numberOfLines={1}>{h.name}</Text>
           <Text style={m.small}>
-            {formatINR(n!.amount)} · {when(n!.date)}
+            {formatINR(n!.amount)}, {when(n!.date)}
           </Text>
         </View>
       ))}

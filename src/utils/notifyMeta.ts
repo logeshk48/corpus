@@ -23,7 +23,7 @@ export function categoryFor(id: string): NotifyCat | null {
 
 // buttons (they open the app for a second, do the action, and show a confirmation)
 export const CATEGORIES: { id: NotifyCat; actions: { id: string; title: string }[] }[] = [
-  { id: 'corpus-bill', actions: [{ id: 'paid', title: '✓ Paid' }, { id: 'snooze', title: 'Remind tomorrow' }] },
-  { id: 'corpus-sip', actions: [{ id: 'sip-yes', title: '✓ Yes, it went' }, { id: 'sip-skip', title: 'Skipped' }] },
-  { id: 'corpus-done', actions: [{ id: 'done', title: '✓ Done' }, { id: 'snooze', title: 'Remind tomorrow' }] },
+  { id: 'corpus-bill', actions: [{ id: 'paid', title: 'Paid' }, { id: 'snooze', title: 'Remind tomorrow' }] },
+  { id: 'corpus-sip', actions: [{ id: 'sip-yes', title: 'Yes, it went' }, { id: 'sip-skip', title: 'Skipped' }] },
+  { id: 'corpus-done', actions: [{ id: 'done', title: 'Done' }, { id: 'snooze', title: 'Remind tomorrow' }] },
 ];

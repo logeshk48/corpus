@@ -21,7 +21,7 @@ export function dataHealth(p: { tx: Transaction[]; accounts: AccountBalance[]; i
   checks.push({
     id: 'coverage', ok: coverage >= 0.6, weight: 35, href: '/add',
     title: `Logged on ${days} of the last 30 days`,
-    detail: coverage >= 0.6 ? 'Good coverage — spending totals are close to real.' : 'Days without entries make spending look lower than it is. Even a rough amount for a missed day helps.',
+    detail: coverage >= 0.6 ? 'Good coverage. Spending totals are close to real.' : 'Days without entries make spending look lower than it is. Even a rough amount for a missed day helps.',
   });
   // 2) income this month
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -40,7 +40,7 @@ export function dataHealth(p: { tx: Transaction[]; accounts: AccountBalance[]; i
     checks.push({
       id: 'balances', ok: stale.length === 0, weight: 15, href: '/accounts',
       title: stale.length ? `${stale.length} balance${stale.length > 1 ? 's' : ''} not updated for a week` : 'Balances up to date',
-      detail: stale.length ? `${stale.map((a) => a.name).slice(0, 3).join(', ')} — net worth, emergency fund and low-balance alerts use these.` : 'Net worth and alerts are using fresh numbers.',
+      detail: stale.length ? `${stale.map((a) => a.name).slice(0, 3).join(', ')}. Net worth, emergency fund and low-balance alerts use these.` : 'Net worth and alerts are using fresh numbers.',
     });
   }
   // 4) double entries / typos waiting
@@ -49,7 +49,7 @@ export function dataHealth(p: { tx: Transaction[]; accounts: AccountBalance[]; i
   checks.push({
     id: 'dups', ok: dups.length + typos.length === 0, weight: 15, href: '/',
     title: dups.length + typos.length ? `${dups.length + typos.length} possible mistake${dups.length + typos.length > 1 ? 's' : ''} to check` : 'No double entries or typos found',
-    detail: dups.length + typos.length ? `${dups.length ? `${dups.length} logged twice` : ''}${dups.length && typos.length ? ', ' : ''}${typos.length ? `${typos.length} with a possible extra zero` : ''} — see “Found for you” on Home.` : 'Totals aren’t inflated by repeats.',
+    detail: dups.length + typos.length ? `${dups.length ? `${dups.length} logged twice` : ''}${dups.length && typos.length ? ', ' : ''}${typos.length ? `${typos.length} with a possible extra zero` : ''}. See “Found for you” on Home.` : 'Totals aren’t inflated by repeats.',
   });
   // 5) "Other" category share
   const spent = recent.filter((t) => t.type === 'expense');
@@ -67,7 +67,7 @@ export function dataHealth(p: { tx: Transaction[]; accounts: AccountBalance[]; i
     checks.push({
       id: 'invest', ok: old.length === 0, weight: 10, href: '/invest',
       title: old.length ? `${old.length} investment value${old.length > 1 ? 's' : ''} out of date` : 'Investment values current',
-      detail: old.length ? `${old.map((h) => h.name).slice(0, 2).join(', ')} — no live price and not updated for 30+ days.` : 'Live prices or recent updates.',
+      detail: old.length ? `${old.map((h) => h.name).slice(0, 2).join(', ')}: no live price and not updated for 30+ days.` : 'Live prices or recent updates.',
     });
   const max = checks.reduce((a, c) => a + c.weight, 0);
   const got = checks.reduce((a, c) => a + (c.ok ? c.weight : c.id === 'coverage' ? c.weight * Math.min(1, coverage / 0.6) : 0), 0);

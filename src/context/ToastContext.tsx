@@ -57,7 +57,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <Text style={styles.message}>{toast.message}</Text>
               {toast.actionLabel && (
                 <Pressable onPress={handleAction} hitSlop={10}>
-                  <Text style={styles.action}>{toast.actionLabel.toUpperCase()}</Text>
+                  <Text style={styles.action}>{toast.actionLabel}</Text>
                 </Pressable>
               )}
             </View>

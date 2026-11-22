@@ -56,7 +56,7 @@ export default function DeleteAccountSheet({ visible, onClose, onExport }: { vis
               <Text style={s.link}>Download your data first (CSV)</Text>
             </Pressable>
             <View style={f.field}>
-              <Text style={f.label}>YOUR PASSWORD</Text>
+              <Text style={f.label}>Your password</Text>
               <TextInput
                 style={f.input} value={pw} onChangeText={setPw} secureTextEntry autoCapitalize="none"
                 placeholder="Enter it to confirm" placeholderTextColor={Corpus.textFaint} accessibilityLabel="Password"

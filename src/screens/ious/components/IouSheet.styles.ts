@@ -1,4 +1,4 @@
-import { Corpus, Radius, Space, Type } from '@/constants/theme';
+import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -17,7 +17,7 @@ export const styles = StyleSheet.create({
     fontSize: Type.input,
     color: Corpus.text,
   },
-  label: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.8, fontWeight: '600' },
+  label: { fontSize: Type.body, color: Corpus.text, fontFamily: Font.display },
   field: { gap: 6 },
   body: { gap: Space.md },
   warn: { flexDirection: 'row', gap: 8, backgroundColor: Corpus.warningTint, borderColor: Corpus.warningLine, borderWidth: 1, borderRadius: Radius.md, padding: 10 },

@@ -79,7 +79,7 @@ export function reminderText(p: PersonSummary, upiId?: string) {
     ...lines,
     p.youOwe > 0 ? `Minus ${formatINR(p.youOwe)} I owe you, that's ${formatINR(p.net)} in total.` : lent.length > 1 ? `That's ${formatINR(p.net)} in total.` : '',
     upiId ? `UPI: ${upiId}` : '',
-    'Thanks! 🙏',
+    'Thanks!',
   ].filter(Boolean).join('\n');
 }
 

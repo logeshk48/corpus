@@ -47,7 +47,7 @@ export default function ImportSheet({ onImport, onClose }: { onImport: (list: Ne
                 const local = listed ? searchListed(listed, r.name, 5) : [];
                 const hits = local.length ? local.map((x) => ({ symbol: x.symbol, name: x.name, exchange: x.exchange })) : await searchStocks(r.name);
                 const h = hits.find((x) => x.exchange === 'NSE') ?? hits[0];
-                return { ...r, ref: h ? { kind: 'stock', id: h.symbol } : null, matched: h ? `${h.name} · ${shortSymbol(h.symbol)}` : undefined, on: !!h };
+                return { ...r, ref: h ? { kind: 'stock', id: h.symbol } : null, matched: h ? `${h.name} (${shortSymbol(h.symbol)})` : undefined, on: !!h };
               }
               const hits = rankFunds(r.name, await searchFunds(r.name.replace(/[-–]/g, ' ')));
               const h = hits[0];
@@ -75,7 +75,7 @@ export default function ImportSheet({ onImport, onClose }: { onImport: (list: Ne
       await onImport(
         chosen.map((r) => {
           const avg = r.avg ?? r.price ?? 0;
-          const name = (r.matched ?? r.name).split(' · ')[0].slice(0, 60);
+          const name = (r.matched ?? r.name).replace(/ \([^)]*\)$/, '').slice(0, 60);
           const gold = /gold|sgb/i.test(`${name} ${r.ref!.id}`);
           return {
             name,
@@ -128,14 +128,14 @@ export default function ImportSheet({ onImport, onClose }: { onImport: (list: Ne
                   value={text}
                   onChangeText={setText}
                   multiline
-                  placeholder={kind === 'stock' ? 'Instrument,Qty.,Avg. cost\nRELIANCE,10,2450\n\n— or one per line —\nTCS 5 3400\nHDFC Bank 12 1580' : 'Scheme Name,Units,Invested Value\n…\n\n— or one per line —\nParag Parikh Flexi Cap 152.3 65.6'}
+                  placeholder={kind === 'stock' ? 'Instrument,Qty.,Avg. cost\nRELIANCE,10,2450\n\nor one per line:\nTCS 5 3400\nHDFC Bank 12 1580' : 'Scheme Name,Units,Invested Value\n…\n\nor one per line:\nParag Parikh Flexi Cap 152.3 65.6'}
                   placeholderTextColor={Corpus.textFaint}
                   autoCorrect={false}
                 />
                 <Text style={m.tiny}>
                   {kind === 'stock'
-                    ? 'Zerodha: Kite → Holdings → Download (CSV), open it and copy all. Groww: Stocks → Holdings → Download statement. Any table with name, quantity and average price works. Typed lines: name, quantity, buy price.'
-                    : 'Groww / Kuvera / Coin: download holdings and copy the table. Or from your CAS statement (camsonline.com / kfintech): scheme, units, invested. Typed lines: fund name, units, average NAV.'}
+                    ? 'Zerodha: in Kite open Holdings, tap Download (CSV), open the file and copy everything. Groww: open Stocks, then Holdings, then Download statement. Any table with name, quantity and average price works. Typed lines: name, quantity, buy price.'
+                    : 'Groww, Kuvera or Coin: download your holdings and copy the table. Or use your CAS statement from camsonline.com or KFintech: scheme, units, invested. Typed lines: fund name, units, average NAV.'}
                 </Text>
                 {msg && <Text style={[m.small, { color: Corpus.warning }]}>{msg}</Text>}
                 <Button label="Find them" icon="search" onPress={find} loading={busy} disabled={!text.trim()} />
@@ -148,14 +148,14 @@ export default function ImportSheet({ onImport, onClose }: { onImport: (list: Ne
                     <View style={{ flex: 1 }}>
                       <Text style={m.rowName} numberOfLines={2}>{r.matched ?? r.name}</Text>
                       <Text style={[m.small, !r.ref && { color: Corpus.danger }]}>
-                        {r.ref ? `${r.qty} × ${r.avg ? `₹${r.avg.toFixed(2)}` : 'today’s price'}${r.matched && r.matched.toLowerCase() !== r.name.toLowerCase() ? ` · you wrote “${r.name}”` : ''}` : `Not found: “${r.name}” — add it by search later`}
+                        {r.ref ? `${r.qty} × ${r.avg ? `₹${r.avg.toFixed(2)}` : 'today’s price'}${r.matched && r.matched.toLowerCase() !== r.name.toLowerCase() ? `, you wrote “${r.name}”` : ''}` : `Not found: “${r.name}”. Add it by search later`}
                       </Text>
                     </View>
                     {r.ref && <Text style={m.price}>{r.price ? formatINR(Math.round(r.qty * r.price)) : '—'}</Text>}
                   </Pressable>
                 ))}
                 <View style={{ gap: 6 }}>
-                  <Text style={f.label}>ROUGHLY WHEN DID YOU BUY THESE? (FOR TAX)</Text>
+                  <Text style={f.label}>Roughly when did you buy these? (for tax)</Text>
                   <View style={sheet.chips}>
                     {WHEN.map((w, i) => (
                       <Pressable key={w.label} style={[sheet.chip, when === i && sheet.chipSuggested]} onPress={() => setWhen(i)}>
@@ -168,7 +168,7 @@ export default function ImportSheet({ onImport, onClose }: { onImport: (list: Ne
                 {busy && <ActivityIndicator color={Corpus.gold} />}
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Button style={{ flex: 1 }} variant="secondary" label="Back" onPress={() => setRows(null)} />
-                  <Button style={{ flex: 2 }} label={`Add ${chosen.length} · ${formatINR(Math.round(total))}`} onPress={save} loading={busy} disabled={!chosen.length} />
+                  <Button style={{ flex: 2 }} label={`Add ${chosen.length}, ${formatINR(Math.round(total))}`} onPress={save} loading={busy} disabled={!chosen.length} />
                 </View>
               </>
             )}

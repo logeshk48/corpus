@@ -29,7 +29,7 @@ export default function IndexStrip({ onOpen }: { onOpen: (symbol: string, name: 
     <View style={{ gap: 10 }}>
       <View style={s.status}>
         <Animated.View style={[s.dot, { backgroundColor: status.open ? Corpus.income : Corpus.textFaint }, status.open && dot]} />
-        <Text style={[s.small, { flex: 1 }]} numberOfLines={1}>{status.open ? 'Market open' : status.label.split(' · ')[0]}</Text>
+        <Text style={[s.small, { flex: 1 }]} numberOfLines={1}>{status.open ? 'Market open' : status.label.split('. ')[0]}</Text>
         <Text style={s.small}>{err ? 'Prices paused, retrying' : time ? priceTime(time) : ''}</Text>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>

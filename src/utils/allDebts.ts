@@ -33,7 +33,7 @@ export function allDebts(p: { ious: Iou[]; bills: Bill[]; accounts: AccountBalan
     const rate = bill?.loan?.annualRate ?? null;
     out.push({
       id: `emi:${e.billId}`, kind: bill?.loan ? 'loan' : 'emi', name: e.name, balance: e.outstanding, rate,
-      rateNote: rate != null ? `${rate}% a year` : 'Rate unknown — add loan details',
+      rateNote: rate != null ? `${rate}% a year` : 'Rate unknown. Add loan details',
       monthlyPay: e.emi, monthsLeft: e.paymentsLeft, interestPerMonth: rate != null ? Math.round((e.outstanding * rate) / 1200) : 0,
       link: `/bill/${e.billId}`,
     });

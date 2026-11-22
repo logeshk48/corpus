@@ -31,7 +31,7 @@ export default function DebtPlanCard({ s, onOpen, onAnswer, onSeenCleared }: Pro
     const c = s.newCleared[0];
     return (
       <View style={[st.card, { borderColor: Corpus.incomeLine, backgroundColor: Corpus.incomeTint }]}>
-        <Text style={st.big}>🎉 {c.name} is cleared!</Text>
+        <Text style={st.big}>{c.name} is cleared</Text>
         <Text style={st.sub}>
           {formatINR(c.balance)} paid off.{' '}
           {s.first ? `Its payment now goes to ${s.first.name}. Keep paying the same total and it clears faster.` : 'That was the last debt in your plan. You’re debt-free.'}

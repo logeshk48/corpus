@@ -42,7 +42,7 @@ export default function JarPickerSheet({ holdings, jars, onClose, onSave, onNewJ
               <IconChip icon={investMeta(h.type).icon.replace('-outline', '')} color={Chip.indigo} />
               <View style={{ flex: 1, gap: 1 }}>
                 <Text style={s.name} numberOfLines={2}>{h.name}</Text>
-                <Text style={s.meta}>{compactINR(h.value)}{pick ? ` → ${jars.find((j) => j.id === pick)?.name}` : ', not in a jar'}{sug && pick === sug.jar.id ? `. ${sug.why}` : ''}</Text>
+                <Text style={s.meta}>{compactINR(h.value)}{pick ? `, into ${jars.find((j) => j.id === pick)?.name}` : ', not in a jar'}{sug && pick === sug.jar.id ? `. ${sug.why}` : ''}</Text>
               </View>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>

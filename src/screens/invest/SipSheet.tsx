@@ -69,7 +69,7 @@ export default function SipSheet({ h, canBackfill, onSave, onClose }: {
             </View>
             <Text style={[sheet.hint, { textAlign: 'center' }]}>every month</Text>
             <View style={{ gap: 6 }}>
-              <Text style={f.label}>DEBIT DATE</Text>
+              <Text style={f.label}>Debit date</Text>
               <View style={sheet.chips}>
                 {DAYS.map((d) => (
                   <Pressable key={d} style={[sheet.chip, day === d && sheet.chipSuggested]} onPress={() => setDay(d)}>
@@ -80,7 +80,7 @@ export default function SipSheet({ h, canBackfill, onSave, onClose }: {
               <Text style={m.tiny}>The date your bank auto-debits it. Check your fund app or bank mandate.</Text>
             </View>
             <View style={{ gap: 6 }}>
-              <Text style={f.label}>YEARLY STEP-UP</Text>
+              <Text style={f.label}>Yearly step-up</Text>
               <View style={sheet.chips}>
                 {STEPS.map((s) => (
                   <Pressable key={s} style={[sheet.chip, step === s && sheet.chipSuggested]} onPress={() => setStep(s)}>
@@ -91,7 +91,7 @@ export default function SipSheet({ h, canBackfill, onSave, onClose }: {
             </View>
             {!cur && (
               <View style={{ gap: 6 }}>
-                <Text style={f.label}>WHEN DID IT START?</Text>
+                <Text style={f.label}>When did it start?</Text>
                 <View style={sheet.chips}>
                   <Pressable style={[sheet.chip, !past && sheet.chipSuggested]} onPress={() => setPast(false)}>
                     <Text style={[sheet.chipText, !past && sheet.chipTextSuggested]}>Starting now</Text>
@@ -121,7 +121,7 @@ export default function SipSheet({ h, canBackfill, onSave, onClose }: {
                         <Text style={m.tiny}>
                           {included
                             ? 'Your current units stay as they are; past SIPs are recorded so returns and streaks are right.'
-                            : `Corpus adds each month’s SIP at that day’s real NAV — ${months} purchases since ${MONTHS[sMonth]} ${sYear}. Pick this if you haven’t entered this fund’s units.`}
+                            : `Corpus adds each month’s SIP at that day’s real NAV: ${months} purchases since ${MONTHS[sMonth]} ${sYear}. Pick this if you haven’t entered this fund’s units.`}
                         </Text>
                       </View>
                     ) : (
@@ -139,7 +139,7 @@ export default function SipSheet({ h, canBackfill, onSave, onClose }: {
                   const up = step ? sipFuture(amt, step, y) : null;
                   return (
                     <View key={y} style={m.posRow}>
-                      <Text style={m.small}>{y} years · put in {compactINR((up ?? flat).put)}</Text>
+                      <Text style={m.small}>{y} years, put in {compactINR((up ?? flat).put)}</Text>
                       <Text style={[m.small, { color: Corpus.income, fontWeight: '600' }]}>
                         {compactINR((up ?? flat).value)}
                         {up ? <Text style={m.tiny}>  (flat {compactINR(flat.value)})</Text> : null}

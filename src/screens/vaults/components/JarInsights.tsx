@@ -86,7 +86,7 @@ export default function JarInsights({ jar, entries, context, onEdit }: JarInsigh
             <Pressable onPress={onEdit}>
               <Text style={styles.line}>
                 Pick a <Text style={styles.strong}>"reach it by"</Text> month and Corpus will tell you
-                exactly how much to add each month. <Text style={styles.link}>Set a month →</Text>
+                exactly how much to add each month. <Text style={styles.link}>Set a month</Text>
               </Text>
             </Pressable>
           )}

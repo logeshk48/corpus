@@ -165,38 +165,38 @@ export default function InvestmentSheet({ mode, onClose, onSave, onAddMoney, onU
             {!h && ['mf', 'stock', 'nps', 'crypto', 'goldbond'].includes(type) && onSearchLive && (
               <Pressable style={[sheet.chip, sheet.chipSuggested, { alignSelf: 'stretch', flexDirection: 'row', gap: 8, paddingVertical: 12 }]} onPress={() => onSearchLive(type)}>
                 <Ionicons name="pulse" size={16} color={Corpus.gold} />
-                <Text style={[sheet.chipTextSuggested, { flex: 1 }]}>Search it for a live {type === 'mf' || type === 'nps' ? 'NAV' : 'price'} — value updates by itself (recommended)</Text>
+                <Text style={[sheet.chipTextSuggested, { flex: 1 }]}>Search it for a live {type === 'mf' || type === 'nps' ? 'NAV' : 'price'} so the value updates by itself (recommended)</Text>
               </Pressable>
             )}
             <View style={f.field}>
-              <Text style={f.label}>NAME</Text>
+              <Text style={f.label}>Name</Text>
               <TextInput style={f.input} value={name} onChangeText={setName} placeholder={type === 'mf' ? 'e.g. Parag Parikh Flexi Cap' : type === 'fd' ? 'e.g. SBI FD' : type === 'epf' ? 'e.g. My EPF' : 'Name'} placeholderTextColor={Corpus.textFaint} maxLength={40} />
             </View>
             <View style={f.field}>
-              <Text style={f.label}>{isFd ? 'AMOUNT DEPOSITED' : isAccrual ? 'TOTAL YOU (AND YOUR EMPLOYER) PUT IN' : 'TOTAL YOU INVESTED'}</Text>
+              <Text style={f.label}>{isFd ? 'Amount deposited' : isAccrual ? 'Total you (and your employer) put in' : 'Total you invested'}</Text>
               <TextInput style={f.input} value={invested} onChangeText={(t) => setInvested(num(t))} placeholder="₹" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
             </View>
             {!isFd && (
               <View style={f.field}>
-                <Text style={f.label}>{isAccrual ? 'BALANCE TODAY (FROM PASSBOOK)' : 'WORTH TODAY'}</Text>
+                <Text style={f.label}>{isAccrual ? 'Balance today (from your passbook)' : 'Worth today'}</Text>
                 <TextInput style={f.input} value={value} onChangeText={(t) => setValue(num(t))} placeholder={isAccrual ? 'Your passbook balance' : 'Check your app (Groww, Zerodha, Kuvera…)'} placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
               </View>
             )}
             {(isFd || isAccrual) && (
               <View style={f.field}>
-                <Text style={f.label}>INTEREST RATE (% A YEAR)</Text>
+                <Text style={f.label}>Interest rate (% a year)</Text>
                 <TextInput style={f.input} value={rate} onChangeText={(t) => setRate(num(t))} placeholder="e.g. 7" placeholderTextColor={Corpus.textFaint} keyboardType="numeric" />
                 <Text style={sheet.hint}>{isFd ? 'Value grows on its own (compounded quarterly).' : `Value grows on its own between passbook updates. ${type === 'epf' ? 'EPF: 8.25% for FY 2025-26.' : 'PPF rate is set every quarter by the government.'}`}</Text>
               </View>
             )}
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <View style={[f.field, { flex: 1 }]}>
-                <Text style={f.label}>{isFd ? 'OPENED IN' : 'STARTED IN'}</Text>
+                <Text style={f.label}>{isFd ? 'Opened in' : 'Started in'}</Text>
                 <TextInput style={f.input} value={since} onChangeText={(t) => setSince(t.replace(/\D/g, '').slice(0, 4))} placeholder="Year" placeholderTextColor={Corpus.textFaint} keyboardType="number-pad" />
               </View>
               {isFd && (
                 <View style={[f.field, { flex: 1 }]}>
-                  <Text style={f.label}>MATURES IN</Text>
+                  <Text style={f.label}>Matures in</Text>
                   <TextInput style={f.input} value={matYear} onChangeText={(t) => setMatYear(t.replace(/\D/g, '').slice(0, 4))} placeholder="Year" placeholderTextColor={Corpus.textFaint} keyboardType="number-pad" />
                 </View>
               )}

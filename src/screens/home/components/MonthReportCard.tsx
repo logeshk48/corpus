@@ -23,7 +23,7 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
   if (r.jump && r.jump.label !== r.top?.label) lines.push({ text: `${r.jump.label} went up ${formatINR(Math.round(r.jump.by))}`, color: Corpus.warning });
   if (r.invested) lines.push({ text: `Invested ${formatINR(Math.round(r.invested))} through SIPs`, color: Corpus.income });
   if (r.netWorthChange != null) lines.push({ text: `Net worth ${r.netWorthChange >= 0 ? '+' : '−'}${formatINR(Math.abs(Math.round(r.netWorthChange)))}`, color: r.netWorthChange >= 0 ? Corpus.income : Corpus.danger });
-  if (r.scoreChange) lines.push({ text: `Wealth score ${r.score} (${r.scoreChange > 0 ? '▲' : '▼'} ${Math.abs(r.scoreChange)})`, color: r.scoreChange > 0 ? Corpus.income : Corpus.warning });
+  if (r.scoreChange) lines.push({ text: `Wealth score ${r.score}, ${r.scoreChange > 0 ? 'up' : 'down'} ${Math.abs(r.scoreChange)}`, color: r.scoreChange > 0 ? Corpus.income : Corpus.warning });
   if (r.loggedDays < r.daysIn * 0.6) lines.push({ text: `Logged on ${r.loggedDays} of ${r.daysIn} days, so the real spend is likely higher`, color: Corpus.textFaint });
   return (
     <View style={st.card}>
@@ -37,11 +37,11 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
       <Text style={[st.verdict, { color: VCOLOR[verdict.tone] }]}>{verdict.text}</Text>
       <View style={st.nums}>
         <View style={st.num}>
-          <Text style={st.label}>SAVED</Text>
+          <Text style={st.label}>Saved</Text>
           <Text style={[st.value, { color: r.saved >= 0 ? Corpus.income : Corpus.danger }]}>{r.income ? formatINR(Math.round(r.saved)) : '—'}</Text>
         </View>
         <View style={st.num}>
-          <Text style={st.label}>SPENT</Text>
+          <Text style={st.label}>Spent</Text>
           <Text style={st.value}>{formatINR(Math.round(r.spent))}</Text>
         </View>
         <View style={st.num}>
@@ -54,7 +54,7 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
       ))}
       {plan.length > 0 && (
         <View style={st.plan}>
-          <Text style={st.label}>{`DO THIS IN ${new Date().toLocaleDateString('en-IN', { month: 'long' }).toUpperCase()}`}</Text>
+          <Text style={st.label}>{`To do in ${new Date().toLocaleDateString('en-IN', { month: 'long' })}`}</Text>
           {plan.map((p, i) => {
             const ok = done.includes(p.id);
             return (
@@ -76,8 +76,8 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
         </View>
       )}
       <View style={{ flexDirection: 'row', gap: 16 }}>
-        <Text style={st.link} onPress={onOpen}>See {r.name} →</Text>
-        <Text style={st.link} onPress={onYear}>Year report →</Text>
+        <Text style={st.link} onPress={onOpen}>See {r.name}</Text>
+        <Text style={st.link} onPress={onYear}>Year report</Text>
       </View>
     </View>
   );
@@ -89,7 +89,7 @@ const st = StyleSheet.create({
   title: { flex: 1, fontSize: Type.label, fontWeight: '600', color: Corpus.text },
   nums: { flexDirection: 'row', gap: 8 },
   num: { flex: 1, gap: 2 },
-  label: { fontSize: Type.caption, color: Corpus.textFaint, letterSpacing: 0.4 },
+  label: { fontSize: Type.small, color: Corpus.textMuted },
   value: { fontSize: Type.title, fontWeight: '700', color: Corpus.text },
   line: { fontSize: Type.small, color: Corpus.textMuted, lineHeight: 17 },
   verdict: { fontSize: Type.body, fontWeight: '600' },

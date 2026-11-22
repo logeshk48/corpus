@@ -45,5 +45,5 @@ export function weekSummaryText(r: ReturnType<typeof weekReview>) {
   if (r.top) parts.push(`top: ${r.top.label} ${formatINR(r.top.amount)}`);
   if (r.noSpendDays) parts.push(`${r.noSpendDays} no-spend day${r.noSpendDays > 1 ? 's' : ''}`);
   parts.push(`${r.loggedDays}/${r.daysSoFar} days logged`);
-  return parts.join(' · ');
+  return parts.join(', ');
 }

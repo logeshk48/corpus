@@ -56,12 +56,12 @@ async function loadInfo(t: Target, range: Range): Promise<{ info: Info; points: 
   if (t.kind === 'stock') {
     const c = await getChart(t.id, range);
     const q: Quote = c.quote;
-    return { info: { ...q, name: q.name, sub: `${shortSymbol(t.id)} · ${q.exchange || exchangeOf(t.id)}` }, points: c.points };
+    return { info: { ...q, name: q.name, sub: `${shortSymbol(t.id)}, ${q.exchange || exchangeOf(t.id)}` }, points: c.points };
   }
   if (t.kind === 'fund') {
     const [n, c] = await Promise.all([getNavs([t.id]), getNavChart(t.id, range)]);
     const x = n[t.id];
-    return { info: { name: x?.name, sub: [x?.house, x?.category?.replace(/^.*?-\s*/, '')].filter(Boolean).join(' · '), price: x?.nav ?? null, change: x?.change ?? null, changePct: x?.changePct ?? null, time: x?.date ?? null, house: x?.house, category: x?.category }, points: c.points };
+    return { info: { name: x?.name, sub: [x?.house, x?.category?.replace(/^.*?-\s*/, '')].filter(Boolean).join(', '), price: x?.nav ?? null, change: x?.change ?? null, changePct: x?.changePct ?? null, time: x?.date ?? null, house: x?.house, category: x?.category }, points: c.points };
   }
   if (t.kind === 'nps') {
     const [n, c] = await Promise.all([getNps([t.id]), getNpsChart(t.id, range)]);
@@ -70,7 +70,7 @@ async function loadInfo(t: Target, range: Range): Promise<{ info: Info; points: 
   }
   const [cs, c] = await Promise.all([getCoins([t.id]), getCoinChart(t.id, range)]);
   const x = cs[t.id];
-  return { info: { name: t.name, sub: 'Crypto · price in ₹', price: x?.price ?? null, change: x?.change ?? null, changePct: x?.changePct ?? null, time: x?.time ?? null, volume: x?.volume, marketCap: x?.marketCap }, points: c.points };
+  return { info: { name: t.name, sub: 'Crypto, price in ₹', price: x?.price ?? null, change: x?.change ?? null, changePct: x?.changePct ?? null, time: x?.time ?? null, volume: x?.volume, marketCap: x?.marketCap }, points: c.points };
 }
 
 // What kind of holding to create
@@ -254,13 +254,13 @@ export default function QuoteSheet({ target, holding, watched, onToggleWatch, on
                     )}
                     {holding.actions?.map((a) => (
                       <Text key={a.date} style={m.tiny}>
-                        ↻ Adjusted for {a.ratio > 1 ? `a ${a.label.replace(':', '-for-')} split/bonus` : `a ${a.label} consolidation`} on {new Date(a.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}: shares ×{Math.round(a.ratio * 100) / 100}, buy price ÷{Math.round(a.ratio * 100) / 100}.
+                        Adjusted for {a.ratio > 1 ? `a ${a.label.replace(':', '-for-')} split/bonus` : `a ${a.label} consolidation`} on {new Date(a.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}: shares ×{Math.round(a.ratio * 100) / 100}, buy price ÷{Math.round(a.ratio * 100) / 100}.
                       </Text>
                     ))}
                     {tax && (
                       <>
                         <View style={{ height: 0.5, backgroundColor: Corpus.border, marginVertical: 2 }} />
-                        <Text style={m.cellLabel}>TAX IF YOU SELL TODAY · {CLASS_LABEL[tax.cls].toUpperCase()}</Text>
+                        <Text style={m.cellLabel}>Tax if you sell today ({CLASS_LABEL[tax.cls].toLowerCase()})</Text>
                         {tax.cls === 'crypto' ? (
                           <Text style={m.small}>Flat 30% (+4% cess) on any profit, no matter how long you held. Losses can’t be set off.</Text>
                         ) : tax.cls === 'debt' ? (
@@ -450,10 +450,10 @@ function TradeForm({ trade, target, price, holding, onCancel, onDone }: { trade:
       const r = await priceOn(target, d);
       if (r.price && !typed.current) {
         setP(r.price.toFixed(2));
-        setPriceNote(`Closing price on ${new Date(r.date ?? d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} — change it if you paid a different price`);
-      } else setPriceNote('Couldn’t find the price for that day — type what you paid');
+        setPriceNote(`Closing price on ${new Date(r.date ?? d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}. Change it if you paid a different price`);
+      } else setPriceNote('Couldn’t find the price for that day. Type what you paid');
     } catch {
-      setPriceNote('Couldn’t fetch the old price — type what you paid');
+      setPriceNote('Couldn’t fetch the old price. Type what you paid');
     } finally {
       setFetching(false);
     }
@@ -462,16 +462,16 @@ function TradeForm({ trade, target, price, holding, onCancel, onDone }: { trade:
   const u = Number(units), pr = Number(p);
   const over = trade === 'sell' && holding?.units != null && u > holding.units + 1e-9;
   const ok = u > 0 && pr > 0 && !over;
-  const word = UNIT[target.kind].toUpperCase();
+  const word = UNIT[target.kind].replace(/^./, (c) => c.toUpperCase());
   const title = { add: 'Add to my holdings', buy: 'I bought more', sell: 'I sold', edit: 'Fix my holding' }[trade];
-  const priceLabel = trade === 'sell' ? 'SOLD AT (EACH)' : trade === 'buy' ? 'BOUGHT AT (EACH)' : trade === 'edit' ? 'AVERAGE BUY PRICE' : target.kind === 'fund' || target.kind === 'nps' ? 'NAV YOU BOUGHT AT' : 'BUY PRICE (EACH)';
+  const priceLabel = trade === 'sell' ? 'Sold at (each)' : trade === 'buy' ? 'Bought at (each)' : trade === 'edit' ? 'Average buy price' : target.kind === 'fund' || target.kind === 'nps' ? 'NAV you bought at' : 'Buy price (each)';
   const profit = trade === 'sell' && avg ? (pr - avg) * u : null;
   return (
     <View style={[m.position, { gap: 10 }]}>
-      <Text style={[m.cellLabel, { color: Corpus.gold }]}>{title.toUpperCase()}</Text>
+      <Text style={m.secTitle}>{title}</Text>
       {dated && (
         <View style={{ gap: 6 }}>
-          <Text style={f.label}>WHEN DID YOU BUY?</Text>
+          <Text style={f.label}>When did you buy?</Text>
           <View style={sheet.chips}>
             {QUICK.map((q) => {
               const d = q.months === 0 ? iso(new Date()) : ago(q.months);
@@ -498,7 +498,7 @@ function TradeForm({ trade, target, price, holding, onCancel, onDone }: { trade:
       )}
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <View style={[f.field, { flex: 1 }]}>
-          <Text style={f.label}>{word}{trade === 'sell' && holding?.units ? ` (OF ${trim(holding.units)})` : ''}</Text>
+          <Text style={f.label}>{word}{trade === 'sell' && holding?.units ? ` (of ${trim(holding.units)})` : ''}</Text>
           <TextInput style={f.input} value={units} onChangeText={(t) => setUnits(num(t))} placeholder="0" placeholderTextColor={Corpus.textFaint} keyboardType="decimal-pad" />
         </View>
         <View style={[f.field, { flex: 1 }]}>
@@ -523,8 +523,8 @@ function TradeForm({ trade, target, price, holding, onCancel, onDone }: { trade:
           ? `You only have ${trim(holding!.units!)}.`
           : u > 0 && pr > 0
             ? trade === 'sell'
-              ? `You get about ${formatINR(Math.round(u * pr))}${profit != null ? ` · ${profit >= 0 ? 'profit' : 'loss'} ${formatINR(Math.round(Math.abs(profit)))}` : ''}`
-              : `Cost ${formatINR(Math.round(u * pr))}${price && trade !== 'buy' ? ` · worth ${formatINR(Math.round(u * price))} now (${formatPct(((price - pr) / pr) * 100)})` : ''}`
+              ? `You get about ${formatINR(Math.round(u * pr))}${profit != null ? `, ${profit >= 0 ? 'profit' : 'loss'} ${formatINR(Math.round(Math.abs(profit)))}` : ''}`
+              : `Cost ${formatINR(Math.round(u * pr))}${price && trade !== 'buy' ? `, worth ${formatINR(Math.round(u * price))} now (${formatPct(((price - pr) / pr) * 100)})` : ''}`
             : target.kind === 'stock'
               ? 'Quantity and average price are in your broker app (Zerodha, Groww, Upstox…) under Holdings.'
               : target.kind === 'crypto'

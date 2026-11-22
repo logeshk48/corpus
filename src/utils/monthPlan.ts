@@ -24,8 +24,8 @@ export function monthVerdict(r0: MonthReport) {
   if (!r0.income) return { tone: 'neutral' as const, text: `Here’s how ${r0.name} went` };
   const pct = Math.round((r0.rate ?? 0) * 100);
   if (r0.saved < 0) return { tone: 'bad' as const, text: `You spent ${r(-r0.saved)} more than you earned` };
-  if (pct >= 20 && !(r0.overBudget != null && r0.overBudget > 0)) return { tone: 'good' as const, text: `Good month — you kept ${pct}% of your income` };
-  return { tone: 'ok' as const, text: `Okay month — you kept ${pct}% of your income` };
+  if (pct >= 20 && !(r0.overBudget != null && r0.overBudget > 0)) return { tone: 'good' as const, text: `Good month. You kept ${pct}% of your income` };
+  return { tone: 'ok' as const, text: `Okay month. You kept ${pct}% of your income` };
 }
 
 export function monthPlan(p: {

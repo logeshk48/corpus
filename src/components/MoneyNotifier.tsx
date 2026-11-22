@@ -88,7 +88,7 @@ export default function MoneyNotifier() {
           const t = new Date();
           const mark = act === 'done' ? { done: t.toISOString() } : { snooze: new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1, 9).toISOString() };
           await saveInboxMarks({ ...(L.settings.inbox ?? {}), [ref]: mark });
-          showToast({ message: act === 'done' ? 'Marked done' : 'Okay — tomorrow at 9 AM' });
+          showToast({ message: act === 'done' ? 'Marked done' : 'Okay, tomorrow at 9 AM' });
         } else if (act === 'sip-yes' || act === 'sip-skip') {
           const [, hid, month] = ref.split(':');
           const p = pendingSips(L.investments).find((x) => x.h.id === hid && x.month === month);
@@ -104,7 +104,7 @@ export default function MoneyNotifier() {
         }
       } catch (e) {
         console.warn('Notification action failed', e);
-        showToast({ message: 'Couldn’t do that — open Reminders to try again' });
+        showToast({ message: 'Couldn’t do that. Open Reminders to try again' });
       }
     };
     const sub = Notifications.addNotificationResponseReceivedListener(handle);
@@ -142,8 +142,8 @@ export default function MoneyNotifier() {
             const id = `bill:${u.bill.id}:${u.due.toISOString().slice(0, 10)}`;
             const day = new Date(u.due.getFullYear(), u.due.getMonth(), u.due.getDate(), 9);
             const amt = u.bill.variable ? `about ${formatINR(u.amount)}` : formatINR(u.amount);
-            plan.push({ id: `${id}:eve`, date: new Date(day.getTime() - 86_400_000), title: `${u.bill.name} ${amt} due tomorrow`, body: 'Keep it in your bank · tap ✓ Paid when it’s done' });
-            plan.push({ id, date: day, title: `${u.bill.name} ${amt} due today`, body: u.bill.variable ? 'Amount changes — open to enter this month’s' : 'Tap ✓ Paid once it’s done' });
+            plan.push({ id: `${id}:eve`, date: new Date(day.getTime() - 86_400_000), title: `${u.bill.name} ${amt} due tomorrow`, body: 'Keep it in your bank. Tap Paid when it’s done' });
+            plan.push({ id, date: day, title: `${u.bill.name} ${amt} due today`, body: u.bill.variable ? 'The amount changes. Open to enter this month’s' : 'Tap Paid once it’s done' });
           }
         // Low balance: next 10 AM (today if it's still before 10)
         {
@@ -173,7 +173,7 @@ export default function MoneyNotifier() {
           const staleBal = on('checkin') && accounts.some((a) => verifiedAgo(a).stale || verifiedAgo(a).days >= 6);
           if (on('weekly')) {
             const r = weekReview(weekTx, sun);
-            plan.push({ id: `week:${sun.toISOString().slice(0, 10)}`, date: sun, title: 'Your week in money', body: weekSummaryText(r) + (staleBal ? ' · update your balances' : '') });
+            plan.push({ id: `week:${sun.toISOString().slice(0, 10)}`, date: sun, title: 'Your week in money', body: weekSummaryText(r) + (staleBal ? '. Update your balances' : '') });
           } else if (staleBal) {
             plan.push({ id: 'checkin:weekly', date: sun, title: 'Update your balances', body: 'Open your bank & card apps, 30 seconds keeps your net worth right' });
           }
@@ -183,7 +183,7 @@ export default function MoneyNotifier() {
           const now = new Date();
           const first = new Date(now.getFullYear(), now.getMonth() + 1, 1, 10);
           const name = now.toLocaleDateString('en-IN', { month: 'long' });
-          plan.push({ id: `month:${first.toISOString().slice(0, 7)}`, date: first, title: `Your ${name} report is ready`, body: 'What you earned, spent and saved — and what changed. Tap to see it.' });
+          plan.push({ id: `month:${first.toISOString().slice(0, 7)}`, date: first, title: `Your ${name} report is ready`, body: 'What you earned, spent and saved, and what changed. Tap to see it.' });
         }
         // Monthly investment check-up: 1st of next month, 10 AM, if any value has no live price
         const manual = investments.filter((h) => !h.units || !(h.symbol || h.schemeCode || h.npsCode || h.coinId)).filter((h) => !['fd', 'epf', 'ppf'].includes(h.type));

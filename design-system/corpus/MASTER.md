@@ -308,3 +308,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - A limit bar in the category colour (red when over). With no limit, a "Set a monthly limit" button goes to Budgets.
 - Last 6 months uses MonthBars, which now has optional selected / onSelect so the page controls the month. A dashed "Usual" line marks the 5-month average.
 - New "Where it went" card: notes that repeat or take 20% or more of the month (Swiggy, Uber), with a bar and "5 times, 40% of food".
+
+## Whole-app copy pass (step 24)
+- Every user-facing "·" chain, "—", ▲▼ → ⬇ ↻ ✓ and emoji in screens, sheets, toasts, phone notifications and notification buttons was rewritten as plain sentences or commas. Ups and downs are said in words ("12% more than Oct", "up 3").
+- ALL CAPS labels became sentence case (form labels, report card labels, Toast actions), and the shared form-label style lost its letter-spacing.
+- Removed dead code: GoalSheet (emoji goals, already moved to jars), ScreenHeader and SectionLabel with their styles, and four unused style files.
+- Left as they are: "—" as the empty value in number cells, and arrows inside code comments.

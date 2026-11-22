@@ -59,7 +59,7 @@ export default function CategoryBars({ data, previous, budgets, previousLabel = 
                   : ''
                 : pct === 0
                 ? `Same as ${previousLabel}`
-                : `${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}% vs ${previousLabel}`}
+                : `${Math.abs(pct)}% ${pct > 0 ? 'more' : 'less'} than ${previousLabel}`}
               {limit !== undefined
                 ? `${pct !== null || before === 0 ? '. ' : ''}${over ? `over budget by ${formatINR(d.amount - limit)}` : `budget ${formatINR(limit)}`}`
                 : ''}

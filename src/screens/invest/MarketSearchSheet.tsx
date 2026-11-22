@@ -115,7 +115,7 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
           <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1, marginTop: 6 }} keyboardShouldPersistTaps="handled">
             {q.trim().length < 2 && tab === 'stock' && listed ? (
               <View style={{ gap: 8, paddingTop: 10 }}>
-                <Text style={m.tiny}>ALL {listed.length.toLocaleString('en-IN')} LISTED COMPANIES & ETFs · BROWSE A–Z</Text>
+                <Text style={m.tiny}>All {listed.length.toLocaleString('en-IN')} listed companies and ETFs, A to Z</Text>
                 <View style={sheet.chips}>
                   {['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((L) => (
                     <Pressable key={L} style={[sheet.chip, { paddingHorizontal: 9 }, letter === L && sheet.chipSuggested]} onPress={() => (setLetter(letter === L ? null : L), setShow(100))}>
@@ -141,7 +141,7 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
                           <Pressable key={x.symbol} style={m.row} onPress={() => onPick({ kind: 'stock', id: x.symbol, name: x.name })}>
                             <View style={{ flex: 1 }}>
                               <Text style={m.rowName} numberOfLines={1}>{x.name}</Text>
-                              <Text style={m.small}>{x.symbol.replace(/\.(NS|BO)$/, '')} · {x.exchange}{x.kind === 'etf' ? ' · ETF' : x.kind === 'sme' ? ' · SME' : x.kind === 'sgb' ? ' · Gold bond' : ''}</Text>
+                              <Text style={m.small}>{x.symbol.replace(/\.(NS|BO)$/, '')}, {x.exchange}{x.kind === 'etf' ? ', ETF' : x.kind === 'sme' ? ', SME' : x.kind === 'sgb' ? ', gold bond' : ''}</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
                           </Pressable>
@@ -154,7 +154,7 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
               </View>
             ) : q.trim().length < 2 ? (
               <View style={{ gap: 8, paddingTop: 10 }}>
-                <Text style={m.tiny}>POPULAR</Text>
+                <Text style={m.tiny}>Popular</Text>
                 <View style={sheet.chips}>
                   {meta.popular.map((p) => (
                     <Pressable key={p} style={sheet.chip} onPress={() => setQ(p)}>
@@ -172,7 +172,7 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
                 <Pressable key={s.symbol} style={m.row} onPress={() => onPick({ kind: 'stock', id: s.symbol, name: s.name })}>
                   <View style={{ flex: 1 }}>
                     <Text style={m.rowName} numberOfLines={1}>{s.name}</Text>
-                    <Text style={m.small}>{s.symbol.replace(/\.(NS|BO)$/, '')} · {s.exchange}{s.type === 'ETF' ? ' · ETF' : s.type === 'SME' ? ' · SME' : s.type === 'SGB' ? ' · Gold bond' : s.type === 'INDEX' ? ' · Index' : ''}</Text>
+                    <Text style={m.small}>{s.symbol.replace(/\.(NS|BO)$/, '')}, {s.exchange}{s.type === 'ETF' ? ', ETF' : s.type === 'SME' ? ', SME' : s.type === 'SGB' ? ', gold bond' : s.type === 'INDEX' ? ', index' : ''}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
                 </Pressable>
@@ -182,7 +182,7 @@ export default function MarketSearchSheet({ initial = 'stock', onPick, onClose }
                 <Pressable key={c.id} style={m.row} onPress={() => onPick({ kind: 'crypto', id: c.id, name: c.name })}>
                   <View style={{ flex: 1 }}>
                     <Text style={m.rowName} numberOfLines={1}>{c.name}</Text>
-                    <Text style={m.small}>{c.symbol}{c.rank ? ` · #${c.rank} by market cap` : ''}</Text>
+                    <Text style={m.small}>{c.symbol}{c.rank ? `, number ${c.rank} by market cap` : ''}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
                 </Pressable>

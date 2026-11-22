@@ -49,7 +49,7 @@ export default function TransactionsScreen() {
   const dayTotal = (txs: typeof visible) => {
     const out = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const inc = txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    return [out ? `${formatINR(out)} spent` : '', inc ? `+${formatINR(inc)}` : ''].filter(Boolean).join(' · ');
+    return [out ? `${formatINR(out)} spent` : '', inc ? `+${formatINR(inc)}` : ''].filter(Boolean).join(', ');
   };
 
   const summary =
@@ -103,7 +103,7 @@ export default function TransactionsScreen() {
     <View style={styles.empty}>
       <IconChip icon={q ? 'search' : 'receipt'} color={Chip.gray} size={48} />
       <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-      <Text style={styles.emptyText}>{q ? 'Try a different word, or clear the search.' : 'Log your first one — it takes 3 seconds.'}</Text>
+      <Text style={styles.emptyText}>{q ? 'Try a different word, or clear the search.' : 'Log your first one. It takes 3 seconds.'}</Text>
       {q ? (
         <Button size="sm" variant="secondary" label="Clear search" onPress={() => setSearch('')} />
       ) : (

@@ -20,7 +20,7 @@ export type ManualAsset = {
 export type NewManualAsset = Omit<ManualAsset, 'id'>;
 
 export const ASSET_KINDS: { id: AssetKind; label: string; icon: string; hint: string }[] = [
-  { id: 'home', label: 'Home you live in', icon: 'home-outline', hint: 'Shown separately — many people leave it out' },
+  { id: 'home', label: 'Home you live in', icon: 'home-outline', hint: 'Shown separately. Many people leave it out' },
   { id: 'property', label: 'Other property', icon: 'business-outline', hint: 'Land, a rented flat, a shop' },
   { id: 'vehicle', label: 'Vehicle', icon: 'car-outline', hint: 'Value drops each year automatically' },
   { id: 'gold', label: 'Gold', icon: 'diamond-outline', hint: 'Jewellery or coins, valued by weight' },

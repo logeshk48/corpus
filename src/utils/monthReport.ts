@@ -61,7 +61,7 @@ export function monthSummaryText(r: MonthReport) {
   const parts: string[] = [];
   if (r.income) parts.push(`saved ${formatINR(Math.round(r.saved))}${r.rate != null ? ` (${Math.round(r.rate * 100)}%)` : ''}`);
   parts.push(`spent ${formatINR(Math.round(r.spent))}${r.spentChange != null && Math.abs(r.spentChange) >= 0.05 ? ` (${r.spentChange > 0 ? '+' : '−'}${Math.round(Math.abs(r.spentChange) * 100)}%)` : ''}`);
-  if (r.overBudget != null) parts.push(r.overBudget > 0 ? `${formatINR(Math.round(r.overBudget))} over budget` : 'within budget ✓');
+  if (r.overBudget != null) parts.push(r.overBudget > 0 ? `${formatINR(Math.round(r.overBudget))} over budget` : 'within budget');
   if (r.top) parts.push(`top: ${r.top.label}`);
-  return `${r.name}: ${parts.join(' · ')}`;
+  return `${r.name}: ${parts.join(', ')}`;
 }

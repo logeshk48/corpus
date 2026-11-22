@@ -23,7 +23,7 @@ export default function PasteSheet({ visible, onClose, history, onFill }: Props)
     try {
       const r = await scanReceipt(from);
       if (r.ok) setText(r.text);
-      else if (r.reason === 'denied') setMsg(from === 'camera' ? 'Camera permission is off — allow it in your phone settings.' : 'Photo permission is off — allow it in your phone settings.');
+      else if (r.reason === 'denied') setMsg(from === 'camera' ? 'Camera permission is off. Allow it in your phone settings.' : 'Photo permission is off. Allow it in your phone settings.');
       else if (r.reason === 'empty') setMsg('No text found. Try again in good light, with the whole receipt flat in the frame.');
     } catch {
       setMsg('Couldn’t read that photo. Try again, or paste the text instead.');
@@ -47,7 +47,7 @@ export default function PasteSheet({ visible, onClose, history, onFill }: Props)
             </View>
             <View style={sheet.titleBlock}>
               <Text style={sheet.title}>{canScan ? 'Scan or paste a receipt' : 'Paste an SMS or receipt'}</Text>
-              <Text style={sheet.subtitle}>Read on your phone — nothing is sent anywhere</Text>
+              <Text style={sheet.subtitle}>Read on your phone. Nothing is sent anywhere</Text>
             </View>
             <Pressable style={sheet.closeButton} onPress={close} hitSlop={8} accessibilityLabel="Close">
               <Ionicons name="close" size={18} color={Corpus.textMuted} />
@@ -78,12 +78,12 @@ export default function PasteSheet({ visible, onClose, history, onFill }: Props)
             )}
             {p && (
               <View style={s.card}>
-                <Text style={s.label}>{p.kind === 'sms' ? 'BANK SMS' : 'RECEIPT'} · {p.type === 'income' ? 'MONEY IN' : 'MONEY OUT'}</Text>
+                <Text style={s.label}>{p.kind === 'sms' ? 'Bank SMS' : 'Receipt'}, {p.type === 'income' ? 'money in' : 'money out'}</Text>
                 <Text style={[s.amount, p.type === 'income' && { color: Corpus.income }]}>{formatINR(p.amount ?? 0)}</Text>
                 <Text style={s.line}>
-                  {[p.merchant, p.date?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), p.last4 && `A/c ··${p.last4}`].filter(Boolean).join('  ·  ') || 'No name or date found'}
+                  {[p.merchant, p.date?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), p.last4 && `account ending ${p.last4}`].filter(Boolean).join(', ') || 'No name or date found'}
                 </Text>
-                {!p.sure && <Text style={[s.line, { color: Corpus.warning }]}>Only the amount was clear — check the rest before saving.</Text>}
+                {!p.sure && <Text style={[s.line, { color: Corpus.warning }]}>Only the amount was clear. Check the rest before saving.</Text>}
                 {dup && (
                   <Text style={[s.line, { color: Corpus.warning }]}>
                     You already logged {formatINR(dup.amount)}{dup.note ? ` (${dup.note})` : ''} that day. Is this the same one?
@@ -107,7 +107,7 @@ const s = StyleSheet.create({
   scanText: { fontSize: Type.body, fontWeight: '600', color: Corpus.gold },
   box: { minHeight: 120, fontSize: Type.body },
   card: { backgroundColor: Corpus.cardAlt, borderRadius: Radius.md, padding: Space.md, gap: 6 },
-  label: { fontSize: Type.caption, color: Corpus.textFaint, letterSpacing: 0.4 },
+  label: { fontSize: Type.small, color: Corpus.textMuted },
   amount: { fontSize: Type.title, fontWeight: '700', color: Corpus.text },
   line: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 20 },
   btn: { marginTop: 6, backgroundColor: Corpus.gold, borderRadius: Radius.md, paddingVertical: 12, alignItems: 'center' },

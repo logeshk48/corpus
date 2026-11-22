@@ -23,7 +23,7 @@ export default function MixCard({ allocation, total, target, age, history, color
     <View style={styles.card}>
       <View style={m.statusRow}>
         <Text style={styles.name}>Your mix</Text>
-        <Text style={m.small}>Equity {eqPct}%{target != null ? ` · target ${target}%` : ''}</Text>
+        <Text style={m.small}>Equity {eqPct}%{target != null ? `, target ${target}%` : ''}</Text>
       </View>
       <View style={styles.stack}>
         {allocation.map((a) => (
@@ -51,7 +51,7 @@ export default function MixCard({ allocation, total, target, age, history, color
         </Text>
       )}
       {target != null && Math.abs(drift) <= 5 && <Text style={[m.small, { color: Corpus.income }]}>On target (within 5 points). Nothing to do.</Text>}
-      <Text style={m.tiny}>EQUITY TARGET{ageRule ? ` · rule of thumb for your age: ~${ageRule}%` : ''}</Text>
+      <Text style={m.tiny}>Equity target{ageRule ? `. A rule of thumb for your age is about ${ageRule}%` : ''}</Text>
       <View style={sheet.chips}>
         {TARGETS.map((t) => (
           <Pressable key={t} style={[sheet.chip, target === t && sheet.chipSuggested]} onPress={() => onTarget(t)}>
@@ -61,7 +61,7 @@ export default function MixCard({ allocation, total, target, age, history, color
       </View>
       {history.length > 1 && (
         <View style={{ gap: 4, marginTop: 4 }}>
-          <Text style={m.tiny}>MONTH BY MONTH</Text>
+          <Text style={m.tiny}>Month by month</Text>
           {history.slice(-6).map((h) => (
             <View key={h.month} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={[m.tiny, { width: 54 }]}>{new Date(`${h.month}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })}</Text>

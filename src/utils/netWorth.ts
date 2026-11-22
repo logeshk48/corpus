@@ -173,8 +173,8 @@ export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem
       liquid: false,
       confidence: priced ? (d.goldRate!.mode === 'live' ? 'verified' : 'manual') : a.kind === 'vehicle' && auto ? 'estimated' : f.confidence === 'stale' ? 'stale' : 'manual',
       note: priced
-        ? `${a.grams} g · ${a.karat}K · ${d.goldRate!.mode === 'live' ? 'live market rate' : 'your rate'} ₹${d.goldRate!.rate.toLocaleString('en-IN')}/g`
-        : a.kind === 'vehicle' && auto ? 'falls each year (insurance schedule)' : a.kind === 'gold' && auto ? `${a.grams} g · ${a.karat}K · ${f.note}` : f.note,
+        ? `${a.grams} g, ${a.karat}K, ${d.goldRate!.mode === 'live' ? 'live market rate' : 'your rate'} ₹${d.goldRate!.rate.toLocaleString('en-IN')}/g`
+        : a.kind === 'vehicle' && auto ? 'falls each year (insurance schedule)' : a.kind === 'gold' && auto ? `${a.grams} g, ${a.karat}K, ${f.note}` : f.note,
       link: '/networth',
     });
   }
@@ -193,7 +193,7 @@ export function netWorthItems(d: NwInput, at = new Date(), isNow = true): NwItem
       value,
       liquid: meta.liquid,
       confidence: live && isNow ? 'verified' : stale ? 'stale' : auto ? 'estimated' : 'manual',
-      note: live && isNow ? `live price · ${Math.round(h.units! * 1000) / 1000} units` : auto ? `grows at ${h.rate}% a year` : freshness(h.valueAt, at, 45).note,
+      note: live && isNow ? `live price, ${Math.round(h.units! * 1000) / 1000} units` : auto ? `grows at ${h.rate}% a year` : freshness(h.valueAt, at, 45).note,
       link: '/invest',
     });
   }

@@ -22,9 +22,9 @@ function trim(v: number): string {
   return Number(v.toFixed(digits)).toLocaleString('en-IN');
 }
 
-// Big headline figures: "₹1,25,000 · 1.25 L" — exact first, short form as a hint
+// Big headline figures: "₹1,25,000 (1.25 L)" — exact first, short form as a hint
 export function formatINRLong(amount: number): string {
-  return Math.abs(amount) >= 1_00_000 ? `${formatINR(amount)} · ${compactINR(amount).replace('−₹', '−').replace('₹', '')}` : formatINR(amount);
+  return Math.abs(amount) >= 1_00_000 ? `${formatINR(amount)} (${compactINR(amount).replace('−₹', '−').replace('₹', '')})` : formatINR(amount);
 }
 
 // 1 → 1st, 2 → 2nd, 11 → 11th, 23 → 23rd
