@@ -314,3 +314,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - ALL CAPS labels became sentence case (form labels, report card labels, Toast actions), and the shared form-label style lost its letter-spacing.
 - Removed dead code: GoalSheet (emoji goals, already moved to jars), ScreenHeader and SectionLabel with their styles, and four unused style files.
 - Left as they are: "—" as the empty value in number cells, and arrows inside code comments.
+
+## Insights v3 (step 25)
+- The hero (spent, change, donut, came in / kept / % of income) stays on top. Under it a sticky switch for Overview, Spending, Income and Trends, so each view is one short scroll.
+- Overview: "Where the month is heading" (month-end estimate that counts one big spend once, a budget bar with a tick for today, and how much a day keeps you inside), What stands out, Where your income went.
+- Spending: Where your money went, Day by day, "Your week" (average spend per weekday over 3 months, the costliest day in orange, said in words), "Small spends add up" (spends under ₹200), Biggest spends.
+- Income: Where it came from, "How much you kept" (savings rate per month, green at 20% or more, yellow under, red when negative).
+- Trends: Last 6 months, "Against your usual" (categories up or down at least ₹300 against the 3 months before, over the same days; tap to open).

@@ -27,6 +27,8 @@ import CashFlowBar from './components/CashFlowBar';
 import CategoryBars from './components/CategoryBars';
 import DailyChart from './components/DailyChart';
 import IncomeSources from './components/IncomeSources';
+import { Movers, Pace, Rates, Weekdays } from './components/InsightWidgets';
+import { categoryMovers, monthPace, smallSpends, weekdayPattern } from '@/utils/insightsMore';
 
 const MONTHS_BACK = 5; // the last 6 months
 const short = (k: string) => monthLabel(k, 'short').split(' ')[0];
@@ -53,6 +55,8 @@ export default function AnalyticsScreen() {
   const { streams } = useIncomeStreams();
   const { settings } = useSettings();
   const [dailyView, setDailyView] = useState<'bars' | 'calendar'>('bars');
+  type Tab = 'overview' | 'spending' | 'income' | 'trends';
+  const [tab, setTab] = useState<Tab>('overview');
   const pills = useRef<ScrollView>(null);
   const current = ym(new Date());
   const params = useLocalSearchParams<{ month?: string }>();
@@ -86,7 +90,19 @@ export default function AnalyticsScreen() {
     ...(rest > 0 ? [{ id: 'rest', value: rest, color: Chip.gray, label: 'Everything else', share: totals.spent ? rest / totals.spent : 0 }] : [])];
   const pct = (sh: number) => `${Math.round(sh * (sh <= 1 ? 100 : 1))}%`;
 
+  const pace = monthPace(transactions, month, settings.monthlyBudget);
+  const week = weekdayPattern(transactions);
+  const small = smallSpends(transactions, month);
+  const movers = categoryMovers(transactions, month);
+  const rates = trend.map((t) => ({ key: t.key, label: short(t.key), rate: t.income > 0 ? Math.round(((t.income - t.spent) / t.income) * 100) : null, on: t.key === month }));
+  const kept = rates.filter((r) => r.rate != null);
+  const avgRate = kept.length ? Math.round(kept.reduce((a, r) => a + (r.rate ?? 0), 0) / kept.length) : null;
+
   const sections: ReactNode[] = [];
+  const at: Record<string, Tab> = { pace: 'overview', notes: 'overview', flow: 'overview', cats: 'spending', daily: 'spending', week: 'spending', small: 'spending', big: 'spending', src: 'income', rates: 'income', trend: 'trends', movers: 'trends' };
+  if (!empty && totals.spent > 0) sections.push(
+    <Card key="pace" title="Where the month is heading" meta={pace.isCurrent ? `Day ${pace.day} of ${pace.days}` : undefined}><Pace p={pace} /></Card>,
+  );
   if (!empty && notes.length > 0) sections.push(
     <View key="notes" style={{ gap: 10 }}>
       <Text style={[s.cardTitle, { paddingHorizontal: 4 }]}>What stands out</Text>
@@ -114,6 +130,17 @@ export default function AnalyticsScreen() {
       </Animated.View>
     </Card>,
   );
+  if (week.avg.some((v) => v > 0)) sections.push(
+    <Card key="week" title="Your week" meta="Last 3 months"><Weekdays w={week} /></Card>,
+  );
+  if (!empty && small.count >= 5) sections.push(
+    <Card key="small" title="Small spends add up">
+      <View style={s.smallRow}>
+        <Text style={s.smallBig}>{formatINR(small.total)}</Text>
+        <Text style={[s.meta, { flex: 1 }]}>from {small.count} spends under ₹{small.under} this month, {totals.spent ? Math.round((small.total / totals.spent) * 100) : 0}% of all you spent</Text>
+      </View>
+    </Card>,
+  );
   if (!empty && flow.income > 0) sections.push(
     <Card key="flow" title="Where your income went" meta={`${formatINR(flow.income)} in`}><CashFlowBar flow={flow} /></Card>,
   );
@@ -125,6 +152,12 @@ export default function AnalyticsScreen() {
   if (!empty && sources.length > 0) sections.push(
     <Card key="src" title="Where your income came from" meta={formatINR(totals.income)}><IncomeSources data={sources} /></Card>,
   );
+  if (kept.length > 0) sections.push(
+    <Card key="rates" title="How much you kept" meta={avgRate != null ? `Usually ${avgRate}%` : undefined}>
+      <Rates months={rates} />
+      <Text style={s.meta}>Share of what came in that you did not spend. 20% or more is a healthy month.</Text>
+    </Card>,
+  );
   const sel = trend.find((t) => t.key === month);
   sections.push(
     <Card key="trend" title="Last 6 months" meta={sel ? `${short(month)}: ${formatINR(sel.income)} in, ${formatINR(sel.spent)} spent` : undefined}>
@@ -135,12 +168,19 @@ export default function AnalyticsScreen() {
       <AreaTrend data={trend.map((t) => ({ key: t.key, label: short(t.key), a: t.income, b: t.spent }))} selected={month} onSelect={setMonth} />
     </Card>,
   );
+  if (!empty) sections.push(
+    <Card key="movers" title="Against your usual" meta={isCurrent ? `Days 1 to ${today}` : 'Whole month'}>
+      <Movers m={movers} onOpen={(id) => router.push(`/category/${id}?month=${month}` as Href)} />
+      <Text style={s.meta}>Compared with the average of the 3 months before, over the same days.</Text>
+    </Card>,
+  );
+  const shown = Children.toArray(sections).filter(isValidElement).filter((el) => at[String(el.key).replace(/^\.\$/, '')] === tab);
 
   return (
     <View style={s.root}>
       <View style={s.aura} pointerEvents="none"><Aura color={Chip.blue} second={Chip.indigo} /></View>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <ScrollView contentContainerStyle={[s.content, { paddingBottom: TAB_BAR_SPACE + insets.bottom + 20 }]} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[s.content, { paddingBottom: TAB_BAR_SPACE + insets.bottom + 20 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={empty ? undefined : [3]}>
           <View style={s.head}>
             <Text style={s.heading} accessibilityRole="header">Insights</Text>
             <Tap onPress={() => router.push('/reports' as Href)} style={s.glassBtn} accessibilityRole="button">
@@ -217,8 +257,14 @@ export default function AnalyticsScreen() {
             )}
           </Animated.View>
 
-          {Children.toArray(sections).filter(isValidElement).map((el, i) => (
-            <Animated.View key={`${month}-${el.key}`} entering={FadeInDown.delay(80 + i * 60).duration(320)}>{el}</Animated.View>
+          {!empty && (
+            <View style={s.tabsWrap}>
+              <Segmented options={[{ value: 'overview', label: 'Overview' }, { value: 'spending', label: 'Spending' }, { value: 'income', label: 'Income' }, { value: 'trends', label: 'Trends' }] as const} value={tab} onChange={setTab} />
+            </View>
+          )}
+
+          {(empty ? Children.toArray(sections).filter(isValidElement).filter((el) => String(el.key).includes('trend')) : shown).map((el, i) => (
+            <Animated.View key={`${month}-${tab}-${el.key}`} entering={FadeInDown.delay(60 + i * 60).duration(300)}>{el}</Animated.View>
           ))}
         </ScrollView>
       </SafeAreaView>
@@ -261,4 +307,7 @@ const s = StyleSheet.create({
   noteText: { fontSize: Type.bodyLg, color: Corpus.text, lineHeight: 20, fontFamily: Font.display },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   swatch: { width: 14, height: 4, borderRadius: 2 },
+  tabsWrap: { backgroundColor: Corpus.bg, paddingVertical: 6, marginVertical: -6 },
+  smallRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  smallBig: { fontSize: Type.h1, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.5, ...tabular },
 });
