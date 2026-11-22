@@ -1,5 +1,5 @@
 import AreaTrend from '@/components/charts/AreaTrend';
-import Donut from '@/components/charts/Donut';
+import RadialRings from '@/components/charts/RadialRings';
 import Aura from '@/components/fx/Aura';
 import Shine from '@/components/fx/Shine';
 import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
@@ -83,7 +83,7 @@ export default function AnalyticsScreen() {
   const spentV = useTween(loading ? 0 : totals.spent);
   const d = change(totals.spent, prev.spent);
 
-  // Donut: the top 4 categories and the rest together (a donut stays readable up to 5 slices)
+  // Rings for the top 4 categories (the legend also lists everything else together)
   const top = categories.slice(0, 4);
   const rest = categories.slice(4).reduce((a, c) => a + c.amount, 0);
   const slices = [...top.map((c) => ({ id: c.id, value: c.amount, color: CategoryChip[c.id] ?? Chip.gray, label: c.label, share: c.share })),
@@ -178,7 +178,7 @@ export default function AnalyticsScreen() {
 
   return (
     <View style={s.root}>
-      <View style={s.aura} pointerEvents="none"><Aura color={Chip.blue} second={Chip.indigo} /></View>
+      <View style={s.aura} pointerEvents="none"><Aura color={Chip.indigo} second={Chip.teal} /></View>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView contentContainerStyle={[s.content, { paddingBottom: TAB_BAR_SPACE + insets.bottom + 20 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={empty ? undefined : [3]}>
           <View style={s.head}>
@@ -224,10 +224,9 @@ export default function AnalyticsScreen() {
                     )}
                   </View>
                   {slices.length > 0 && (
-                    <Donut data={slices} size={118} thickness={16} track={Corpus.cardAlt}>
+                    <RadialRings data={slices.filter((x) => x.id !== 'rest')} size={128}>
                       <Text style={s.donutNum}>{categories.length}</Text>
-                      <Text style={s.donutLabel}>{categories.length === 1 ? 'category' : 'categories'}</Text>
-                    </Donut>
+                    </RadialRings>
                   )}
                 </View>
                 {slices.length > 0 && (
@@ -283,7 +282,7 @@ const s = StyleSheet.create({
   mPill: { minHeight: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: Corpus.card, justifyContent: 'center' },
   mPillOn: { backgroundColor: Corpus.gold },
   mText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
-  card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 18, gap: 12 },
+  card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 18, gap: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Corpus.border },
   hero: { overflow: 'hidden', gap: 16 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   big: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1.4, ...tabular },

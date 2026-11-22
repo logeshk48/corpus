@@ -324,3 +324,7 @@ Cards and text stay clean; the life is in the background and in moments.
 - Step 25b, more visual: PillTabs (components/ui) has icon-over-word tabs with a filled pill that springs across.
 - BurnChart (components/charts) shows your spending adding up day by day as a drawn line with a gradient underneath. A dashed line is even spending to the budget, and a dotted line runs to the month-end estimate. Green when you finish under budget, red when over, and the card says the same in words.
 - Weekday and "kept" bars grow up one after another. Small spends show as a grid of dots, one per spend, that pop in. "What stands out" cards use the pastel tones with a solid icon square.
+- Step 25c, futuristic: RadialRings (components/charts) shows the top 4 categories as concentric rings of light, each a gradient from white into its colour, with a soft wide copy underneath as a glow. They sweep in one after another and replace the hero donut on Insights.
+- BurnChart got a glow under its line and a pulsing "you are here" ring on today. That ring is an Animated.View, because animated SVG radius does not render on web.
+- PillTabs uses an indigo-to-teal gradient pill with a coloured shadow. Bars have a light catch at the top. Small-spend dots glow. Insights cards have a hairline edge, and the Aura is indigo with teal.
+- Web note: never use SVG rotation/origin props (they turn into an invalid DOM transform-origin). Use transform="rotate(-90 cx cy)".

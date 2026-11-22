@@ -6,7 +6,8 @@ import { WEEKDAYS } from '@/utils/insightsMore';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, ZoomIn } from 'react-native-reanimated';
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 // Where this month is heading: spent so far against the budget, a tick for where even spending would be
 // today, and the month-end estimate in words.
@@ -51,7 +52,21 @@ function Grow({ h, color, i, opacity = 1 }: { h: number; color: string; i: numbe
   const v = useSharedValue(reduce ? h : 0);
   useEffect(() => { v.value = reduce ? h : withDelay(i * 60, withSpring(h, { damping: 16, stiffness: 120 })); }, [h, i, reduce, v]);
   const st = useAnimatedStyle(() => ({ height: v.value }));
-  return <Animated.View style={[s.weekBar, { backgroundColor: color, opacity }, st]} />;
+  const id = useId().replace(/:/g, '');
+  return (
+    <Animated.View style={[s.weekBar, { opacity, overflow: 'hidden' }, st]}>
+      <Svg width="100%" height="100%" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id={`g${id}`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={Corpus.sheen} stopOpacity={0.3} />
+            <Stop offset="0.25" stopColor={color} stopOpacity={1} />
+            <Stop offset="1" stopColor={color} stopOpacity={1} />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill={`url(#g${id})`} />
+      </Svg>
+    </Animated.View>
+  );
 }
 
 // Little spends as dots, one per spend, so you see how many there were
@@ -61,7 +76,7 @@ export function SmallDots({ count, total, under, share }: { count: number; total
     <View style={{ gap: 12 }}>
       <View style={s.dots} accessible accessibilityLabel={`${count} spends under ${under} rupees`}>
         {Array.from({ length: shown }, (_, k) => (
-          <Animated.View key={k} entering={ZoomIn.delay(k * 14).duration(220)} style={[s.dotCell, { backgroundColor: k % 7 === 0 ? Chip.orange : Chip.yellow }]} />
+          <Animated.View key={k} entering={ZoomIn.delay(k * 14).duration(220)} style={[s.dotCell, { backgroundColor: k % 7 === 0 ? Chip.orange : Chip.yellow, shadowColor: k % 7 === 0 ? Chip.orange : Chip.yellow, shadowOpacity: 0.7, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } }]} />
         ))}
         {count > shown && <Text style={s.tiny}>+{count - shown}</Text>}
       </View>

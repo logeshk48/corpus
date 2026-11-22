@@ -2,7 +2,7 @@ import { Chip, Corpus, Font, Type } from '@/constants/theme';
 import { compactINR } from '@/utils/format';
 import { useEffect, useId, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedProps, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 
 const APath = Animated.createAnimatedComponent(Path);
@@ -30,12 +30,20 @@ export default function BurnChart({ daily, days, today, budget, projected, heigh
   const p = useSharedValue(reduce ? 1 : 0);
   useEffect(() => { if (!reduce) { p.value = 0; p.value = withDelay(120, withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) })); } }, [w, today, reduce, p]);
   const draw = useAnimatedProps(() => ({ strokeDashoffset: len * (1 - p.value) }));
+  // "you are here": a ring that keeps pulsing out from today's point
+  const pulse = useSharedValue(0);
+  useEffect(() => { if (!reduce) pulse.value = withRepeat(withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }), -1, false); }, [reduce, pulse]);
+  const ring = useAnimatedStyle(() => ({ opacity: 0.7 * (1 - pulse.value), transform: [{ scale: 1 + pulse.value * 2.6 }] }));
   const last = cum[cum.length - 1] ?? 0;
   return (
     <View onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ height: height + 18 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {w > 0 && (
         <Svg width={w} height={height}>
           <Defs>
+            <LinearGradient id={`s${id}`} x1="0" y1="0" x2={w} y2="0" gradientUnits="userSpaceOnUse">
+              <Stop offset="0" stopColor={tone} stopOpacity={0.45} />
+              <Stop offset="1" stopColor={tone} stopOpacity={1} />
+            </LinearGradient>
             <LinearGradient id={`b${id}`} x1="0" y1="0" x2="0" y2={height} gradientUnits="userSpaceOnUse">
               <Stop offset="0" stopColor={tone} stopOpacity={0.28} />
               <Stop offset="1" stopColor={tone} stopOpacity={0} />
@@ -44,11 +52,15 @@ export default function BurnChart({ daily, days, today, budget, projected, heigh
           {budget ? <Line x1={x(1)} y1={y(0)} x2={x(days)} y2={y(budget)} stroke={Corpus.textFaint} strokeWidth={1.5} strokeDasharray="5 5" /> : null}
           {budget ? <Line x1={x(1)} y1={y(budget)} x2={x(days)} y2={y(budget)} stroke={Corpus.border} strokeWidth={1} /> : null}
           {area ? <Path d={area} fill={`url(#b${id})`} /> : null}
-          {line ? <APath d={line} stroke={tone} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${len} ${len}`} animatedProps={draw} /> : null}
+          {line ? <APath d={line} stroke={tone} strokeOpacity={0.16} strokeWidth={11} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${len} ${len}`} animatedProps={draw} /> : null}
+          {line ? <APath d={line} stroke={`url(#s${id})`} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${len} ${len}`} animatedProps={draw} /> : null}
           {today < days && cum.length ? <Line x1={x(today)} y1={y(last)} x2={x(days)} y2={y(projected)} stroke={tone} strokeWidth={2} strokeDasharray="2 5" strokeLinecap="round" /> : null}
           {cum.length ? <Circle cx={x(today)} cy={y(last)} r={5} fill={tone} stroke={Corpus.card} strokeWidth={2} /> : null}
           {today < days ? <Circle cx={x(days)} cy={y(projected)} r={4} fill={Corpus.card} stroke={tone} strokeWidth={2} /> : null}
         </Svg>
+      )}
+      {w > 0 && cum.length > 0 && today < days && (
+        <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: x(today) - 7, top: y(last) - 7, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: tone }, ring]} />
       )}
       <View style={s.axis}>
         <Text style={s.tick}>1st</Text>
