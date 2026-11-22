@@ -1,31 +1,37 @@
-import Bullet from '@/components/charts/Bullet';
+import BurnChart from '@/components/charts/BurnChart';
 import { CategoryChip, Chip, Corpus, Font, tabular, Type } from '@/constants/theme';
 import { compactINR, formatINR } from '@/utils/format';
 import type { categoryMovers, monthPace, weekdayPattern } from '@/utils/insightsMore';
 import { WEEKDAYS } from '@/utils/insightsMore';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, ZoomIn } from 'react-native-reanimated';
+import { useEffect } from 'react';
 
 // Where this month is heading: spent so far against the budget, a tick for where even spending would be
 // today, and the month-end estimate in words.
-export function Pace({ p }: { p: ReturnType<typeof monthPace> }) {
+export function Pace({ p, daily }: { p: ReturnType<typeof monthPace>; daily: number[] }) {
   const over = p.budget ? p.projected - p.budget : 0;
+  const tone = p.budget ? (over > 0 ? Corpus.danger : Corpus.income) : Corpus.text;
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 12 }}>
       <View style={s.row}>
         <View style={{ flex: 1 }}>
-          <Text style={s.label}>{p.isCurrent ? 'Month-end estimate' : 'Month total'}</Text>
-          <Text style={[s.big, p.budget && over > 0 ? { color: Corpus.danger } : null]}>{formatINR(p.projected)}</Text>
+          <Text style={s.label}>Spent so far</Text>
+          <Text style={s.big}>{formatINR(p.spent)}</Text>
         </View>
-        {p.budget ? (
+        {p.isCurrent && (
           <View style={{ alignItems: 'flex-end' }}>
-            <Text style={s.label}>Budget</Text>
-            <Text style={s.mid}>{formatINR(p.budget)}</Text>
+            <Text style={s.label}>Heading for</Text>
+            <Text style={[s.mid, { color: tone }]}>{formatINR(p.projected)}</Text>
           </View>
-        ) : null}
+        )}
       </View>
-      {p.budget ? <Bullet value={p.spent} limit={p.budget} pace={p.isCurrent ? p.day / p.days : undefined} color={p.spent > p.budget ? Corpus.danger : Corpus.text} height={10} /> : null}
+      <BurnChart daily={daily} days={p.days} today={p.day} budget={p.budget} projected={p.projected} />
+      <View style={s.legend}>
+        <View style={[s.swatch, { backgroundColor: tone }]} /><Text style={s.tiny}>You</Text>
+        {p.budget ? (<><View style={[s.swatch, s.dash]} /><Text style={s.tiny}>Even spending to your budget</Text></>) : null}
+      </View>
       <Text style={s.text}>
         {!p.isCurrent
           ? p.budget ? (p.spent > p.budget ? `Ended ${formatINR(p.spent - p.budget)} over budget.` : `Ended ${formatINR(p.budget - p.spent)} under budget.`) : `About ${formatINR(Math.round(p.spent / p.days))} a day.`
@@ -39,6 +45,34 @@ export function Pace({ p }: { p: ReturnType<typeof monthPace> }) {
   );
 }
 
+// A bar that grows up from the floor when it first shows, a beat after the one before it
+function Grow({ h, color, i, opacity = 1 }: { h: number; color: string; i: number; opacity?: number }) {
+  const reduce = useReducedMotion();
+  const v = useSharedValue(reduce ? h : 0);
+  useEffect(() => { v.value = reduce ? h : withDelay(i * 60, withSpring(h, { damping: 16, stiffness: 120 })); }, [h, i, reduce, v]);
+  const st = useAnimatedStyle(() => ({ height: v.value }));
+  return <Animated.View style={[s.weekBar, { backgroundColor: color, opacity }, st]} />;
+}
+
+// Little spends as dots, one per spend, so you see how many there were
+export function SmallDots({ count, total, under, share }: { count: number; total: number; under: number; share: number }) {
+  const shown = Math.min(count, 60);
+  return (
+    <View style={{ gap: 12 }}>
+      <View style={s.dots} accessible accessibilityLabel={`${count} spends under ${under} rupees`}>
+        {Array.from({ length: shown }, (_, k) => (
+          <Animated.View key={k} entering={ZoomIn.delay(k * 14).duration(220)} style={[s.dotCell, { backgroundColor: k % 7 === 0 ? Chip.orange : Chip.yellow }]} />
+        ))}
+        {count > shown && <Text style={s.tiny}>+{count - shown}</Text>}
+      </View>
+      <View style={s.row}>
+        <Text style={s.big}>{formatINR(total)}</Text>
+        <Text style={[s.tiny, { flex: 1, textAlign: 'right' }]}>{count} spends under ₹{under}{'\n'}{share}% of all you spent</Text>
+      </View>
+    </View>
+  );
+}
+
 // Monday to Sunday: the average spend on each day of the week, the most expensive day picked out
 export function Weekdays({ w }: { w: ReturnType<typeof weekdayPattern> }) {
   const max = Math.max(...w.avg, 1);
@@ -48,7 +82,7 @@ export function Weekdays({ w }: { w: ReturnType<typeof weekdayPattern> }) {
         {w.avg.map((v, i) => (
           <View key={i} style={s.weekCol}>
             <Text style={[s.tiny, i === w.top && { color: Corpus.text, fontFamily: Font.display }]}>{v > 0 ? compactINR(Math.round(v)) : ''}</Text>
-            <View style={[s.weekBar, { height: Math.max(4, (v / max) * 84), backgroundColor: i === w.top ? Chip.orange : Corpus.cardAlt }]} />
+            <Grow h={Math.max(4, (v / max) * 84)} color={i === w.top ? Chip.orange : i === w.low ? Chip.teal : Corpus.cardAlt} i={i} />
             <Text style={[s.tiny, i === w.top && { color: Corpus.text, fontFamily: Font.display }]}>{WEEKDAYS[i].slice(0, 3)}</Text>
           </View>
         ))}
@@ -65,13 +99,13 @@ export function Rates({ months }: { months: { key: string; label: string; rate: 
   const max = Math.max(30, ...months.map((m) => Math.abs(m.rate ?? 0)));
   return (
     <View style={s.weekRow}>
-      {months.map((m) => {
+      {months.map((m, i) => {
         const r = m.rate;
         const color = r == null ? Corpus.cardAlt : r < 0 ? Corpus.danger : r >= 20 ? Corpus.income : Chip.yellow;
         return (
           <View key={m.key} style={s.weekCol} accessible accessibilityLabel={`${m.label}: ${r == null ? 'no income' : `${r}% kept`}`}>
             <Text style={[s.tiny, m.on && { color: Corpus.text, fontFamily: Font.display }]}>{r == null ? '' : `${r < 0 ? '−' : ''}${Math.abs(r)}%`}</Text>
-            <View style={[s.weekBar, { height: Math.max(4, (Math.abs(r ?? 0) / max) * 84), backgroundColor: color, opacity: m.on ? 1 : 0.55 }]} />
+            <Grow h={Math.max(4, (Math.abs(r ?? 0) / max) * 84)} color={color} i={i} opacity={m.on ? 1 : 0.55} />
             <Text style={[s.tiny, m.on && { color: Corpus.text, fontFamily: Font.display }]}>{m.label}</Text>
           </View>
         );
@@ -113,7 +147,12 @@ const s = StyleSheet.create({
   tiny: { fontSize: Type.small, color: Corpus.textMuted, ...tabular },
   weekRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 128 },
   weekCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 },
-  weekBar: { width: '100%', maxWidth: 30, borderRadius: 7 },
+  weekBar: { width: '100%', maxWidth: 30, borderRadius: 8 },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  swatch: { width: 16, height: 3, borderRadius: 2 },
+  dash: { backgroundColor: 'transparent', borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: Corpus.textFaint, marginLeft: 10 },
+  dots: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
+  dotCell: { width: 14, height: 14, borderRadius: 7 },
   mover: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   moverDot: { width: 10, height: 10, borderRadius: 5 },
   moverName: { fontSize: Type.input, color: Corpus.text },

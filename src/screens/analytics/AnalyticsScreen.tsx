@@ -3,8 +3,8 @@ import Donut from '@/components/charts/Donut';
 import Aura from '@/components/fx/Aura';
 import Shine from '@/components/fx/Shine';
 import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
-import { IconChip, Segmented, Tap } from '@/components/ui';
-import { CategoryChip, Chip, Corpus, Font, tabular, Type } from '@/constants/theme';
+import { IconChip, PillTabs, Segmented, Tap } from '@/components/ui';
+import { CategoryChip, Chip, Corpus, Font, Pastel, tabular, Type } from '@/constants/theme';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -27,7 +27,7 @@ import CashFlowBar from './components/CashFlowBar';
 import CategoryBars from './components/CategoryBars';
 import DailyChart from './components/DailyChart';
 import IncomeSources from './components/IncomeSources';
-import { Movers, Pace, Rates, Weekdays } from './components/InsightWidgets';
+import { Movers, Pace, Rates, SmallDots, Weekdays } from './components/InsightWidgets';
 import { categoryMovers, monthPace, smallSpends, weekdayPattern } from '@/utils/insightsMore';
 
 const MONTHS_BACK = 5; // the last 6 months
@@ -101,18 +101,21 @@ export default function AnalyticsScreen() {
   const sections: ReactNode[] = [];
   const at: Record<string, Tab> = { pace: 'overview', notes: 'overview', flow: 'overview', cats: 'spending', daily: 'spending', week: 'spending', small: 'spending', big: 'spending', src: 'income', rates: 'income', trend: 'trends', movers: 'trends' };
   if (!empty && totals.spent > 0) sections.push(
-    <Card key="pace" title="Where the month is heading" meta={pace.isCurrent ? `Day ${pace.day} of ${pace.days}` : undefined}><Pace p={pace} /></Card>,
+    <Card key="pace" title="Where the month is heading" meta={pace.isCurrent ? `Day ${pace.day} of ${pace.days}` : undefined}><Pace p={pace} daily={days.map((x) => x.amount)} /></Card>,
   );
   if (!empty && notes.length > 0) sections.push(
     <View key="notes" style={{ gap: 10 }}>
       <Text style={[s.cardTitle, { paddingHorizontal: 4 }]}>What stands out</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={262} decelerationRate="fast" contentContainerStyle={{ gap: 10, paddingRight: 16 }}>
-        {notes.map((n, i) => (
-          <View key={n} style={s.note}>
-            <IconChip icon={['bulb', 'flash', 'trending-up', 'eye', 'star'][i % 5]} color={[Chip.yellow, Chip.pink, Chip.teal, Chip.indigo, Chip.orange][i % 5]} size={34} />
-            <Text style={s.noteText}>{n}</Text>
-          </View>
-        ))}
+        {notes.map((n, i) => {
+          const t = [Pastel.butter, Pastel.rose, Pastel.mint, Pastel.lilac, Pastel.peach][i % 5];
+          return (
+            <View key={n} style={[s.note, { backgroundColor: t.bg }]}>
+              <View style={[s.noteIcon, { backgroundColor: t.icon }]}><Ionicons name={(['bulb', 'flash', 'trending-up', 'eye', 'star'][i % 5]) as keyof typeof Ionicons.glyphMap} size={18} color={Corpus.sheen} /></View>
+              <Text style={[s.noteText, { color: t.fg }]}>{n}</Text>
+            </View>
+          );
+        })}
       </ScrollView>
     </View>,
   );
@@ -135,10 +138,7 @@ export default function AnalyticsScreen() {
   );
   if (!empty && small.count >= 5) sections.push(
     <Card key="small" title="Small spends add up">
-      <View style={s.smallRow}>
-        <Text style={s.smallBig}>{formatINR(small.total)}</Text>
-        <Text style={[s.meta, { flex: 1 }]}>from {small.count} spends under ₹{small.under} this month, {totals.spent ? Math.round((small.total / totals.spent) * 100) : 0}% of all you spent</Text>
-      </View>
+      <SmallDots count={small.count} total={small.total} under={small.under} share={totals.spent ? Math.round((small.total / totals.spent) * 100) : 0} />
     </Card>,
   );
   if (!empty && flow.income > 0) sections.push(
@@ -259,7 +259,7 @@ export default function AnalyticsScreen() {
 
           {!empty && (
             <View style={s.tabsWrap}>
-              <Segmented options={[{ value: 'overview', label: 'Overview' }, { value: 'spending', label: 'Spending' }, { value: 'income', label: 'Income' }, { value: 'trends', label: 'Trends' }] as const} value={tab} onChange={setTab} />
+              <PillTabs tabs={[{ value: 'overview', label: 'Overview', icon: 'sparkles' }, { value: 'spending', label: 'Spending', icon: 'cart' }, { value: 'income', label: 'Income', icon: 'arrow-down-circle' }, { value: 'trends', label: 'Trends', icon: 'analytics' }]} value={tab} onChange={setTab} />
             </View>
           )}
 
@@ -304,10 +304,9 @@ const s = StyleSheet.create({
   cardTitle: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.2 },
   meta: { fontSize: Type.small, color: Corpus.textMuted, ...tabular },
   note: { width: 252, minHeight: 120, backgroundColor: Corpus.card, borderRadius: 22, padding: 16, gap: 10 },
+  noteIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   noteText: { fontSize: Type.bodyLg, color: Corpus.text, lineHeight: 20, fontFamily: Font.display },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   swatch: { width: 14, height: 4, borderRadius: 2 },
   tabsWrap: { backgroundColor: Corpus.bg, paddingVertical: 6, marginVertical: -6 },
-  smallRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  smallBig: { fontSize: Type.h1, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.5, ...tabular },
 });

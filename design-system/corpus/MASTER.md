@@ -321,3 +321,6 @@ Cards and text stay clean; the life is in the background and in moments.
 - Spending: Where your money went, Day by day, "Your week" (average spend per weekday over 3 months, the costliest day in orange, said in words), "Small spends add up" (spends under ₹200), Biggest spends.
 - Income: Where it came from, "How much you kept" (savings rate per month, green at 20% or more, yellow under, red when negative).
 - Trends: Last 6 months, "Against your usual" (categories up or down at least ₹300 against the 3 months before, over the same days; tap to open).
+- Step 25b, more visual: PillTabs (components/ui) has icon-over-word tabs with a filled pill that springs across.
+- BurnChart (components/charts) shows your spending adding up day by day as a drawn line with a gradient underneath. A dashed line is even spending to the budget, and a dotted line runs to the month-end estimate. Green when you finish under budget, red when over, and the card says the same in words.
+- Weekday and "kept" bars grow up one after another. Small spends show as a grid of dots, one per spend, that pop in. "What stands out" cards use the pastel tones with a solid icon square.
