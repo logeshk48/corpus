@@ -1,20 +1,21 @@
-import { ScreenHeader, SectionLabel } from '@/components/ui';
-import { ChartColors } from '@/constants/chartColors';
+import Bullet from '@/components/charts/Bullet';
+import MonthBars from '@/components/charts/MonthBars';
+import { Button, Group, IconChip, Screen } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
-import { Corpus, Font, Radius, Space, Type } from '@/constants/theme';
+import { CategoryChip, Chip, Corpus, Font, tabular, Type } from '@/constants/theme';
+import { useEntrance } from '@/hooks/useEntrance';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useTween } from '@/hooks/useTween';
 import TransactionRow from '@/screens/home/components/TransactionRow';
 import { categoryTotals, categoryTrend, monthLabel, shiftMonth, ym } from '@/utils/analytics';
 import { formatINR } from '@/utils/format';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-const HEIGHT = 110;
-
+// One category up close: what this month cost, how it compares, the last six months as columns you can tap,
+// where in the category the money went, and every spend.
 export default function CategoryDetailScreen() {
   const { id, month: monthParam } = useLocalSearchParams<{ id: string; month?: string }>();
   const router = useRouter();
@@ -22,9 +23,11 @@ export default function CategoryDetailScreen() {
   const [month, setMonth] = useState(monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : current);
   const { transactions, loading } = useTransactions('last12Months');
   const { settings } = useSettings();
+  const t = useEntrance(800, loading);
 
   const cat = findCategory('expense', id);
   const name = cat?.label ?? 'Other';
+  const color = CategoryChip[id] ?? Chip.gray;
   const isCurrent = month === current;
   const today = new Date().getDate();
   const prevKey = shiftMonth(month, -1);
@@ -33,136 +36,100 @@ export default function CategoryDetailScreen() {
   const before = categoryTotals(transactions, prevKey, isCurrent ? today : undefined).get(id) ?? 0;
   const change = before > 0 ? Math.round(((total - before) / before) * 100) : null;
   const trend = categoryTrend(transactions, id, current, 6);
-  const trendMax = Math.max(...trend.map((t) => t.amount), 1);
-  const avg6 = trend.filter((t) => t.key !== current).reduce((s, t) => s + t.amount, 0) / 5;
-  const items = transactions
-    .filter((t) => t.type === 'expense' && t.category === id && ym(new Date(t.date)) === month)
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const avg5 = trend.filter((x) => x.key !== current).reduce((a, x) => a + x.amount, 0) / 5;
+  const bars = trend.map((x) => ({ key: x.key, label: monthLabel(x.key, 'short'), full: monthLabel(x.key), value: x.amount }));
+  const items = transactions.filter((x) => x.type === 'expense' && x.category === id && ym(new Date(x.date)) === month).sort((a, b) => b.date.localeCompare(a.date));
   const limit = settings.categoryBudgets?.[id];
+  const totalV = useTween(loading ? 0 : total);
+
+  // the same note several times (Swiggy, Uber, Zepto) is where the money really went
+  const byNote = new Map<string, { label: string; amount: number; count: number }>();
+  for (const x of items) {
+    const label = (x.note ?? '').trim();
+    if (!label) continue;
+    const k = label.toLowerCase();
+    const g = byNote.get(k) ?? { label, amount: 0, count: 0 };
+    g.amount += x.amount; g.count += 1;
+    byNote.set(k, g);
+  }
+  const places = [...byNote.values()].filter((g) => g.count > 1 || g.amount >= total * 0.2).sort((a, b) => b.amount - a.amount).slice(0, 3);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/analytics'));
+  const vsText = change === null ? null
+    : change === 0 ? `Same as ${monthLabel(prevKey, 'short')}${isCurrent ? ` 1 to ${today}` : ''}`
+    : `${Math.abs(change)}% ${change > 0 ? 'more' : 'less'} than ${monthLabel(prevKey, 'short')}${isCurrent ? ` 1 to ${today}` : ''}`;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ScreenHeader title={name} icon={(cat?.icon ?? 'ellipsis-horizontal') as any} onBack={goBack} />
-
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Corpus.gold} />
-          </View>
-        ) : (
-          <>
-            <View style={styles.hero}>
-              <Text style={styles.heroLabel}>{monthLabel(month).toUpperCase()}</Text>
-              <Text style={styles.heroAmount}>{formatINR(total)}</Text>
-              <Text style={styles.heroSub}>
-                {items.length} transaction{items.length === 1 ? '' : 's'}
-                {items.length > 0 ? ` · avg ${formatINR(Math.round(total / items.length))}` : ''}
-              </Text>
-              {change !== null && (
-                <Text style={styles.heroSub}>
-                  {change === 0 ? 'Same as' : `${change > 0 ? '▲' : '▼'} ${Math.abs(change)}% vs`}{' '}
-                  {monthLabel(prevKey, 'short')}
-                  {isCurrent ? ` 1–${today}` : ''}
+    <Screen title={name} tone={color} onBack={goBack}>
+      {loading ? (
+        <ActivityIndicator color={Corpus.gold} style={{ paddingVertical: 80 }} />
+      ) : (
+        <>
+          <View style={s.hero}>
+            <View style={s.heroTop}>
+              <IconChip icon={cat?.icon ?? 'ellipsis-horizontal'} color={color} size={44} />
+              <Text style={s.heroLabel}>{monthLabel(month)}</Text>
+            </View>
+            <Text style={s.big}>{formatINR(Math.round(totalV))}</Text>
+            <Text style={s.sub}>{items.length === 0 ? 'Nothing spent' : `${items.length} spend${items.length === 1 ? '' : 's'}, about ${formatINR(Math.round(total / items.length))} each`}</Text>
+            {vsText && <Text style={[s.sub, change !== null && change > 0 ? { color: Corpus.danger } : change !== null && change < 0 ? { color: Corpus.income } : null]}>{vsText}</Text>}
+            {limit !== undefined ? (
+              <View style={s.meter} accessible accessibilityLabel={`${formatINR(total)} of a ${formatINR(limit)} limit`}>
+                <Bullet value={total} limit={limit} color={total > limit ? Corpus.danger : color} height={10} appear={t} />
+                <Text style={[s.sub, total > limit && { color: Corpus.danger }]}>
+                  {total > limit ? `${formatINR(total - limit)} over your ${formatINR(limit)} limit` : `${formatINR(limit - total)} left of your ${formatINR(limit)} limit`}
                 </Text>
-              )}
-              {limit !== undefined && (
-                <View style={styles.meterWrap}>
-                  <View style={styles.meterTrack}>
-                    <View
-                      style={[
-                        styles.meterFill,
-                        { width: `${Math.min((total / limit) * 100, 100)}%`, backgroundColor: total > limit ? Corpus.danger : ChartColors.spend },
-                      ]}
-                    />
+              </View>
+            ) : (
+              <Button size="sm" variant="secondary" icon="speedometer-outline" label="Set a monthly limit" onPress={() => router.push('/budgets' as Href)} style={{ alignSelf: 'flex-start', marginTop: 10 }} />
+            )}
+          </View>
+
+          <View style={s.card}>
+            <Text style={s.cardTitle}>Last 6 months</Text>
+            <MonthBars bars={bars} color={color} target={avg5 > 0 ? Math.round(avg5) : undefined} targetLabel="Usual" zeroLabel="Nothing" height={110} appear={t}
+              selected={Math.max(0, bars.findIndex((b) => b.key === month))} onSelect={(k) => setMonth(bars[k].key)} />
+          </View>
+
+          {places.length > 0 && (
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Where it went</Text>
+              {places.map((g) => (
+                <View key={g.label} style={s.place}>
+                  <View style={s.placeTop}>
+                    <Text style={s.placeName} numberOfLines={1}>{g.label}</Text>
+                    <Text style={s.placeAmt}>{formatINR(g.amount)}</Text>
                   </View>
-                  <Text style={[styles.heroSub, total > limit && { color: Corpus.danger }]}>
-                    {total > limit
-                      ? `Over the ${formatINR(limit)} budget by ${formatINR(total - limit)}`
-                      : `${formatINR(limit - total)} left of the ${formatINR(limit)} budget`}
-                  </Text>
+                  <Bullet value={g.amount} limit={total} color={color} height={6} appear={t} />
+                  <Text style={s.placeSub}>{g.count} time{g.count === 1 ? '' : 's'}, {Math.round((g.amount / total) * 100)}% of {name.toLowerCase()}</Text>
                 </View>
-              )}
+              ))}
             </View>
+          )}
 
-            <View style={styles.card}>
-              <View style={styles.cardTitleRow}>
-                <Text style={styles.cardTitle}>Last 6 months</Text>
-                <Text style={styles.cardMeta}>5-month avg {formatINR(Math.round(avg6))}</Text>
-              </View>
-              <View style={styles.plot}>
-                {avg6 > 0 && <View style={[styles.avgLine, { bottom: (avg6 / trendMax) * HEIGHT }]} />}
-                {trend.map((t) => {
-                  const active = t.key === month;
-                  return (
-                    <Pressable key={t.key} style={styles.slot} onPress={() => setMonth(t.key)}>
-                      {active && t.amount > 0 && <Text style={styles.value}>{formatINR(t.amount)}</Text>}
-                      <View
-                        style={[
-                          styles.col,
-                          {
-                            height: t.amount > 0 ? Math.max((t.amount / trendMax) * HEIGHT, 3) : 0,
-                            opacity: active ? 1 : 0.4,
-                          },
-                        ]}
-                      />
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <View style={styles.xRow}>
-                {trend.map((t) => (
-                  <Text key={t.key} style={[styles.xLabel, t.key === month && { color: Corpus.text, fontWeight: '600' }]}>
-                    {monthLabel(t.key, 'short')}
-                  </Text>
-                ))}
-              </View>
-              <Text style={styles.cardMeta}>Dashed line = average of the 5 months before this one · tap a month</Text>
-            </View>
-
-            <SectionLabel>{`${name.toUpperCase()} IN ${monthLabel(month, 'short').toUpperCase()}`}</SectionLabel>
-            <View style={styles.group}>
-              {items.length === 0 ? (
-                <Text style={styles.empty}>No {name.toLowerCase()} spending this month</Text>
-              ) : (
-                items.map((t) => (
-                  <View key={t.id} style={styles.item}>
-                    <TransactionRow tx={t} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: t.id } })} />
-                  </View>
-                ))
-              )}
-            </View>
-          </>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          <Group animate title={`${monthLabel(month, 'short')} spends`}>
+            {items.length === 0
+              ? [<View key="none" style={{ padding: 16 }}><Text style={s.sub}>No {name.toLowerCase()} spending in {monthLabel(month)}</Text></View>]
+              : items.map((x) => <TransactionRow key={x.id} tx={x} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: x.id } })} />)}
+          </Group>
+        </>
+      )}
+    </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Corpus.bg },
-  content: { padding: Space.lg, paddingBottom: 120, gap: Space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  hero: { backgroundColor: Corpus.card, borderRadius: Radius.xl, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, alignItems: 'center', gap: 4 },
-  heroLabel: { fontSize: Type.caption, color: Corpus.textMuted, letterSpacing: 0.6 },
-  heroAmount: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
-  heroSub: { fontSize: Type.small, color: Corpus.textMuted },
-  meterWrap: { alignSelf: 'stretch', gap: 6, marginTop: Space.sm, alignItems: 'center' },
-  meterTrack: { alignSelf: 'stretch', height: 8, borderRadius: 4, backgroundColor: ChartColors.track, overflow: 'hidden' },
-  meterFill: { height: 8, borderRadius: 4 },
-  card: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.md, gap: 10 },
-  cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  cardTitle: { fontSize: Type.bodyLg, fontWeight: '600', color: Corpus.text },
-  cardMeta: { fontSize: Type.caption, color: Corpus.textMuted },
-  plot: { height: HEIGHT + 18, flexDirection: 'row', alignItems: 'flex-end', borderBottomWidth: 1, borderBottomColor: ChartColors.grid },
-  avgLine: { pointerEvents: 'none', position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderStyle: 'dashed', borderColor: Corpus.textMuted },
-  slot: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  col: { width: 22, borderTopLeftRadius: 4, borderTopRightRadius: 4, backgroundColor: ChartColors.spend },
-  value: { fontSize: Type.micro, color: Corpus.text, marginBottom: 3 },
-  xRow: { flexDirection: 'row' },
-  xLabel: { flex: 1, textAlign: 'center', fontSize: Type.caption, color: Corpus.textMuted },
-  group: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, paddingVertical: 4 },
-  item: { paddingHorizontal: Space.md, paddingVertical: 8 },
-  empty: { fontSize: Type.small, color: Corpus.textMuted, textAlign: 'center', paddingVertical: Space.lg },
-  center: { alignItems: 'center', paddingVertical: 80 },
+const s = StyleSheet.create({
+  hero: { backgroundColor: Corpus.card, borderRadius: 28, padding: 18, gap: 4 },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
+  heroLabel: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.textMuted },
+  big: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1, ...tabular },
+  sub: { fontSize: Type.bodyLg, color: Corpus.textMuted, ...tabular },
+  meter: { gap: 6, marginTop: 12 },
+  card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 16, gap: 14 },
+  cardTitle: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.text },
+  place: { gap: 6 },
+  placeTop: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  placeName: { flex: 1, fontSize: Type.input, color: Corpus.text },
+  placeAmt: { fontSize: Type.input, fontFamily: Font.display, color: Corpus.text, ...tabular },
+  placeSub: { fontSize: Type.small, color: Corpus.textMuted },
 });

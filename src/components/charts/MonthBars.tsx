@@ -7,10 +7,13 @@ export type MonthBar = { key: string; label: string; full: string; value: number
 
 // Month-by-month columns (ui-ux-pro-max: bar chart for discrete periods, direct labels).
 // Tap a column to read it; the reading sits above in words. A dashed line marks the monthly target if given.
-export default function MonthBars({ bars, color, target, targetLabel = 'Expected', zeroLabel = 'Nothing', height = 96, appear = 1 }: {
+export default function MonthBars({ bars, color, target, targetLabel = 'Expected', zeroLabel = 'Nothing', height = 96, appear = 1, selected, onSelect }: {
   bars: MonthBar[]; color: string; target?: number; targetLabel?: string; zeroLabel?: string; height?: number; appear?: number;
+  selected?: number; onSelect?: (index: number) => void; // pass both to control which month is picked from outside
 }) {
-  const [sel, setSel] = useState(bars.length - 1);
+  const [own, setOwn] = useState(bars.length - 1);
+  const sel = selected ?? own;
+  const setSel = (k: number) => (onSelect ? onSelect(k) : setOwn(k));
   const i = Math.min(sel, bars.length - 1);
   const max = Math.max(target ?? 0, ...bars.map((b) => Math.abs(b.value)), 1);
   const cur = bars[i];

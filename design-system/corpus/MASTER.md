@@ -302,3 +302,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - Year report: the hero is what you saved, big, with "32% of what came in" and an Earned / Spent / Invested strip. Below it: the AreaTrend chart (tap a month for its numbers), a "Where it went" donut with legend, Biggest spends as GroupRows with category icons, a "Look closer" group (last month's review, Tax summary), Data health, and Export rows with a CSV tag.
 - Tax summary: the hero is the ITR due date and the days left. Then cards with a title and a pill (Schedule CG, Other sources, Old regime only) and label-left, amount-right lines. Capital gains has a real "Download for your CA" button. "Before you file" is a list with an icon on each row.
 - Fix: Screen keyed flattened fragment children by their own keys, which clashed (".0" twice). Keys now include the position.
+
+## Category detail (step 23)
+- Shared Screen frame with the category's colour as the Aura. The hero has the category icon, the month name, the amount counting up, "N spends, about ₹X each", and a comparison in words ("12% more than Oct 1 to 22", red for more, green for less). No ▲▼ arrows.
+- A limit bar in the category colour (red when over). With no limit, a "Set a monthly limit" button goes to Budgets.
+- Last 6 months uses MonthBars, which now has optional selected / onSelect so the page controls the month. A dashed "Usual" line marks the 5-month average.
+- New "Where it went" card: notes that repeat or take 20% or more of the month (Swiggy, Uber), with a bar and "5 times, 40% of food".
