@@ -69,7 +69,7 @@ export default function AnalyticsScreen() {
   const today = new Date().getDate();
   // While a month is in progress, compare with the same days of last month
   const prev = monthTotals(transactions, prevKey, isCurrent ? today : undefined);
-  const vs = isCurrent ? `${short(prevKey)} 1–${today}` : short(prevKey);
+  const vs = isCurrent ? `${short(prevKey)} 1 to ${today}` : short(prevKey);
   const categories = byCategory(transactions, month);
   const days = dailySpending(transactions, month);
   const avg = dailyAverage(days);
@@ -219,7 +219,7 @@ export default function AnalyticsScreen() {
                     {d !== null && (
                       <View style={[s.delta, { backgroundColor: d > 0 ? Corpus.dangerTint : Corpus.incomeTint }]}>
                         <Ionicons name={d > 0 ? 'arrow-up' : d < 0 ? 'arrow-down' : 'remove'} size={13} color={d > 0 ? Corpus.danger : Corpus.income} />
-                        <Text style={[s.deltaText, { color: d > 0 ? Corpus.danger : Corpus.income }]}>{d === 0 ? `Same as ${vs}` : `${Math.abs(d)}% ${d > 0 ? 'more' : 'less'} than ${vs}`}</Text>
+                        <Text style={[s.deltaText, { color: d > 0 ? Corpus.danger : Corpus.income }]}>{d === 0 ? `Same as ${vs}` : Math.abs(d) > 200 ? `${formatINR(Math.abs(totals.spent - prev.spent))} ${d > 0 ? 'more' : 'less'} than ${vs}` : `${Math.abs(d)}% ${d > 0 ? 'more' : 'less'} than ${vs}`}</Text>
                       </View>
                     )}
                   </View>
