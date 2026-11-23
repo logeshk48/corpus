@@ -336,3 +336,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - Step 26b, Today layout: hero ring (196, so Add spend is on the first screen without scrolling), then Add / Scan / Afford, then the pulse strip (three tiles: Spent today, This week, next bill with days to go; each opens its screen), then your usuals, then Needs you, Month review, Up next, This week, Your money, Found for you, progress (Wealth score, Debt plan, SIPs), and Recent last.
 - This week: gradient bars grow in, today is orange with a glow, the rest indigo, and a dashed line marks your average day.
 - Your money is now a two-column bento of tiles: icon, a 14-day spark, the label, the figure in bold (₹ amount or %), and a status line or alert. "Spent today" moved from the hero chips to the pulse strip.
+- Step 26c, "Your numbers" (Today, right under the tiles): a sideways row of curiosity cards, each with one number and one sentence about what changed.
+  - Net worth leads: wider, with an indigo edge, a glow and a gradient wash. It shows the change since last month's snapshot and a spark.
+  - Then: Wealth score (with the change since last month, or the next step), This month vs last (same days, two bars), Kept this month (%), Closest jar goal (liquid jar), and Debt-free by.
+  - The Wealth score card lower on Today and the Net worth tile in Your money were removed, since they now live here.
+- Step 26d, Your numbers as holo cards on a loop:
+  - Each card is dark glass in either theme. It has a radial glow in its own accent (net worth indigo, score purple, month orange, kept teal, jar yellow, debt pink) from the top-right, a faint display grid, a gradient edge from its accent to teal, a coloured shadow and a glowing dot by the label. Numbers are white.
+  - The row glides left on its own at 26 px a second and loops through a second copy, like a train. Touch or swipe to take over; it waits 2.5 s after you let go before gliding again. It never moves on its own under Reduce Motion, and the copy is hidden from screen readers.

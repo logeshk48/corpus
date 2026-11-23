@@ -17,7 +17,6 @@ import { useInvestments } from '@/hooks/useInvestments';
 import { netWorthItems, netWorthTotals } from '@/utils/netWorth';
 import { scoreInputs } from '@/utils/wealthInputs';
 import { wealthScore } from '@/utils/wealthScore';
-import WealthScoreCard from './components/WealthScoreCard';
 import DebtPlanCard from './components/DebtPlanCard';
 import { debtPlanSummary, planStart } from '@/utils/debtPlan';
 import { saveCategoryBudgets, saveSettings } from '@/services/settings';
@@ -27,6 +26,9 @@ import { actionable, moneyReminders } from '@/utils/debtReminders';
 import MoneyReminders from './components/MoneyReminders';
 import UpcomingBills from './components/UpcomingBills';
 import PulseStrip, { PULSE_COLORS } from './components/PulseStrip';
+import YourNumbers, { fmtDelta, JarVisual, NetWorthSpark, ScoreRing, Versus, type NumberCard } from './components/YourNumbers';
+import { monthLabel, monthTotals, shiftMonth, ym as ymKey } from '@/utils/analytics';
+import { savedOf } from '@/types/vault';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
 import { addBill, deleteBill, logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
@@ -424,13 +426,63 @@ export default function HomeScreen() {
       tone: income > 0 ? 'good' : 'normal',
       onPress: () => router.push('/income' as Href),
     },
-    {
-      key: 'networth', label: 'Net worth', icon: 'trending-up-outline',
-      value: accounts.length === 0 && assets.length === 0 ? 'See it all' : compactINR(nw),
-      tone: accounts.length === 0 && assets.length === 0 ? 'normal' : nw < 0 ? 'danger' : 'good',
-      onPress: () => router.push('/networth' as Href),
-    },
   ];
+
+  // "Your numbers": what people are most curious about, each with what changed
+  const nowKey = ymKey(new Date());
+  const prevKey = shiftMonth(nowKey, -1);
+  const dayN = new Date().getDate();
+  const mNow = monthTotals(yearTx, nowKey);
+  const mPrev = monthTotals(yearTx, prevKey, dayN);
+  const snapKeys = Object.keys(nwSnaps ?? {}).sort().filter((k) => k < nowKey);
+  const lastSnap = snapKeys[snapKeys.length - 1];
+  const nwFrom = lastSnap ? nwSnaps[lastSnap].total : null;
+  const lastScore = settings.scoreLog?.[prevKey];
+  const goal = vaults.filter((v) => v.goal && savedOf(v) < v.goal).sort((a, b) => savedOf(b) / b.goal! - savedOf(a) / a.goal!)[0];
+  const scoreColor = wscore.tone === 'good' ? Corpus.income : wscore.tone === 'ok' ? Corpus.warning : Corpus.danger;
+  const numberCards: NumberCard[] = [];
+  if (accounts.length > 0 || assets.length > 0 || investments.length > 0) numberCards.push({
+    key: 'nw', hero: true, label: 'Net worth', value: formatINR(Math.round(nw)),
+    line: nwFrom != null ? `${fmtDelta(nw - nwFrom)} since ${monthLabel(lastSnap, 'short')}` : 'All you own, minus all you owe',
+    tone: nwFrom == null ? 'neutral' : nw >= nwFrom ? 'up' : 'down',
+    visual: <NetWorthSpark values={[...snapKeys.slice(-5).map((k) => nwSnaps[k].total), nw]} />,
+    onPress: () => router.push('/networth' as Href),
+  });
+  if (wscore.known >= 2) numberCards.push({
+    key: 'score', label: 'Wealth score', value: `${wscore.score}/100`,
+    line: lastScore != null && lastScore !== wscore.score ? `${wscore.score > lastScore ? 'Up' : 'Down'} ${Math.abs(wscore.score - lastScore)} since ${monthLabel(prevKey, 'short')}. ${wscore.grade}` : wscore.topFix ? `Next: ${wscore.topFix.fix}` : String(wscore.grade),
+    tone: lastScore != null && lastScore !== wscore.score ? (wscore.score > lastScore ? 'up' : 'down') : 'neutral',
+    visual: <ScoreRing score={wscore.score} color={scoreColor} />,
+    onPress: () => router.push('/wealth' as Href),
+  });
+  if (mNow.spent > 0 || mPrev.spent > 0) {
+    const d = mNow.spent - mPrev.spent;
+    numberCards.push({
+      key: 'vs', label: 'This month vs last', value: formatINR(mNow.spent),
+      line: mPrev.spent === 0 ? `Spent so far in ${monthLabel(nowKey, 'short')}` : d === 0 ? `Same as ${monthLabel(prevKey, 'short')} by day ${dayN}` : `${formatINR(Math.abs(d))} ${d > 0 ? 'more' : 'less'} than ${monthLabel(prevKey, 'short')} by day ${dayN}`,
+      tone: mPrev.spent === 0 || d === 0 ? 'neutral' : d > 0 ? 'down' : 'up',
+      visual: <Versus now={mNow.spent} then={mPrev.spent} nowLabel={monthLabel(nowKey, 'short')} thenLabel={monthLabel(prevKey, 'short')} />,
+      onPress: () => router.push('/analytics' as Href),
+    });
+  }
+  if (mNow.income > 0 && mNow.savingsRate != null) numberCards.push({
+    key: 'kept', label: 'Kept this month', value: `${mNow.savingsRate}%`,
+    line: mNow.saved >= 0 ? `${formatINR(mNow.saved)} of the ${formatINR(mNow.income)} that came in` : `${formatINR(-mNow.saved)} more went out than came in`,
+    tone: mNow.savingsRate >= 20 ? 'up' : mNow.savingsRate < 0 ? 'down' : 'neutral',
+    onPress: () => router.push('/analytics' as Href),
+  });
+  if (goal) numberCards.push({
+    key: 'jar', label: 'Closest goal', value: `${Math.round((savedOf(goal) / goal.goal!) * 100)}%`,
+    line: `${goal.name}: ${formatINR(goal.goal! - savedOf(goal))} to go`,
+    visual: <JarVisual level={savedOf(goal) / goal.goal!} color={goal.color} />,
+    onPress: () => router.push({ pathname: '/vault/[id]', params: { id: goal.id } }),
+  });
+  if (debtPlan?.freeBy) numberCards.push({
+    key: 'debt', label: 'Debt-free by', value: debtPlan.freeBy.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+    line: debtPlan.paidOff > 0 ? `${Math.round(debtPlan.pct * 100)}% paid off since you started` : 'If you keep to your payoff plan',
+    tone: debtPlan.paidOff > 0 ? 'up' : 'neutral',
+    onPress: () => router.push('/debts' as Href),
+  });
 
   // at-a-glance numbers for the strip under the ring
   const todayKey = new Date().toDateString();
@@ -479,6 +531,7 @@ export default function HomeScreen() {
               : { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: 'Next bill', value: 'None', sub: 'in the next 30 days', onPress: () => router.push('/bills' as Href) },
           ]} />
         )}
+        {!loading && !yearLoading && <YourNumbers cards={numberCards} />}
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
         {needsCount > 0 && (
           <View style={styles.needsHead}>
@@ -526,7 +579,6 @@ export default function HomeScreen() {
         {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
         <Shortcuts items={shortcuts} />
         <InsightsCard items={insights} />
-        {!loading && !yearLoading && <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />}
         <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
         {(investedThisMonth > 0 || nextSipAll) && (
           <Pressable style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.8 }]} accessibilityRole="button" onPress={() => router.push('/invest' as Href)}>
