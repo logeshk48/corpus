@@ -26,6 +26,7 @@ import { chainNudges } from '@/utils/debts';
 import { actionable, moneyReminders } from '@/utils/debtReminders';
 import MoneyReminders from './components/MoneyReminders';
 import UpcomingBills from './components/UpcomingBills';
+import PulseStrip, { PULSE_COLORS } from './components/PulseStrip';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
 import { addBill, deleteBill, logBillForThisMonth, skipBillThisMonth, restoreBillState, undoBillPayment } from '@/services/bills';
@@ -51,7 +52,8 @@ import { compactINR } from '@/utils/format';
 import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import WeekCard from './components/WeekCard';
+import WeekCard, { weekSpend } from './components/WeekCard';
+import { upcomingBills as billsAhead } from '@/utils/bills';
 import { moneyCandles } from '@/utils/candles';
 import { billsNeedingAttention } from '@/utils/bills';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
@@ -430,6 +432,14 @@ export default function HomeScreen() {
     },
   ];
 
+  // at-a-glance numbers for the strip under the ring
+  const todayKey = new Date().toDateString();
+  const todayTx = yearTx.filter((x) => x.type === 'expense' && new Date(x.date).toDateString() === todayKey);
+  const spentTodayAll = todayTx.reduce((a, x) => a + x.amount, 0);
+  const todayCount = todayTx.length;
+  const wk = weekSpend(yearTx);
+  const nextBill = billsAhead(bills, 30)[0];
+
   return (
     <SafeAreaView style={styles.safe} edges={[]}>
       <Animated.View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, opacity: scrollY.interpolate({ inputRange: [0, 260], outputRange: [1, 0.25], extrapolate: 'clamp' }) }}>
@@ -444,6 +454,15 @@ export default function HomeScreen() {
       >
         <HomeHeader streak={streak.days} loggedToday={streak.loggedToday} />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
+        {!loading && (
+          <PulseStrip items={[
+            { key: 'today', icon: 'today', color: PULSE_COLORS.today, label: 'Spent today', value: formatINR(spentTodayAll), sub: spentTodayAll ? `${todayCount} spend${todayCount === 1 ? '' : 's'}` : 'Nothing yet', onPress: () => router.push('/transactions' as Href) },
+            { key: 'week', icon: 'calendar', color: PULSE_COLORS.week, label: 'This week', value: formatINR(Math.round(wk.total)), sub: wk.total ? `${formatINR(Math.round(wk.avg))} a day` : 'Nothing yet', onPress: () => router.push('/analytics' as Href) },
+            nextBill
+              ? { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: nextBill.daysAway <= 0 ? 'Due today' : nextBill.daysAway === 1 ? 'Due tomorrow' : `In ${nextBill.daysAway} days`, value: formatINR(nextBill.bill.amount), sub: nextBill.bill.name, tone: nextBill.daysAway <= 1 ? Corpus.warning : undefined, onPress: () => router.push('/bills' as Href) }
+              : { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: 'Next bill', value: 'None', sub: 'in the next 30 days', onPress: () => router.push('/bills' as Href) },
+          ]} />
+        )}
         <View style={styles.actions}>
           <Tap style={styles.primary} onPress={() => router.push('/add' as Href)} accessibilityRole="button">
             <Ionicons name="add" size={22} color={Corpus.onGold} />
@@ -503,6 +522,22 @@ export default function HomeScreen() {
           />
         )}
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
+        <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
+        {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
+        <Shortcuts items={shortcuts} />
+        <InsightsCard items={insights} />
+        {!loading && !yearLoading && <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />}
+        <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
+        {(investedThisMonth > 0 || nextSipAll) && (
+          <Pressable style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.8 }]} accessibilityRole="button" onPress={() => router.push('/invest' as Href)}>
+            <IconChip icon="trending-up" color={Chip.indigo} size={32} />
+            <Text style={styles.linkText}>
+              {investedThisMonth > 0 ? `Invested ${formatINR(investedThisMonth)} this month` : 'SIPs'}
+              {nextSipAll ? `. Next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
+          </Pressable>
+        )}
         {loading ? (
           <ActivityIndicator color={Corpus.gold} style={styles.loader} />
         ) : error ? (
@@ -517,22 +552,6 @@ export default function HomeScreen() {
               <TransactionRow key={tx.id} tx={tx} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })} />
             ))}
           </Group>
-        )}
-        {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
-        <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
-        <Shortcuts items={shortcuts} />
-        <InsightsCard items={insights} />
-        {!loading && !yearLoading && <WealthScoreCard s={wscore} onPress={() => router.push('/wealth' as Href)} />}
-        <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
-        {(investedThisMonth > 0 || nextSipAll) && (
-          <Pressable style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.8 }]} accessibilityRole="button" onPress={() => router.push('/invest' as Href)}>
-            <IconChip icon="trending-up" color={Chip.indigo} size={32} />
-            <Text style={styles.linkText}>
-              {investedThisMonth > 0 ? `Invested ${formatINR(investedThisMonth)} this month` : 'SIPs'}
-              {nextSipAll ? `. Next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
-          </Pressable>
         )}
       </Animated.ScrollView>
       {/* iOS-style compact title: fades in once the big "Today" scrolls away */}

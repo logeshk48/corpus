@@ -70,7 +70,7 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 4 },
   title: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.2 },
   action: { fontSize: Type.input, color: Corpus.gold },
-  card: { backgroundColor: Corpus.card, borderRadius: 22, overflow: 'hidden' },
+  card: { backgroundColor: Corpus.card, borderRadius: 22, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: Corpus.border },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8, paddingHorizontal: Space.md },
   body: { flex: 1, gap: 1 },
   rowTitle: { fontSize: Type.input, color: Corpus.text },

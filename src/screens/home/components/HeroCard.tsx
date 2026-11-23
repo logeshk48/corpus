@@ -1,13 +1,15 @@
 import Shine from '@/components/fx/Shine';
 import { Tap } from '@/components/ui';
-import { ActivityRing } from '@/components/ui';
+import RadialRings from '@/components/charts/RadialRings';
 import { useEntrance } from '@/hooks/useEntrance';
 import { useTween } from '@/hooks/useTween';
 import { Chip, Corpus, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { SafeToSpendResult } from '@/utils/safeToSpend';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { styles } from './HeroCard.styles';
 
 const STATUS_COLOR = {
@@ -16,16 +18,26 @@ const STATUS_COLOR = {
   over: Corpus.danger,
 };
 
-// Two rings, Apple Activity style: outer = this month's money used, inner = how far through the month you are
-function Rings({ used, through, tone = 'ok' }: { used: number; through: number; tone?: 'ok' | 'tight' | 'over' }) {
+// Two rings of light: outer = this month's money used, inner = how far through the month you are.
+// A soft halo in the status colour breathes behind them.
+function Rings({ used, through, tone = 'ok', size = 92, children }: { used: number; through: number; tone?: 'ok' | 'tight' | 'over'; size?: number; children?: React.ReactNode }) {
   const money = tone === 'over' ? Corpus.danger : tone === 'tight' ? Corpus.warning : Corpus.income;
   const moneyTrack = tone === 'over' ? Corpus.dangerTint : tone === 'tight' ? Corpus.warningTint : Corpus.incomeTint;
+  const reduce = useReducedMotion();
+  const b = useSharedValue(0);
+  useEffect(() => { if (!reduce && size > 120) b.value = withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), -1, true); }, [reduce, size, b]);
+  const halo = useAnimatedStyle(() => ({ opacity: 0.06 + b.value * 0.1, transform: [{ scale: 0.97 + b.value * 0.05 }] }));
+  const stroke = Math.round(size / 13);
   return (
-    <View style={styles.rings} accessibilityLabel={`${Math.round(used * 100)}% of this month's money used, ${Math.round(through * 100)}% of the month gone`}>
-      <ActivityRing size={92} thickness={12} progress={used} color={money} track={moneyTrack} />
-      <View style={styles.inner}>
-        <ActivityRing size={58} thickness={12} progress={through} color={Chip.blue} track={Corpus.cardAlt} />
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }} accessible accessibilityLabel={`${Math.round(used * 100)}% of this month's money used, ${Math.round(through * 100)}% of the month gone`}>
+      {size > 120 && <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size + 8, height: size + 8, borderRadius: size, borderWidth: stroke * 1.6, borderColor: money }, halo]} />}
+      <View style={{ position: 'absolute' }}>
+        <RadialRings size={size} stroke={stroke} gap={Math.round(stroke / 2.5)} data={[
+          { id: 'money', value: 1, frac: Math.max(0.001, used), color: money, track: moneyTrack },
+          { id: 'month', value: 1, frac: Math.max(0.001, through), color: Chip.blue },
+        ]} />
       </View>
+      {children}
     </View>
   );
 }
@@ -103,26 +115,25 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   const used = result.income + (result.monthlyBudget ?? 0) > 0 ? Math.min(1, Math.max(0, 1 - Math.max(result.available, 0) / Math.max(1, result.available + result.spent))) : 0;
   const through = Math.min(1, Math.max(0, (result.cycleDays - result.daysLeft + 1) / Math.max(1, result.cycleDays)));
 
+  // inside the rings there is room for about 9 characters at the big size
+  const inner = amount.length <= 7 ? Type.amount : amount.length <= 10 ? Type.h1 : Type.h3;
   return (
-    <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" style={[styles.card, styles.cardCol]}>
+    <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" style={[styles.card, styles.cardCol, { alignItems: 'center' }]}>
       <Shine />
-      <View style={styles.top}>
-        <View style={styles.left}>
-          <View style={styles.labelRow}>
-            <Text style={styles.label}>{label}</Text>
-            <View style={[styles.pill, { backgroundColor: PILL[result.status].bg }]}>
-              <Text style={[styles.pillText, { color: PILL[result.status].fg }]}>{PILL[result.status].text}</Text>
-            </View>
-          </View>
-          <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text, fontSize: amountSize(amount) }]} numberOfLines={1} adjustsFontSizeToFit>{amount}</Text>
-          <Text style={[styles.context, { color: result.status === 'ok' ? Corpus.textMuted : color }]}>{context}</Text>
-        </View>
-        <Rings used={used * t} through={through * t} tone={result.status} />
+      <View style={[styles.pill, { backgroundColor: PILL[result.status].bg, alignSelf: 'center' }]}>
+        <Text style={[styles.pillText, { color: PILL[result.status].fg }]}>{PILL[result.status].text}</Text>
       </View>
+      <Rings used={used * t} through={through * t} tone={result.status} size={224}>
+        <View style={styles.center}>
+          <Text style={styles.centerLabel}>{over ? 'Over today by' : asRange ? 'You can spend about' : 'Safe to spend'}</Text>
+          <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text, fontSize: inner, textAlign: 'center' }]} numberOfLines={1}>{amount}</Text>
+          <Text style={styles.centerLabel}>today</Text>
+        </View>
+      </Rings>
+      <Text style={[styles.context, { color: result.status === 'ok' ? Corpus.textMuted : color, textAlign: 'center' }]}>{context}</Text>
 
-      {(result.spentToday > 0 || result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0 || result.plansPaused.length > 0) && (
+      {(result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0 || result.plansPaused.length > 0) && (
         <View style={styles.chips}>
-          {result.spentToday > 0 && <View style={styles.chip}><Text style={styles.chipText}>Spent today {formatINR(result.spentToday)}</Text></View>}
           {result.limitedByBudget && <View style={styles.chip}><Text style={styles.chipText}>Capped by your monthly budget</Text></View>}
           {result.billsDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.billsDue)} kept for bills</Text></View>}
           {result.plansDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.plansDue)} kept for jar goals</Text></View>}

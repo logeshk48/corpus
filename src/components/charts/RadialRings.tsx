@@ -5,9 +5,9 @@ import Animated, { Easing, useAnimatedProps, useReducedMotion, useSharedValue, w
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 const ACircle = Animated.createAnimatedComponent(Circle);
-export type Ring = { id: string; value: number; color: string };
+export type Ring = { id: string; value: number; color: string; frac?: number; track?: string }; // frac: draw to this share of a full circle
 
-function Arc({ r, size, stroke, frac, color, id, i, reduce }: { r: number; size: number; stroke: number; frac: number; color: string; id: string; i: number; reduce: boolean }) {
+function Arc({ r, size, stroke, frac, color, id, i, reduce, track }: { r: number; size: number; stroke: number; frac: number; color: string; id: string; i: number; reduce: boolean; track?: string }) {
   const c = 2 * Math.PI * r;
   const p = useSharedValue(reduce ? frac : 0);
   useEffect(() => { p.value = reduce ? frac : withDelay(120 + i * 120, withTiming(frac, { duration: 1000, easing: Easing.out(Easing.cubic) })); }, [frac, i, reduce, p]);
@@ -15,7 +15,7 @@ function Arc({ r, size, stroke, frac, color, id, i, reduce }: { r: number; size:
   const cx = size / 2;
   return (
     <>
-      <Circle cx={cx} cy={cx} r={r} stroke={Corpus.cardAlt} strokeWidth={stroke} fill="none" />
+      <Circle cx={cx} cy={cx} r={r} stroke={track ?? Corpus.cardAlt} strokeWidth={stroke} fill="none" />
       {/* a soft wide copy under the arc reads as a glow, on phones and the web alike */}
       <ACircle cx={cx} cy={cx} r={r} stroke={color} strokeOpacity={0.18} strokeWidth={stroke + 8} fill="none" strokeLinecap="round" strokeDasharray={`${c} ${c}`} animatedProps={props} transform={`rotate(-90 ${cx} ${cx})`} />
       <ACircle cx={cx} cy={cx} r={r} stroke={`url(#${id})`} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={`${c} ${c}`} animatedProps={props} transform={`rotate(-90 ${cx} ${cx})`} />
@@ -43,7 +43,7 @@ export default function RadialRings({ data, size = 132, stroke = 11, gap = 4, ch
           ))}
         </Defs>
         {rings.map((d, i) => (
-          <Arc key={d.id} i={i} id={`r${uid}${i}`} r={size / 2 - stroke / 2 - 4 - i * (stroke + gap)} size={size} stroke={stroke} frac={Math.max(0.02, (d.value / max) * 0.92)} color={d.color} reduce={reduce} />
+          <Arc key={d.id} i={i} id={`r${uid}${i}`} r={size / 2 - stroke / 2 - 4 - i * (stroke + gap)} size={size} stroke={stroke} frac={d.frac ?? Math.max(0.02, (d.value / max) * 0.92)} color={d.color} track={d.track} reduce={reduce} />
         ))}
       </Svg>
       {children ? <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>{children}</View> : null}

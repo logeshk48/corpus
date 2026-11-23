@@ -328,3 +328,11 @@ Cards and text stay clean; the life is in the background and in moments.
 - BurnChart got a glow under its line and a pulsing "you are here" ring on today. That ring is an Animated.View, because animated SVG radius does not render on web.
 - PillTabs uses an indigo-to-teal gradient pill with a coloured shadow. Bars have a light catch at the top. Small-spend dots glow. Insights cards have a hairline edge, and the Aura is indigo with teal.
 - Web note: never use SVG rotation/origin props (they turn into an invalid DOM transform-origin). Use transform="rotate(-90 cx cy)".
+
+## Today hero, futuristic (step 26)
+- The daily number now sits inside large rings of light (RadialRings with a set fraction per ring): the outer ring is money used, in the status colour on its own tint, and the inner ring is days through the month in blue. Behind them a halo ring in the status colour slowly breathes.
+- The status pill sits centred above. "You can spend about ₹220–280 today" sits inside the rings, sized to fit, with the context line, chips and legend centred under it.
+- "Add spend" casts a soft glow in the brand colour. The secondary buttons and every Group card in the app now have a hairline edge.
+- Step 26b, Today layout: hero ring, then a pulse strip (three tiles: Spent today, This week, next bill with days to go; each opens its screen), then Add / Scan / Afford and your usuals, then Needs you, Month review, Up next, This week, Your money, Found for you, progress (Wealth score, Debt plan, SIPs), and Recent last.
+- This week: gradient bars grow in, today is orange with a glow, the rest indigo, and a dashed line marks your average day.
+- Your money is now a two-column bento of tiles: icon, a 14-day spark, the label, the figure in bold (₹ amount or %), and a status line or alert. "Spent today" moved from the hero chips to the pulse strip.
