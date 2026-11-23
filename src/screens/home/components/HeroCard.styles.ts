@@ -24,7 +24,7 @@ export const styles = StyleSheet.create({
   howText: { fontSize: Type.small, fontWeight: '600', color: Corpus.gold },
   how: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: Space.sm + 2 },
   emptyText: { fontSize: Type.label, color: Corpus.textMuted, marginTop: 6, lineHeight: 21 },
-  center: { alignItems: 'center', maxWidth: 150 },
+  center: { alignItems: 'center', maxWidth: 120 },
   centerLabel: { fontSize: Type.small, color: Corpus.textMuted },
   // older keys some code still passes
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },

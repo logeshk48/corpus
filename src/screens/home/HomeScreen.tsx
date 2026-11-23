@@ -454,15 +454,6 @@ export default function HomeScreen() {
       >
         <HomeHeader streak={streak.days} loggedToday={streak.loggedToday} />
         <HeroCard result={safe} loading={loading || jarsLoading} onPress={() => setShowSafe(true)} />
-        {!loading && (
-          <PulseStrip items={[
-            { key: 'today', icon: 'today', color: PULSE_COLORS.today, label: 'Spent today', value: formatINR(spentTodayAll), sub: spentTodayAll ? `${todayCount} spend${todayCount === 1 ? '' : 's'}` : 'Nothing yet', onPress: () => router.push('/transactions' as Href) },
-            { key: 'week', icon: 'calendar', color: PULSE_COLORS.week, label: 'This week', value: formatINR(Math.round(wk.total)), sub: wk.total ? `${formatINR(Math.round(wk.avg))} a day` : 'Nothing yet', onPress: () => router.push('/analytics' as Href) },
-            nextBill
-              ? { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: nextBill.daysAway <= 0 ? 'Due today' : nextBill.daysAway === 1 ? 'Due tomorrow' : `In ${nextBill.daysAway} days`, value: formatINR(nextBill.bill.amount), sub: nextBill.bill.name, tone: nextBill.daysAway <= 1 ? Corpus.warning : undefined, onPress: () => router.push('/bills' as Href) }
-              : { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: 'Next bill', value: 'None', sub: 'in the next 30 days', onPress: () => router.push('/bills' as Href) },
-          ]} />
-        )}
         <View style={styles.actions}>
           <Tap style={styles.primary} onPress={() => router.push('/add' as Href)} accessibilityRole="button">
             <Ionicons name="add" size={22} color={Corpus.onGold} />
@@ -479,6 +470,15 @@ export default function HomeScreen() {
             </Tap>
           </View>
         </View>
+        {!loading && (
+          <PulseStrip items={[
+            { key: 'today', icon: 'today', color: PULSE_COLORS.today, label: 'Spent today', value: formatINR(spentTodayAll), sub: spentTodayAll ? `${todayCount} spend${todayCount === 1 ? '' : 's'}` : 'Nothing yet', onPress: () => router.push('/transactions' as Href) },
+            { key: 'week', icon: 'calendar', color: PULSE_COLORS.week, label: 'This week', value: formatINR(Math.round(wk.total)), sub: wk.total ? `${formatINR(Math.round(wk.avg))} a day` : 'Nothing yet', onPress: () => router.push('/analytics' as Href) },
+            nextBill
+              ? { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: nextBill.daysAway <= 0 ? 'Due today' : nextBill.daysAway === 1 ? 'Due tomorrow' : `In ${nextBill.daysAway} days`, value: formatINR(nextBill.bill.amount), sub: nextBill.bill.name, tone: nextBill.daysAway <= 1 ? Corpus.warning : undefined, onPress: () => router.push('/bills' as Href) }
+              : { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: 'Next bill', value: 'None', sub: 'in the next 30 days', onPress: () => router.push('/bills' as Href) },
+          ]} />
+        )}
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
         {needsCount > 0 && (
           <View style={styles.needsHead}>

@@ -116,16 +116,16 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   const through = Math.min(1, Math.max(0, (result.cycleDays - result.daysLeft + 1) / Math.max(1, result.cycleDays)));
 
   // inside the rings there is room for about 9 characters at the big size
-  const inner = amount.length <= 7 ? Type.amount : amount.length <= 10 ? Type.h1 : Type.h3;
+  const inner = amount.length <= 7 ? Type.amount : amount.length <= 10 ? Type.h2 : Type.title;
   return (
     <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" style={[styles.card, styles.cardCol, { alignItems: 'center' }]}>
       <Shine />
       <View style={[styles.pill, { backgroundColor: PILL[result.status].bg, alignSelf: 'center' }]}>
         <Text style={[styles.pillText, { color: PILL[result.status].fg }]}>{PILL[result.status].text}</Text>
       </View>
-      <Rings used={used * t} through={through * t} tone={result.status} size={224}>
+      <Rings used={used * t} through={through * t} tone={result.status} size={196}>
         <View style={styles.center}>
-          <Text style={styles.centerLabel}>{over ? 'Over today by' : asRange ? 'You can spend about' : 'Safe to spend'}</Text>
+          <Text style={styles.centerLabel}>{over ? 'Over today by' : asRange ? 'Spend about' : 'Safe to spend'}</Text>
           <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text, fontSize: inner, textAlign: 'center' }]} numberOfLines={1}>{amount}</Text>
           <Text style={styles.centerLabel}>today</Text>
         </View>
