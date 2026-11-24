@@ -353,3 +353,11 @@ Cards and text stay clean; the life is in the background and in moments.
 - Badge is a persona picked in priority order (Saver, Comeback, Minimalist, Tracker, Steady Hands, Snacker, Just Getting Started).
 - Share sends percentages and the badge only, never amounts. Web uses the browser share sheet, or copies the text.
 - Entry points: "Play your {month} Wrapped" on the Today month card, and a Wrapped button in the Insights header (plays the month being viewed).
+
+## Year heatmap ("Your year in days")
+- `src/components/charts/YearHeatmap.tsx`, data from `src/utils/yearDays.ts`. One column per week (Monday first), 53 weeks, scrolled to today. Cells 13 px with a 3 px gap.
+- Dark card in both themes (same stage as the Today number cards) so the colours glow. New `Heat` tokens: four greens, four oranges, and one red for over budget.
+- Two views. Good days: brightest green means nothing spent, then three steps under the daily budget (monthly budget split across the month's days, or your usual day when no budget is set), red means over. Spending: four orange steps by quartile.
+- Stats on top: current run of days at or under budget, best run, no-spend days. Today's cell pulses (off with Reduce Motion). Tap a day for the date, amount, entries and how many times over budget.
+- Days before your first entry show as empty outlines, so a new user does not see a wall of fake "no spend" days.
+- Placed first in Insights > Trends, and in the Year report after Month by month.

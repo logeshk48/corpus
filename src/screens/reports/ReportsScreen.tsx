@@ -1,5 +1,6 @@
 import AreaTrend from '@/components/charts/AreaTrend';
 import Donut from '@/components/charts/Donut';
+import YearHeatmap from '@/components/charts/YearHeatmap';
 import DataHealthCard from '@/components/DataHealthCard';
 import { Group, GroupRow, Screen, Segmented, Stepper } from '@/components/ui';
 import { findCategory } from '@/constants/categories';
@@ -143,6 +144,8 @@ export default function ReportsScreen() {
               )}
             </View>
           )}
+
+          {(last12?.length ?? 0) > 0 && <YearHeatmap tx={last12 ?? []} budget={settings.monthlyBudget} />}
 
           {slices.length > 0 && (
             <View style={styles.card}>

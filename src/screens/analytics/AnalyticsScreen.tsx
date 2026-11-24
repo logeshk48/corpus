@@ -1,5 +1,6 @@
 import AreaTrend from '@/components/charts/AreaTrend';
 import RadialRings from '@/components/charts/RadialRings';
+import YearHeatmap from '@/components/charts/YearHeatmap';
 import Aura from '@/components/fx/Aura';
 import Shine from '@/components/fx/Shine';
 import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
@@ -99,7 +100,7 @@ export default function AnalyticsScreen() {
   const avgRate = kept.length ? Math.round(kept.reduce((a, r) => a + (r.rate ?? 0), 0) / kept.length) : null;
 
   const sections: ReactNode[] = [];
-  const at: Record<string, Tab> = { pace: 'overview', notes: 'overview', flow: 'overview', cats: 'spending', daily: 'spending', week: 'spending', small: 'spending', big: 'spending', src: 'income', rates: 'income', trend: 'trends', movers: 'trends' };
+  const at: Record<string, Tab> = { pace: 'overview', notes: 'overview', flow: 'overview', cats: 'spending', daily: 'spending', week: 'spending', small: 'spending', big: 'spending', src: 'income', rates: 'income', heat: 'trends', trend: 'trends', movers: 'trends' };
   if (!empty && totals.spent > 0) sections.push(
     <Card key="pace" title="Where the month is heading" meta={pace.isCurrent ? `Day ${pace.day} of ${pace.days}` : undefined}><Pace p={pace} daily={days.map((x) => x.amount)} /></Card>,
   );
@@ -159,6 +160,7 @@ export default function AnalyticsScreen() {
     </Card>,
   );
   const sel = trend.find((t) => t.key === month);
+  if (!empty) sections.push(<YearHeatmap key="heat" tx={transactions} budget={settings.monthlyBudget} />);
   sections.push(
     <Card key="trend" title="Last 6 months" meta={sel ? `${short(month)}: ${formatINR(sel.income)} in, ${formatINR(sel.spent)} spent` : undefined}>
       <View style={s.legend}>

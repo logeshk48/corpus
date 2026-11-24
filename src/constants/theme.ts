@@ -120,6 +120,13 @@ const PASTEL_DARK: typeof PASTEL_LIGHT = {
 export const Pastel = isDark ? PASTEL_DARK : PASTEL_LIGHT;
 export type PastelName = keyof typeof PASTEL_LIGHT;
 
+// Year heatmap: four steps from faint to bright, made for a dark card
+export const Heat = {
+  good: ['#0F3D2A', '#13704A', '#22B36B', '#4BE58F'],
+  spend: ['#4A2A0A', '#8A4B06', '#D97A06', '#FFAA33'],
+  over: '#B8343F',
+};
+
 // Apple-style icon squares: one colour per kind of thing (white symbol on top)
 export const Chip = {
   green: '#1E9E5A', blue: '#0A72E8', indigo: '#5856D6', purple: '#A050D0', pink: '#E8335A',
