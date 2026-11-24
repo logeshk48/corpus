@@ -10,9 +10,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 type Verdict = { tone: 'good' | 'ok' | 'bad' | 'neutral'; text: string };
 const VCOLOR = { good: Corpus.income, ok: Corpus.warning, bad: Corpus.danger, neutral: Corpus.textMuted };
 
-export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYear, onClose }: {
+export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYear, onWrapped, onClose }: {
   r: MonthReport; verdict: Verdict; plan: PlanItem[]; onAct: (p: PlanItem) => Promise<void>;
-  onOpen: () => void; onYear: () => void; onClose: () => void;
+  onOpen: () => void; onYear: () => void; onWrapped: () => void; onClose: () => void;
 }) {
   const [done, setDone] = useState<string[]>([]);
   const pct = (x: number) => `${x > 0 ? '+' : '−'}${Math.round(Math.abs(x) * 100)}%`;
@@ -45,10 +45,14 @@ export default function MonthReportCard({ r, verdict, plan, onAct, onOpen, onYea
           <Text style={st.value}>{formatINR(Math.round(r.spent))}</Text>
         </View>
         <View style={st.num}>
-          <Text style={st.label}>RATE</Text>
+          <Text style={st.label}>Kept</Text>
           <Text style={st.value}>{r.rate == null ? '—' : `${Math.round(r.rate * 100)}%`}</Text>
         </View>
       </View>
+      <Pressable onPress={onWrapped} style={({ pressed }) => [st.wrapped, pressed && { opacity: 0.85 }]} accessibilityRole="button" accessibilityLabel={`Play your ${r.name} Wrapped`}>
+        <Ionicons name="play" size={16} color={Corpus.onGold} />
+        <Text style={st.wrappedText}>Play your {r.name} Wrapped</Text>
+      </Pressable>
       {lines.slice(0, 5).map((l) => (
         <Text key={l.text} style={[st.line, l.color ? { color: l.color } : null]}>• {l.text}</Text>
       ))}
@@ -101,4 +105,6 @@ const st = StyleSheet.create({
   ctaDone: { borderColor: Corpus.incomeLine, backgroundColor: Corpus.incomeTint },
   ctaText: { fontSize: Type.small, fontWeight: '600', color: Corpus.gold },
   link: { fontSize: Type.small, color: Corpus.gold, fontWeight: '600' },
+  wrapped: { height: 44, borderRadius: 22, backgroundColor: Corpus.gold, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginVertical: 4 },
+  wrappedText: { fontSize: Type.label, fontWeight: '700', color: Corpus.onGold },
 });

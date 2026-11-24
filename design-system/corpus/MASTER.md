@@ -343,3 +343,13 @@ Cards and text stay clean; the life is in the background and in moments.
 - Step 26d, Your numbers as holo cards on a loop:
   - Each card is dark glass in either theme. It has a radial glow in its own accent (net worth indigo, score purple, month orange, kept teal, jar yellow, debt pink) from the top-right, a faint display grid, a gradient edge from its accent to teal, a coloured shadow and a glowing dot by the label. Numbers are white.
   - The row glides left on its own at 26 px a second and loops through a second copy, like a train. Touch or swipe to take over; it waits 2.5 s after you let go before gliding again. It never moves on its own under Reduce Motion, and the copy is hidden from screen readers.
+
+## Month Wrapped (story)
+- Route `/wrapped?month=YYYY-MM` (defaults to last month), opens with a fade. Screen in `src/screens/wrapped/WrappedScreen.tsx`, data in `src/utils/wrapped.ts`.
+- Always a dark stage (`Corpus.bg` in dark, `Corpus.text` in light) with `Corpus.sheen` text and an Aura that changes colour per card.
+- Story controls: segment bars at the top, 5.2 s per card, tap the left third to go back, anywhere else for next, hold to pause. Reduce Motion stops auto-advance.
+- Cards appear only when there is data: intro, spent, top category ring, biggest day, your regular, no-spend calendar, little things, kept ring, net worth, wealth score, badge.
+- Big numbers count up with `useTween` at `Type.story` (64, new token).
+- Badge is a persona picked in priority order (Saver, Comeback, Minimalist, Tracker, Steady Hands, Snacker, Just Getting Started).
+- Share sends percentages and the badge only, never amounts. Web uses the browser share sheet, or copies the text.
+- Entry points: "Play your {month} Wrapped" on the Today month card, and a Wrapped button in the Insights header (plays the month being viewed).

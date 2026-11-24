@@ -149,6 +149,7 @@ export const Type = {
   amount: 34,   // hero amount at the top of a screen
   hero: 40,     // Home Safe-to-Spend number
   entry: 44,    // the amount you're typing (Add, budget editor); also the Corpus wordmark on sign-in
+  story: 64,    // the big count-up number on Month Wrapped cards
 };
 
 export const Space = {

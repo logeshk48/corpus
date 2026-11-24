@@ -183,10 +183,16 @@ export default function AnalyticsScreen() {
         <ScrollView contentContainerStyle={[s.content, { paddingBottom: TAB_BAR_SPACE + insets.bottom + 20 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={empty ? undefined : [3]}>
           <View style={s.head}>
             <Text style={s.heading} accessibilityRole="header">Insights</Text>
-            <Tap onPress={() => router.push('/reports' as Href)} style={s.glassBtn} accessibilityRole="button">
-              <Ionicons name="document-text-outline" size={16} color={Corpus.text} />
-              <Text style={s.glassText}>Year report</Text>
-            </Tap>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Tap onPress={() => router.push((month === current ? '/wrapped' : `/wrapped?month=${month}`) as Href)} style={s.glassBtn} accessibilityRole="button" accessibilityLabel="Play Month Wrapped">
+                <Ionicons name="play" size={14} color={Corpus.text} />
+                <Text style={s.glassText}>Wrapped</Text>
+              </Tap>
+              <Tap onPress={() => router.push('/reports' as Href)} style={s.glassBtn} accessibilityRole="button">
+                <Ionicons name="document-text-outline" size={16} color={Corpus.text} />
+                <Text style={s.glassText}>Year</Text>
+              </Tap>
+            </View>
           </View>
 
           {/* months as pills: tap to jump */}

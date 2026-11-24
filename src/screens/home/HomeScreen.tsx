@@ -571,6 +571,7 @@ export default function HomeScreen() {
             onAct={actPlan}
             onOpen={() => router.push(`/analytics?month=${lmKey}` as Href)}
             onYear={() => router.push('/reports' as Href)}
+            onWrapped={() => router.push(`/wrapped?month=${lmKey}` as Href)}
             onClose={() => review === '1' ? router.setParams({ review: undefined }) : saveSettings({ dismissedInsights: [...(settings.dismissedInsights ?? []), `mreport:${lmKey}`] }).catch(() => {})}
           />
         )}

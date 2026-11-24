@@ -51,6 +51,7 @@ export default function RootLayout() {
             <Stack.Screen name="ask" options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="sms-review" options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="debts" />
+            <Stack.Screen name="wrapped" options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="inbox" />
             <Stack.Screen name="reports" />
             <Stack.Screen name="tax" />
