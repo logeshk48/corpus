@@ -4,12 +4,11 @@ import YearHeatmap from '@/components/charts/YearHeatmap';
 import Aura from '@/components/fx/Aura';
 import Shine from '@/components/fx/Shine';
 import { TAB_BAR_SPACE } from '@/components/GlassTabBar';
-import { IconChip, PillTabs, Segmented, Tap } from '@/components/ui';
+import { IconChip, Odometer, PillTabs, Segmented, Tap } from '@/components/ui';
 import { CategoryChip, Chip, Corpus, Font, Pastel, tabular, Type } from '@/constants/theme';
 import { useIncomeStreams } from '@/hooks/useIncomeStreams';
 import { useSettings } from '@/hooks/useSettings';
 import { useTransactions } from '@/hooks/useTransactions';
-import { useTween } from '@/hooks/useTween';
 import { useVaults } from '@/hooks/useVaults';
 import TransactionRow from '@/screens/home/components/TransactionRow';
 import {
@@ -81,7 +80,6 @@ export default function AnalyticsScreen() {
   const biggest = topExpenses(transactions, month, 5);
   const sources = incomeBySource(transactions, month, streams);
   const empty = totals.income === 0 && totals.spent === 0;
-  const spentV = useTween(loading ? 0 : totals.spent);
   const d = change(totals.spent, prev.spent);
 
   // Rings for the top 4 categories (the legend also lists everything else together)
@@ -95,7 +93,7 @@ export default function AnalyticsScreen() {
   const week = weekdayPattern(transactions);
   const small = smallSpends(transactions, month);
   const movers = categoryMovers(transactions, month);
-  const rates = trend.map((t) => ({ key: t.key, label: short(t.key), rate: t.income > 0 ? Math.round(((t.income - t.spent) / t.income) * 100) : null, on: t.key === month }));
+  const rates = trend.map((t) => ({ key: t.key, label: short(t.key), rate: t.income > 0 ? Math.round(((t.income - t.spent) / t.income) * 100) : null, on: t.key === month, income: t.income, spent: t.spent }));
   const kept = rates.filter((r) => r.rate != null);
   const avgRate = kept.length ? Math.round(kept.reduce((a, r) => a + (r.rate ?? 0), 0) / kept.length) : null;
 
@@ -121,25 +119,25 @@ export default function AnalyticsScreen() {
     </View>,
   );
   if (!empty && categories.length > 0) sections.push(
-    <Card key="cats" title="Where your money went" meta="Tap a category">
-      <CategoryBars data={categories} previous={prevCategories} previousLabel={vs} budgets={settings.categoryBudgets}
-        onPress={(id) => router.push(`/category/${id}?month=${month}` as Href)} />
+    <Card key="cats" title="Where your money went" meta="Tap a row">
+      <CategoryBars data={categories} tx={transactions} monthKey={month} previous={prevCategories} previousLabel={vs} budgets={settings.categoryBudgets}
+        onOpen={(id) => router.push(`/category/${id}?month=${month}` as Href)} />
     </Card>,
   );
   if (!empty && totals.spent > 0) sections.push(
     <Card key="daily" title="Day by day" meta={`About ${formatINR(Math.round(avg))} a day`}>
       <Segmented options={[{ value: 'bars', label: 'Bars' }, { value: 'calendar', label: 'Calendar' }] as const} value={dailyView} onChange={setDailyView} />
       <Animated.View key={dailyView} entering={FadeIn.duration(220)}>
-        {dailyView === 'bars' ? <DailyChart points={days} average={avg} monthKey={month} /> : <CalendarHeatmap points={days} monthKey={month} />}
+        {dailyView === 'bars' ? <DailyChart points={days} average={avg} monthKey={month} budget={settings.monthlyBudget} /> : <CalendarHeatmap points={days} monthKey={month} />}
       </Animated.View>
     </Card>,
   );
   if (week.avg.some((v) => v > 0)) sections.push(
-    <Card key="week" title="Your week" meta="Last 3 months"><Weekdays w={week} /></Card>,
+    <Card key="week" title="Your week" meta="Last 3 months. Tap a day"><Weekdays w={week} /></Card>,
   );
   if (!empty && small.count >= 5) sections.push(
-    <Card key="small" title="Small spends add up">
-      <SmallDots count={small.count} total={small.total} under={small.under} share={totals.spent ? Math.round((small.total / totals.spent) * 100) : 0} />
+    <Card key="small" title="Small spends add up" meta="Tap a dot">
+      <SmallDots key={month} list={small.list} total={small.total} under={small.under} share={totals.spent ? Math.round((small.total / totals.spent) * 100) : 0} />
     </Card>,
   );
   if (!empty && flow.income > 0) sections.push(
@@ -155,7 +153,7 @@ export default function AnalyticsScreen() {
   );
   if (kept.length > 0) sections.push(
     <Card key="rates" title="How much you kept" meta={avgRate != null ? `Usually ${avgRate}%` : undefined}>
-      <Rates months={rates} />
+      <Rates months={rates} onPick={setMonth} />
       <Text style={s.meta}>Share of what came in that you did not spend. 20% or more is a healthy month.</Text>
     </Card>,
   );
@@ -223,7 +221,7 @@ export default function AnalyticsScreen() {
                 <View style={s.heroRow}>
                   <View style={{ flex: 1, gap: 4 }}>
                     <Text style={s.meta}>{isCurrent ? 'Spent so far' : `Spent in ${monthLabel(month, 'short')}`}</Text>
-                    <Text style={s.big} adjustsFontSizeToFit numberOfLines={1}>{formatINR(Math.round(spentV))}</Text>
+                    <Odometer value={formatINR(Math.round(totals.spent))} style={s.big} lineHeight={48} />
                     {d !== null && (
                       <View style={[s.delta, { backgroundColor: d > 0 ? Corpus.dangerTint : Corpus.incomeTint }]}>
                         <Ionicons name={d > 0 ? 'arrow-up' : d < 0 ? 'arrow-down' : 'remove'} size={13} color={d > 0 ? Corpus.danger : Corpus.income} />
@@ -266,7 +264,7 @@ export default function AnalyticsScreen() {
 
           {!empty && (
             <View style={s.tabsWrap}>
-              <PillTabs tabs={[{ value: 'overview', label: 'Overview', icon: 'sparkles' }, { value: 'spending', label: 'Spending', icon: 'cart' }, { value: 'income', label: 'Income', icon: 'arrow-down-circle' }, { value: 'trends', label: 'Trends', icon: 'analytics' }]} value={tab} onChange={setTab} />
+              <PillTabs tabs={[{ value: 'overview', label: 'Overview', icon: 'sparkles', color: Chip.indigo }, { value: 'spending', label: 'Spending', icon: 'cart', color: Chip.orange }, { value: 'income', label: 'Income', icon: 'arrow-down-circle', color: Chip.green }, { value: 'trends', label: 'Trends', icon: 'analytics', color: Chip.teal }]} value={tab} onChange={setTab} />
             </View>
           )}
 
@@ -287,8 +285,8 @@ const s = StyleSheet.create({
   heading: { fontSize: Type.h1 + 4, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.6 },
   glassBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: Corpus.glass, borderWidth: 0.5, borderColor: Corpus.glassEdge },
   glassText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
-  mPill: { minHeight: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: Corpus.card, justifyContent: 'center' },
-  mPillOn: { backgroundColor: Corpus.gold },
+  mPill: { minHeight: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: Corpus.card, justifyContent: 'center', borderWidth: 1, borderColor: Corpus.border },
+  mPillOn: { backgroundColor: Corpus.gold, borderColor: Corpus.gold },
   mText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
   card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 18, gap: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Corpus.border },
   hero: { overflow: 'hidden', gap: 16 },

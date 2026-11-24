@@ -361,3 +361,19 @@ Cards and text stay clean; the life is in the background and in moments.
 - Stats on top: current run of days at or under budget, best run, no-spend days. Today's cell pulses (off with Reduce Motion). Tap a day for the date, amount, entries and how many times over budget.
 - Days before your first entry show as empty outlines, so a new user does not see a wall of fake "no spend" days.
 - Placed first in Insights > Trends, and in the Year report after Month by month.
+
+## PillTabs, futuristic pass
+- Dark capsule in both themes. The lit pill stretches: leading edge springs fast, trailing edge catches up, clamped inside the capsule.
+- Each tab has its own colour pair; colour layers crossfade by position, so the pill changes colour as it slides (Insights: indigo, orange, green, teal).
+- A short bar marks the active label; the active icon lifts a little. No looping sheen, no glow (the user called those AI slop).
+
+## Insights content: impressive through interaction, not decoration
+- Rule from the user: no glows, dot grids, scan lines or other background effects. Make the data itself do more.
+- Hero amount is an Odometer (`components/ui/Odometer.tsx`): digits roll to the new value when you switch months, matched from the right.
+- Day by day (`DailyChart`): drag across the bars (or tap) to read any day. Readout shows the day, its amount, and how much had gone out by then with the share of the monthly budget. A thin crosshair marks the day. Bars rise from the baseline when the month changes.
+- Where your money went (`CategoryBars`): bars grow in on month change. Tap a row to open it in place: the last 6 months for that category (this month in its colour), usual monthly amount and how far above or below, the top 3 things by note, and a link to all entries. Changes above 200% show in rupees.
+- Your week (`Weekdays`): tap a day; the line under it says the average, how it compares with your usual day (for example 2.3x), and what it mostly goes on with the share.
+- Small spends (`SmallDots`): one dot per spend in its category colour, no glow. Tap a dot for what it was, the date and amount. A line projects the month over a year and what skipping half would keep.
+- How much you kept (`Rates`): dashed 20% line; tap a month to switch Insights to it; the line under shows in, out and kept for the month on screen.
+- Where your income went (`CashFlowBar`): fills from the left; tap a part or its row to pick it out, with one sentence on what that part means.
+- Where your income came from (`IncomeSources`): bars grow in.

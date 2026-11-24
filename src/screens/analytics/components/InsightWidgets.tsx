@@ -6,7 +6,9 @@ import { WEEKDAYS } from '@/utils/insightsMore';
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, ZoomIn } from 'react-native-reanimated';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { findCategory } from '@/constants/categories';
+import type { Transaction } from '@/types/transaction';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 // Where this month is heading: spent so far against the budget, a tick for where even spending would be
@@ -69,62 +71,109 @@ function Grow({ h, color, i, opacity = 1 }: { h: number; color: string; i: numbe
   );
 }
 
-// Little spends as dots, one per spend, so you see how many there were
-export function SmallDots({ count, total, under, share }: { count: number; total: number; under: number; share: number }) {
-  const shown = Math.min(count, 60);
+// Little spends as dots, one per spend, in its category's colour. Tap a dot to see what it was.
+export function SmallDots({ list, total, under, share }: { list: Transaction[]; total: number; under: number; share: number }) {
+  const [sel, setSel] = useState<number | null>(null);
+  const shown = list.slice(-60);
+  const t = sel != null ? shown[sel] : null;
   return (
     <View style={{ gap: 12 }}>
-      <View style={s.dots} accessible accessibilityLabel={`${count} spends under ${under} rupees`}>
-        {Array.from({ length: shown }, (_, k) => (
-          <Animated.View key={k} entering={ZoomIn.delay(k * 14).duration(220)} style={[s.dotCell, { backgroundColor: k % 7 === 0 ? Chip.orange : Chip.yellow, shadowColor: k % 7 === 0 ? Chip.orange : Chip.yellow, shadowOpacity: 0.7, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } }]} />
-        ))}
-        {count > shown && <Text style={s.tiny}>+{count - shown}</Text>}
+      <View style={s.dots} accessibilityLabel={`${list.length} spends under ${under} rupees`}>
+        {shown.map((x, k) => {
+          const c = CategoryChip[x.category] ?? Chip.yellow;
+          const on = sel === k;
+          return (
+            <Pressable key={x.id} onPress={() => setSel(on ? null : k)} hitSlop={3} accessibilityLabel={`${x.note || 'Spend'} ${formatINR(x.amount)}`}>
+              <Animated.View entering={ZoomIn.delay(k * 12).duration(200)} style={[s.dotCell, { backgroundColor: c, opacity: sel == null || on ? 1 : 0.3 }, on && s.dotOn]} />
+            </Pressable>
+          );
+        })}
+        {list.length > shown.length && <Text style={s.tiny}>+{list.length - shown.length}</Text>}
       </View>
-      <View style={s.row}>
-        <Text style={s.big}>{formatINR(total)}</Text>
-        <Text style={[s.tiny, { flex: 1, textAlign: 'right' }]}>{count} spends under ₹{under}{'\n'}{share}% of all you spent</Text>
+      <View style={s.readBox}>
+        {t ? (
+          <Animated.View key={t.id} entering={FadeIn.duration(160)} style={s.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.mid} numberOfLines={1}>{t.note || findCategory('expense', t.category)?.label || 'Spend'}</Text>
+              <Text style={s.tiny}>{new Date(t.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}, {findCategory('expense', t.category)?.label ?? ''}</Text>
+            </View>
+            <Text style={s.mid}>{formatINR(Math.round(t.amount))}</Text>
+          </Animated.View>
+        ) : (
+          <View style={s.row}>
+            <Text style={s.big}>{formatINR(total)}</Text>
+            <Text style={[s.tiny, { flex: 1, textAlign: 'right' }]}>{list.length} spends under ₹{under}{'\n'}{share}% of all you spent</Text>
+          </View>
+        )}
       </View>
+      <Text style={s.text}>A month like this adds up to about {formatINR(Math.round((total * 12) / 100) * 100)} a year. Skipping half of them keeps {formatINR(Math.round((total * 6) / 100) * 100)}.</Text>
     </View>
   );
 }
 
-// Monday to Sunday: the average spend on each day of the week, the most expensive day picked out
+// Monday to Sunday: the average spend on each day of the week. Tap a day for what it mostly goes on.
 export function Weekdays({ w }: { w: ReturnType<typeof weekdayPattern> }) {
+  const [sel, setSel] = useState<number | null>(null);
   const max = Math.max(...w.avg, 1);
+  const i = sel ?? w.top;
+  const m = w.mainly[i];
+  const times = w.overall ? w.avg[i] / w.overall : 0;
   return (
     <View style={{ gap: 10 }}>
-      <View style={s.weekRow} accessible accessibilityLabel={WEEKDAYS.map((d, i) => `${d} ${formatINR(Math.round(w.avg[i]))}`).join(', ')}>
-        {w.avg.map((v, i) => (
-          <View key={i} style={s.weekCol}>
-            <Text style={[s.tiny, i === w.top && { color: Corpus.text, fontFamily: Font.display }]}>{v > 0 ? compactINR(Math.round(v)) : ''}</Text>
-            <Grow h={Math.max(4, (v / max) * 84)} color={i === w.top ? Chip.orange : i === w.low ? Chip.teal : Corpus.cardAlt} i={i} />
-            <Text style={[s.tiny, i === w.top && { color: Corpus.text, fontFamily: Font.display }]}>{WEEKDAYS[i].slice(0, 3)}</Text>
-          </View>
-        ))}
+      <View style={s.weekRow}>
+        {w.avg.map((v, k) => {
+          const on = k === i;
+          return (
+            <Pressable key={k} style={s.weekCol} onPress={() => setSel(k)} accessibilityRole="button" accessibilityState={{ selected: on }} accessibilityLabel={`${WEEKDAYS[k]}: about ${formatINR(Math.round(v))}`}>
+              <Text style={[s.tiny, on && s.tinyOn]}>{v > 0 ? compactINR(Math.round(v)) : ''}</Text>
+              <Grow h={Math.max(4, (v / max) * 84)} color={on ? Chip.orange : k === w.low ? Chip.teal : Corpus.cardAlt} i={k} />
+              <Text style={[s.tiny, on && s.tinyOn]}>{WEEKDAYS[k].slice(0, 3)}</Text>
+            </Pressable>
+          );
+        })}
       </View>
-      {w.avg[w.top] > 0 && (
-        <Text style={s.text}>{WEEKDAYS[w.top]}s cost the most, about {formatINR(Math.round(w.avg[w.top]))}. {WEEKDAYS[w.low]}s are the lightest at {formatINR(Math.round(w.avg[w.low]))}.</Text>
+      {w.avg[i] > 0 ? (
+        <Animated.View key={i} entering={FadeIn.duration(160)} style={{ gap: 2 }}>
+          <Text style={s.text}>
+            {WEEKDAYS[i]}s: about {formatINR(Math.round(w.avg[i]))}
+            {times >= 1.15 ? `, ${times.toFixed(1)}x your usual day.` : times <= 0.85 ? `, lighter than your usual day.` : ', close to your usual day.'}
+          </Text>
+          {m && <Text style={s.tiny}>Mostly {m.label.toLowerCase()} ({Math.round(m.share * 100)}%)</Text>}
+        </Animated.View>
+      ) : (
+        <Text style={s.text}>Nothing spent on {WEEKDAYS[i]}s in the last 3 months.</Text>
       )}
     </View>
   );
 }
 
-// Savings rate month by month: green at 20% or more, red when you spent more than came in
-export function Rates({ months }: { months: { key: string; label: string; rate: number | null; on: boolean }[] }) {
+// Savings rate month by month: green at 20% or more, red when you spent more than came in.
+// The dashed line is the 20% mark. Tap a month to switch Insights to it.
+export function Rates({ months, onPick }: { months: { key: string; label: string; rate: number | null; on: boolean; income: number; spent: number }[]; onPick?: (key: string) => void }) {
   const max = Math.max(30, ...months.map((m) => Math.abs(m.rate ?? 0)));
+  const cur = months.find((m) => m.on);
   return (
-    <View style={s.weekRow}>
-      {months.map((m, i) => {
-        const r = m.rate;
-        const color = r == null ? Corpus.cardAlt : r < 0 ? Corpus.danger : r >= 20 ? Corpus.income : Chip.yellow;
-        return (
-          <View key={m.key} style={s.weekCol} accessible accessibilityLabel={`${m.label}: ${r == null ? 'no income' : `${r}% kept`}`}>
-            <Text style={[s.tiny, m.on && { color: Corpus.text, fontFamily: Font.display }]}>{r == null ? '' : `${r < 0 ? '−' : ''}${Math.abs(r)}%`}</Text>
-            <Grow h={Math.max(4, (Math.abs(r ?? 0) / max) * 84)} color={color} i={i} opacity={m.on ? 1 : 0.55} />
-            <Text style={[s.tiny, m.on && { color: Corpus.text, fontFamily: Font.display }]}>{m.label}</Text>
-          </View>
-        );
-      })}
+    <View style={{ gap: 10 }}>
+      <View style={s.weekRow}>
+        <View pointerEvents="none" style={[s.target, { bottom: 20 + (20 / max) * 84 }]}><Text style={s.targetText}>20%</Text></View>
+        {months.map((m, i) => {
+          const r = m.rate;
+          const color = r == null ? Corpus.cardAlt : r < 0 ? Corpus.danger : r >= 20 ? Corpus.income : Chip.yellow;
+          return (
+            <Pressable key={m.key} style={s.weekCol} onPress={() => onPick?.(m.key)} accessibilityRole="button" accessibilityState={{ selected: m.on }} accessibilityLabel={`${m.label}: ${r == null ? 'no income' : `${r}% kept`}`}>
+              <Text style={[s.tiny, m.on && s.tinyOn]}>{r == null ? '' : `${r < 0 ? '−' : ''}${Math.abs(r)}%`}</Text>
+              <Grow h={Math.max(4, (Math.abs(r ?? 0) / max) * 84)} color={color} i={i} opacity={m.on ? 1 : 0.45} />
+              <Text style={[s.tiny, m.on && s.tinyOn]}>{m.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {cur && (
+        <Text style={s.text}>
+          {cur.label}: {formatINR(Math.round(cur.income))} in, {formatINR(Math.round(cur.spent))} out.{' '}
+          {cur.income > 0 ? <Text style={{ color: cur.income >= cur.spent ? Corpus.income : Corpus.danger }}>{cur.income >= cur.spent ? `Kept ${formatINR(Math.round(cur.income - cur.spent))}.` : `${formatINR(Math.round(cur.spent - cur.income))} more went out.`}</Text> : 'Nothing came in.'}
+        </Text>
+      )}
     </View>
   );
 }
@@ -167,7 +216,12 @@ const s = StyleSheet.create({
   swatch: { width: 16, height: 3, borderRadius: 2 },
   dash: { backgroundColor: 'transparent', borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: Corpus.textFaint, marginLeft: 10 },
   dots: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' },
-  dotCell: { width: 14, height: 14, borderRadius: 7 },
+  dotCell: { width: 16, height: 16, borderRadius: 8 },
+  dotOn: { transform: [{ scale: 1.35 }], borderWidth: 2, borderColor: Corpus.text },
+  readBox: { minHeight: 44, justifyContent: 'center' },
+  tinyOn: { color: Corpus.text, fontFamily: Font.display },
+  target: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderStyle: 'dashed', borderColor: Corpus.textFaint },
+  targetText: { position: 'absolute', right: 0, top: -14, fontSize: Type.micro, color: Corpus.textFaint },
   mover: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   moverDot: { width: 10, height: 10, borderRadius: 5 },
   moverName: { fontSize: Type.input, color: Corpus.text },

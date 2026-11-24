@@ -8,4 +8,5 @@ export { default as Screen } from './Screen';
 export { useNavChrome } from './NavChrome';
 export { default as Sheet, Field, Choice, Toggle, Stepper, DayStepper, Switch as SwitchKnob } from './Sheet';
 export { default as Tap } from './Tap';
+export { default as Odometer } from './Odometer';
 export { default as PillTabs } from './PillTabs';
