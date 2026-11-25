@@ -57,12 +57,12 @@ function Tile({ s, width }: { s: Shortcut; width: number }) {
 // the four other places sit in a 2 by 2 grid under it, each with its figure and what it means.
 export default function Shortcuts({ items }: { items: Shortcut[] }) {
   const [w, setW] = useState(0);
-  const half = w ? (w - 10) / 2 : 0;
+  const half = w ? Math.floor((w - 10) / 2) - 0.5 : 0; // round down: a fraction of a pixel too wide wraps the second tile
   return (
     <View style={st.wrap}>
       <Text style={st.title} accessibilityRole="header">Your money</Text>
       <View style={st.grid} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-        {half > 0 && items.map((s) => <Tile key={s.key} s={s} width={s.wide ? w : half} />)}
+        {half > 0 && items.map((s) => <Tile key={s.key} s={s} width={s.wide ? Math.floor(w) : half} />)}
       </View>
     </View>
   );
