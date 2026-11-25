@@ -448,8 +448,8 @@ export default function HomeScreen() {
     onPress: () => router.push('/networth' as Href),
   });
   if (wscore.known >= 2) numberCards.push({
-    key: 'score', label: 'Wealth score', value: `${wscore.score}/100`,
-    line: lastScore != null && lastScore !== wscore.score ? `${wscore.score > lastScore ? 'Up' : 'Down'} ${Math.abs(wscore.score - lastScore)} since ${monthLabel(prevKey, 'short')}. ${wscore.grade}` : wscore.topFix ? `Next: ${wscore.topFix.fix}` : String(wscore.grade),
+    key: 'score', label: 'Wealth score', value: `${wscore.score}/100`, side: true,
+    line: lastScore != null && lastScore !== wscore.score ? `${wscore.score > lastScore ? 'Up' : 'Down'} ${Math.abs(wscore.score - lastScore)} since ${monthLabel(prevKey, 'short')}. ${wscore.grade}` : wscore.topFix?.fix ? `Next: ${wscore.topFix.fix.split('. ')[0].replace(/\.$/, '')}.` : String(wscore.grade),
     tone: lastScore != null && lastScore !== wscore.score ? (wscore.score > lastScore ? 'up' : 'down') : 'neutral',
     visual: (ink) => <ScoreRing score={wscore.score} ink={ink} />,
     onPress: () => router.push('/wealth' as Href),

@@ -1,6 +1,7 @@
 import LiquidJar from '@/components/charts/LiquidJar';
 import RadialRings from '@/components/charts/RadialRings';
 import { Tap } from '@/components/ui';
+import CardArt from './CardArt';
 import { Corpus, Font, Pastel, tabular, Type, type PastelName } from '@/constants/theme';
 import { compactINR, formatINR } from '@/utils/format';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ export type NumberCard = {
   tone?: 'up' | 'down' | 'neutral';
   visual?: (ink: Ink) => ReactNode;
   hero?: boolean;               // the headline card: a bigger number
+  side?: boolean;               // draw the picture beside the number instead of along the bottom
   onPress: () => void;
 };
 
@@ -36,11 +38,15 @@ function Card({ c, i, width }: { c: NumberCard; i: number; width: number }) {
   const arrow = c.tone === 'up' ? 'arrow-up' : c.tone === 'down' ? 'arrow-down' : null;
   return (
     <Tap onPress={c.onPress} scaleTo={0.98} style={[s.card, { width, backgroundColor: t.bg }]} accessibilityRole="button" accessibilityLabel={`${c.label}: ${c.value}. ${c.line}`}>
+      <CardArt kind={c.key} color={t.icon} />
       <View style={s.top}>
         <Text style={[s.label, { color: t.fg }]} numberOfLines={1}>{c.label}</Text>
         <Ionicons name="arrow-forward" size={16} color={t.fg} style={{ opacity: 0.45, transform: [{ rotate: '-45deg' }] }} />
       </View>
-      <Text style={[s.value, c.hero && s.heroValue, { color: t.fg }]} numberOfLines={1}>{c.value}</Text>
+      <View style={s.valueRow}>
+        <Text style={[s.value, c.hero && s.heroValue, { color: t.fg }]} numberOfLines={1}>{c.value}</Text>
+        {c.side && c.visual ? c.visual(ink) : null}
+      </View>
       <View style={s.lineRow}>
         {arrow && (
           <View style={[s.chip, { backgroundColor: ink.track }]}>
@@ -49,7 +55,7 @@ function Card({ c, i, width }: { c: NumberCard; i: number; width: number }) {
         )}
         <Text style={[s.line, { color: t.fg }]} numberOfLines={2}>{c.line}</Text>
       </View>
-      {c.visual ? <View style={s.visual}>{c.visual(ink)}</View> : null}
+      {c.visual && !c.side ? <View style={s.visual}>{c.visual(ink)}</View> : null}
     </Tap>
   );
 }
@@ -192,15 +198,16 @@ export const fmtDelta = (n: number) => `${n >= 0 ? 'Up' : 'Down'} ${formatINR(Ma
 const s = StyleSheet.create({
   title: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text, paddingHorizontal: 4 },
   bleed: { marginHorizontal: -PAD },
-  card: { height: 184, borderRadius: 26, padding: 18, gap: 6 },
+  card: { minHeight: 184, borderRadius: 26, padding: 18, gap: 6, overflow: 'hidden' },
+  valueRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   label: { flex: 1, fontSize: Type.body, fontFamily: Font.display, opacity: 0.75 },
-  value: { fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.8, marginTop: 2, ...tabular },
+  value: { flexShrink: 1, fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.8, marginTop: 2, ...tabular },
   heroValue: { fontSize: Type.amount, letterSpacing: -1.2 },
   lineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   chip: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
   line: { flex: 1, fontSize: Type.body, lineHeight: 18, opacity: 0.85, ...tabular },
-  visual: { marginTop: 'auto' },
+  visual: { marginTop: 'auto', paddingTop: 10 },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
   dot: { height: 6, borderRadius: 3, backgroundColor: Corpus.text },
   meter: { height: 8, borderRadius: 4, overflow: 'hidden' },
