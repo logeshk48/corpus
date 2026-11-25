@@ -1,152 +1,214 @@
 import LiquidJar from '@/components/charts/LiquidJar';
 import RadialRings from '@/components/charts/RadialRings';
-import Sparkline from '@/components/charts/Sparkline';
 import { Tap } from '@/components/ui';
-import { Chip, Corpus, Font, isDark, tabular, Type } from '@/constants/theme';
+import { Corpus, Font, Pastel, tabular, Type, type PastelName } from '@/constants/theme';
 import { compactINR, formatINR } from '@/utils/format';
-import type { ReactNode } from 'react';
-import { useId } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useFrameCallback, useReducedMotion, useSharedValue } from 'react-native-reanimated';
-import Svg, { Defs, Line, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Platform, StyleSheet, Text, View, type ScrollView } from 'react-native';
+import Animated, { interpolate, useAnimatedScrollHandler, useAnimatedStyle, useReducedMotion, useSharedValue, Extrapolation, type SharedValue } from 'react-native-reanimated';
+import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
+export type Ink = { fg: string; icon: string; track: string };
 export type NumberCard = {
   key: string;
   label: string;
   value: string;
-  line: string;          // the one curious sentence: what changed, what it means
+  line: string;                 // the one sentence: what changed, what it means
   tone?: 'up' | 'down' | 'neutral';
-  visual?: ReactNode;    // a small picture of the number
-  hero?: boolean;        // the headline card: wider, with a glowing gradient edge
+  visual?: (ink: Ink) => ReactNode;
+  hero?: boolean;               // the headline card: a bigger number
   onPress: () => void;
 };
 
-// Holo cards are always dark glass (the darkest surface in either theme) so the numbers glow on them
-const HOLO_BG = isDark ? Corpus.card : Corpus.text;
-const TONE = { up: Chip.green, down: Chip.red, neutral: Corpus.sheen };
-const ACCENT: Record<string, string> = { nw: Chip.indigo, score: Chip.purple, vs: Chip.orange, kept: Chip.teal, jar: Chip.yellow, debt: Chip.pink };
-const W = 236, HERO_W = 284, GAP = 12, SPEED = 26; // px a second
+// One soft colour per card, the same pastel family as the Insights notes. Colour here is identity,
+// not status: up and down are carried by the arrow and the words.
+const TONE_OF: Record<string, PastelName> = { nw: 'lilac', score: 'sky', vs: 'peach', kept: 'mint', jar: 'butter', debt: 'rose' };
+const ORDER: PastelName[] = ['lilac', 'sky', 'peach', 'mint', 'butter', 'rose'];
+const GAP = 12;
+const PAD = 16;
+const AUTO_MS = 5000;   // glide to the next card this often
+const REST_MS = 7000;   // after you touch the row, leave it alone this long
 
-function Holo({ c }: { c: NumberCard }) {
-  const id = useId().replace(/:/g, '');
-  const a = ACCENT[c.key] ?? Chip.blue;
-  const w = c.hero ? HERO_W : W;
+function Card({ c, i, width }: { c: NumberCard; i: number; width: number }) {
+  const t = Pastel[TONE_OF[c.key] ?? ORDER[i % ORDER.length]];
+  const ink: Ink = { fg: t.fg, icon: t.icon, track: t.fg + '1F' };
+  const arrow = c.tone === 'up' ? 'arrow-up' : c.tone === 'down' ? 'arrow-down' : null;
   return (
-    <Tap onPress={c.onPress} scaleTo={0.97} style={[s.card, { width: w, backgroundColor: HOLO_BG, shadowColor: a }]} accessibilityRole="button" accessibilityLabel={`${c.label}: ${c.value}. ${c.line}`}>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width="100%" height="100%">
-          <Defs>
-            <RadialGradient id={`g${id}`} cx="85%" cy="0%" r="75%">
-              <Stop offset="0" stopColor={a} stopOpacity={0.55} />
-              <Stop offset="1" stopColor={a} stopOpacity={0} />
-            </RadialGradient>
-            <LinearGradient id={`e${id}`} x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor={a} stopOpacity={0.9} />
-              <Stop offset="0.5" stopColor={Corpus.sheen} stopOpacity={0.12} />
-              <Stop offset="1" stopColor={Chip.teal} stopOpacity={0.7} />
-            </LinearGradient>
-          </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" rx="24" fill={`url(#g${id})`} />
-          {/* a faint grid, like a display */}
-          {Array.from({ length: 8 }, (_, k) => <Line key={`v${k}`} x1={(k + 1) * 32} y1="0" x2={(k + 1) * 32} y2="100%" stroke={Corpus.sheen} strokeOpacity={0.04} />)}
-          {Array.from({ length: 6 }, (_, k) => <Line key={`h${k}`} x1="0" y1={(k + 1) * 32} x2="100%" y2={(k + 1) * 32} stroke={Corpus.sheen} strokeOpacity={0.04} />)}
-          <Rect x="0.75" y="0.75" width={w - 1.5} height="99%" rx="23.5" fill="none" stroke={`url(#e${id})`} strokeWidth={1.5} />
-        </Svg>
-      </View>
+    <Tap onPress={c.onPress} scaleTo={0.98} style={[s.card, { width, backgroundColor: t.bg }]} accessibilityRole="button" accessibilityLabel={`${c.label}: ${c.value}. ${c.line}`}>
       <View style={s.top}>
-        <View style={[s.dot, { backgroundColor: a, shadowColor: a }]} />
-        <Text style={s.label}>{c.label}</Text>
+        <Text style={[s.label, { color: t.fg }]} numberOfLines={1}>{c.label}</Text>
+        <Ionicons name="arrow-forward" size={16} color={t.fg} style={{ opacity: 0.45, transform: [{ rotate: '-45deg' }] }} />
       </View>
-      <Text style={[s.value, c.hero && s.heroValue]} numberOfLines={1}>{c.value}</Text>
-      <Text style={[s.line, { color: TONE[c.tone ?? 'neutral'] }, (c.tone ?? 'neutral') === 'neutral' && { opacity: 0.7 }]} numberOfLines={2}>{c.line}</Text>
-      {c.visual ? <View style={s.visual}>{c.visual}</View> : null}
+      <Text style={[s.value, c.hero && s.heroValue, { color: t.fg }]} numberOfLines={1}>{c.value}</Text>
+      <View style={s.lineRow}>
+        {arrow && (
+          <View style={[s.chip, { backgroundColor: ink.track }]}>
+            <Ionicons name={arrow} size={12} color={t.fg} />
+          </View>
+        )}
+        <Text style={[s.line, { color: t.fg }]} numberOfLines={2}>{c.line}</Text>
+      </View>
+      {c.visual ? <View style={s.visual}>{c.visual(ink)}</View> : null}
     </Tap>
   );
 }
 
-// "Your numbers": the figures people are most curious about, as a row of glowing cards that glides past on
-// its own and loops like a train. Touch or swipe to take over; it carries on a moment after you let go.
-// Reduce Motion: it never moves on its own.
+function Dot({ k, x, step }: { k: number; x: SharedValue<number>; step: number }) {
+  const st = useAnimatedStyle(() => {
+    const d = Math.abs(x.value / step - k);
+    const on = interpolate(d, [0, 1], [1, 0], Extrapolation.CLAMP);
+    return { width: 6 + on * 14, opacity: 0.25 + on * 0.75 };
+  });
+  return <Animated.View style={[s.dot, st]} />;
+}
+
+// "Your numbers": the figures people are most curious about, one soft card each. Swipe moves one card at
+// a time and lands cleanly; on its own the row glides to the next card every few seconds and waits
+// while you are touching it. Reduce Motion: it never moves on its own.
 export default function YourNumbers({ cards }: { cards: NumberCard[] }) {
   const reduce = useReducedMotion();
-  const row = useSharedValue(0); // width of one full set of cards
+  const ref = useRef<ScrollView>(null);
+  const [vw, setVw] = useState(0);
   const x = useSharedValue(0);
-  const held = useSharedValue(0);
-  const until = useSharedValue(0);
-  useFrameCallback((f) => {
-    if (row.value <= 0) return;
-    const now = f.timestamp;
-    if (until.value === -1) until.value = now + 2500; // just let go: wait a moment before gliding again
-    if (!reduce && !held.value && now > until.value) x.value -= ((f.timeSincePreviousFrame ?? 16) / 1000) * SPEED;
-    // wrap so the second copy takes over seamlessly
-    if (x.value <= -row.value) x.value += row.value;
-    if (x.value > 0) x.value -= row.value;
-  });
-  const pan = Gesture.Pan()
-    .activeOffsetX([-8, 8])
-    .failOffsetY([-12, 12])
-    .onBegin(() => { held.value = 1; })
-    .onChange((e) => { x.value += e.changeX; })
-    .onFinalize(() => { held.value = 0; until.value = -1; });
-  const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  const idx = useRef(0);
+  const touched = useRef(0);
+  const width = vw ? Math.round(vw * 0.76) : 0;
+  const step = width + GAP;
+
+  const onScroll = useAnimatedScrollHandler((e) => { x.value = e.contentOffset.x; });
+  const settle = (offset: number) => { if (step) idx.current = Math.round(offset / step); };
+
+  useEffect(() => {
+    if (reduce || cards.length < 2 || !step) return;
+    const id = setInterval(() => {
+      if (Date.now() - touched.current < REST_MS) return;
+      const next = (Math.round(x.value / step) + 1) % cards.length;
+      idx.current = next;
+      ref.current?.scrollTo({ x: next * step, animated: true });
+    }, AUTO_MS);
+    return () => clearInterval(id);
+  }, [reduce, cards.length, step, x]);
+
   if (!cards.length) return null;
-  const set = (copy: number) => cards.map((c) => (
-    <View key={`${copy}-${c.key}`} style={{ marginRight: GAP }} accessibilityElementsHidden={copy > 0} importantForAccessibility={copy > 0 ? 'no-hide-descendants' : 'auto'}>
-      <Holo c={c} />
-    </View>
-  ));
+  const web = Platform.OS === 'web';
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 12 }}>
       <Text style={s.title} accessibilityRole="header">Your numbers</Text>
-      <GestureDetector gesture={pan}>
-        <View style={s.viewport}>
-          <Animated.View style={[{ flexDirection: 'row' }, style]}>
-            <View style={{ flexDirection: 'row' }} onLayout={(e) => { row.value = e.nativeEvent.layout.width; }}>{set(0)}</View>
-            <View style={{ flexDirection: 'row' }}>{set(1)}</View>
-          </Animated.View>
+      <View style={s.bleed} onLayout={(e) => setVw(e.nativeEvent.layout.width)}>
+        {width > 0 && (
+          <Animated.ScrollView
+            ref={ref as never}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            snapToInterval={step}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            disableIntervalMomentum
+            onTouchStart={() => { touched.current = Date.now(); }}
+            onScrollBeginDrag={() => { touched.current = Date.now(); }}
+            onMomentumScrollEnd={(e) => { touched.current = Date.now(); settle(e.nativeEvent.contentOffset.x); }}
+            style={web ? ({ scrollSnapType: 'x mandatory' } as object) : undefined}
+            contentContainerStyle={{ paddingHorizontal: PAD, gap: GAP }}
+          >
+            {cards.map((c, i) => (
+              <View key={c.key} style={web ? ({ scrollSnapAlign: 'start', scrollMarginLeft: PAD } as object) : undefined}>
+                <Card c={c} i={i} width={width} />
+              </View>
+            ))}
+          </Animated.ScrollView>
+        )}
+      </View>
+      {cards.length > 1 && step > 0 && (
+        <View style={s.dots} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          {cards.map((c, k) => <Dot key={c.key} k={k} x={x} step={step} />)}
         </View>
-      </GestureDetector>
+      )}
     </View>
   );
 }
 
-// Small pictures for the cards
-export const NetWorthSpark = ({ values }: { values: number[] }) => (values.length > 1 ? <Sparkline values={values} width={250} height={46} /> : null);
-export const ScoreRing = ({ score, color }: { score: number; color: string }) => (
-  <RadialRings size={56} stroke={8} data={[{ id: 's', value: 1, frac: score / 100, color }]} />
+// Small pictures, drawn in the card's own ink
+export function NetWorthLine({ values, ink }: { values: number[]; ink: Ink }) {
+  const id = useId().replace(/:/g, '');
+  if (values.length < 2) return null;
+  const W = 200, H = 40;
+  const lo = Math.min(...values), hi = Math.max(...values), span = hi - lo || 1;
+  const pts = values.map((v, i) => [(i / (values.length - 1)) * W, 4 + (1 - (v - lo) / span) * (H - 8)]);
+  const d = pts.map(([px, py], i) => `${i ? 'L' : 'M'} ${px.toFixed(1)} ${py.toFixed(1)}`).join(' ');
+  return (
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+      <Defs>
+        <LinearGradient id={`a${id}`} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={ink.icon} stopOpacity={0.28} />
+          <Stop offset="1" stopColor={ink.icon} stopOpacity={0} />
+        </LinearGradient>
+      </Defs>
+      <Path d={`${d} L ${W} ${H} L 0 ${H} Z`} fill={`url(#a${id})`} />
+      <Path d={d} stroke={ink.icon} strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </Svg>
+  );
+}
+export const ScoreRing = ({ score, ink }: { score: number; ink: Ink }) => (
+  <RadialRings size={48} stroke={7} data={[{ id: 's', value: 1, frac: Math.max(0.02, score / 100), color: ink.icon, track: ink.track }]} />
 );
-export const JarVisual = ({ level, color }: { level: number; color: string }) => <LiquidJar level={level} color={color} width={40} height={52} marks />;
-export function Versus({ now, then, nowLabel, thenLabel }: { now: number; then: number; nowLabel: string; thenLabel: string }) {
+export const JarVisual = ({ level, ink }: { level: number; ink: Ink }) => <LiquidJar level={level} color={ink.icon} width={34} height={44} marks />;
+export function Meter({ frac, ink, left, right, mark }: { frac: number; ink: Ink; left?: string; right?: string; mark?: number }) {
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={[s.meter, { backgroundColor: ink.track }]}>
+        <View style={[s.meterFill, { width: `${Math.max(0, Math.min(1, frac)) * 100}%`, backgroundColor: ink.icon }]} />
+        {mark != null && <View style={[s.mark, { left: `${mark * 100}%`, backgroundColor: ink.fg }]} />}
+      </View>
+      {(left || right) && (
+        <View style={s.meterLabels}>
+          <Text style={[s.small, { color: ink.fg }]}>{left}</Text>
+          <Text style={[s.small, { color: ink.fg }]}>{right}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+export function Versus({ now, then, nowLabel, thenLabel, ink }: { now: number; then: number; nowLabel: string; thenLabel: string; ink: Ink }) {
   const max = Math.max(now, then, 1);
   return (
     <View style={{ gap: 6 }}>
-      {[[thenLabel, then, Corpus.sheen], [nowLabel, now, now > then ? Chip.red : Chip.green]].map(([l, v, c]) => (
-        <View key={String(l)} style={s.vsRow}>
-          <Text style={s.vsLabel}>{l}</Text>
-          <View style={s.vsTrack}><View style={[s.vsFill, { width: `${(Number(v) / max) * 100}%`, backgroundColor: String(c) }]} /></View>
-          <Text style={s.vsVal}>{compactINR(Number(v))}</Text>
+      {([[thenLabel, then, 0.45], [nowLabel, now, 1]] as const).map(([l, v, o]) => (
+        <View key={l} style={s.vsRow}>
+          <Text style={[s.vsLabel, { color: ink.fg }]}>{l}</Text>
+          <View style={[s.meter, { flex: 1, backgroundColor: ink.track }]}>
+            <View style={[s.meterFill, { width: `${(v / max) * 100}%`, backgroundColor: ink.icon, opacity: o }]} />
+          </View>
+          <Text style={[s.vsVal, { color: ink.fg }]}>{compactINR(v)}</Text>
         </View>
       ))}
     </View>
   );
 }
-export const fmtDelta = (n: number) => `${n >= 0 ? 'up' : 'down'} ${formatINR(Math.abs(Math.round(n)))}`;
+export const fmtDelta = (n: number) => `${n >= 0 ? 'Up' : 'Down'} ${formatINR(Math.abs(Math.round(n)))}`;
 
 const s = StyleSheet.create({
   title: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text, paddingHorizontal: 4 },
-  viewport: { marginHorizontal: -16, paddingLeft: 16, overflow: 'hidden', paddingVertical: 10, marginVertical: -10 },
-  card: { minHeight: 190, borderRadius: 24, padding: 16, gap: 4, overflow: 'hidden', shadowOpacity: 0.45, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-  top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
-  label: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.sheen, opacity: 0.75, letterSpacing: 0.2 },
-  value: { fontSize: Type.h1, fontFamily: Font.displayBold, color: Corpus.sheen, letterSpacing: -0.6, marginTop: 4, ...tabular },
-  heroValue: { fontSize: Type.amount },
-  line: { fontSize: Type.body, lineHeight: 18, fontFamily: Font.display, ...tabular },
-  visual: { marginTop: 'auto', paddingTop: 8 },
+  bleed: { marginHorizontal: -PAD },
+  card: { height: 184, borderRadius: 26, padding: 18, gap: 6 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  label: { flex: 1, fontSize: Type.body, fontFamily: Font.display, opacity: 0.75 },
+  value: { fontSize: Type.h1, fontFamily: Font.displayBold, letterSpacing: -0.8, marginTop: 2, ...tabular },
+  heroValue: { fontSize: Type.amount, letterSpacing: -1.2 },
+  lineRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  chip: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
+  line: { flex: 1, fontSize: Type.body, lineHeight: 18, opacity: 0.85, ...tabular },
+  visual: { marginTop: 'auto' },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
+  dot: { height: 6, borderRadius: 3, backgroundColor: Corpus.text },
+  meter: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  meterFill: { height: 8, borderRadius: 4 },
+  mark: { position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1 },
+  meterLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  small: { fontSize: Type.small, opacity: 0.75, ...tabular },
   vsRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  vsLabel: { width: 34, fontSize: Type.small, color: Corpus.sheen, opacity: 0.7 },
-  vsTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: Corpus.sheen + '22', overflow: 'hidden' },
-  vsFill: { height: 8, borderRadius: 4 },
-  vsVal: { width: 48, textAlign: 'right', fontSize: Type.small, fontFamily: Font.display, color: Corpus.sheen, ...tabular },
+  vsLabel: { width: 34, fontSize: Type.small, opacity: 0.75 },
+  vsVal: { width: 46, textAlign: 'right', fontSize: Type.small, fontFamily: Font.display, ...tabular },
 });

@@ -377,3 +377,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - How much you kept (`Rates`): dashed 20% line; tap a month to switch Insights to it; the line under shows in, out and kept for the month on screen.
 - Where your income went (`CashFlowBar`): fills from the left; tap a part or its row to pick it out, with one sentence on what that part means.
 - Where your income came from (`IncomeSources`): bars grow in.
+
+## Your numbers, soft redesign (replaces the holo train)
+- The user found the holo cards (glow, grid, gradient edge, glowing dot) AI-looking and the looping train hard to swipe.
+- Each card is a soft pastel surface from the `Pastel` family (net worth lilac, score sky, month peach, kept mint, goal butter, debt rose), the same family as the Insights notes. Text and pictures use the card's own ink, so nothing glows or clashes. Up and down are shown by a small arrow chip and the words, not by red and green.
+- Layout: label with a small corner arrow (it opens), big number, one line, picture pinned to the bottom (area line, ring, two bars, jar, or a meter with a 20% tick).
+- Swiping is a native horizontal scroll that snaps one card at a time (`snapToInterval`, `disableIntervalMomentum`; CSS scroll snap on web). The next card peeks in so you know there is more.
+- It glides to the next card every 5 s and back to the first at the end; it waits 7 s after you touch it. Reduce Motion stops it. Page dots under the row stretch with the scroll position.

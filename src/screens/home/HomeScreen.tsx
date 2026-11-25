@@ -26,7 +26,7 @@ import { actionable, moneyReminders } from '@/utils/debtReminders';
 import MoneyReminders from './components/MoneyReminders';
 import UpcomingBills from './components/UpcomingBills';
 import PulseStrip, { PULSE_COLORS } from './components/PulseStrip';
-import YourNumbers, { fmtDelta, JarVisual, NetWorthSpark, ScoreRing, Versus, type NumberCard } from './components/YourNumbers';
+import YourNumbers, { fmtDelta, JarVisual, Meter, NetWorthLine, ScoreRing, Versus, type NumberCard } from './components/YourNumbers';
 import { monthLabel, monthTotals, shiftMonth, ym as ymKey } from '@/utils/analytics';
 import { savedOf } from '@/types/vault';
 import BillAlerts from './components/BillAlerts';
@@ -439,20 +439,19 @@ export default function HomeScreen() {
   const nwFrom = lastSnap ? nwSnaps[lastSnap].total : null;
   const lastScore = settings.scoreLog?.[prevKey];
   const goal = vaults.filter((v) => v.goal && savedOf(v) < v.goal).sort((a, b) => savedOf(b) / b.goal! - savedOf(a) / a.goal!)[0];
-  const scoreColor = wscore.tone === 'good' ? Corpus.income : wscore.tone === 'ok' ? Corpus.warning : Corpus.danger;
   const numberCards: NumberCard[] = [];
   if (accounts.length > 0 || assets.length > 0 || investments.length > 0) numberCards.push({
     key: 'nw', hero: true, label: 'Net worth', value: formatINR(Math.round(nw)),
     line: nwFrom != null ? `${fmtDelta(nw - nwFrom)} since ${monthLabel(lastSnap, 'short')}` : 'All you own, minus all you owe',
     tone: nwFrom == null ? 'neutral' : nw >= nwFrom ? 'up' : 'down',
-    visual: <NetWorthSpark values={[...snapKeys.slice(-5).map((k) => nwSnaps[k].total), nw]} />,
+    visual: (ink) => <NetWorthLine values={[...snapKeys.slice(-5).map((k) => nwSnaps[k].total), nw]} ink={ink} />,
     onPress: () => router.push('/networth' as Href),
   });
   if (wscore.known >= 2) numberCards.push({
     key: 'score', label: 'Wealth score', value: `${wscore.score}/100`,
     line: lastScore != null && lastScore !== wscore.score ? `${wscore.score > lastScore ? 'Up' : 'Down'} ${Math.abs(wscore.score - lastScore)} since ${monthLabel(prevKey, 'short')}. ${wscore.grade}` : wscore.topFix ? `Next: ${wscore.topFix.fix}` : String(wscore.grade),
     tone: lastScore != null && lastScore !== wscore.score ? (wscore.score > lastScore ? 'up' : 'down') : 'neutral',
-    visual: <ScoreRing score={wscore.score} color={scoreColor} />,
+    visual: (ink) => <ScoreRing score={wscore.score} ink={ink} />,
     onPress: () => router.push('/wealth' as Href),
   });
   if (mNow.spent > 0 || mPrev.spent > 0) {
@@ -461,7 +460,7 @@ export default function HomeScreen() {
       key: 'vs', label: 'This month vs last', value: formatINR(mNow.spent),
       line: mPrev.spent === 0 ? `Spent so far in ${monthLabel(nowKey, 'short')}` : d === 0 ? `Same as ${monthLabel(prevKey, 'short')} by day ${dayN}` : `${formatINR(Math.abs(d))} ${d > 0 ? 'more' : 'less'} than ${monthLabel(prevKey, 'short')} by day ${dayN}`,
       tone: mPrev.spent === 0 || d === 0 ? 'neutral' : d > 0 ? 'down' : 'up',
-      visual: <Versus now={mNow.spent} then={mPrev.spent} nowLabel={monthLabel(nowKey, 'short')} thenLabel={monthLabel(prevKey, 'short')} />,
+      visual: (ink) => <Versus now={mNow.spent} then={mPrev.spent} nowLabel={monthLabel(nowKey, 'short')} thenLabel={monthLabel(prevKey, 'short')} ink={ink} />,
       onPress: () => router.push('/analytics' as Href),
     });
   }
@@ -469,18 +468,20 @@ export default function HomeScreen() {
     key: 'kept', label: 'Kept this month', value: `${mNow.savingsRate}%`,
     line: mNow.saved >= 0 ? `${formatINR(mNow.saved)} of the ${formatINR(mNow.income)} that came in` : `${formatINR(-mNow.saved)} more went out than came in`,
     tone: mNow.savingsRate >= 20 ? 'up' : mNow.savingsRate < 0 ? 'down' : 'neutral',
+    visual: (ink) => <Meter frac={Math.max(0, mNow.savingsRate! / 100)} ink={ink} mark={0.2} right="The tick is 20%, a healthy month" />,
     onPress: () => router.push('/analytics' as Href),
   });
   if (goal) numberCards.push({
     key: 'jar', label: 'Closest goal', value: `${Math.round((savedOf(goal) / goal.goal!) * 100)}%`,
     line: `${goal.name}: ${formatINR(goal.goal! - savedOf(goal))} to go`,
-    visual: <JarVisual level={savedOf(goal) / goal.goal!} color={goal.color} />,
+    visual: (ink) => <JarVisual level={savedOf(goal) / goal.goal!} ink={ink} />,
     onPress: () => router.push({ pathname: '/vault/[id]', params: { id: goal.id } }),
   });
   if (debtPlan?.freeBy) numberCards.push({
     key: 'debt', label: 'Debt-free by', value: debtPlan.freeBy.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
     line: debtPlan.paidOff > 0 ? `${Math.round(debtPlan.pct * 100)}% paid off since you started` : 'If you keep to your payoff plan',
     tone: debtPlan.paidOff > 0 ? 'up' : 'neutral',
+    visual: (ink) => <Meter frac={debtPlan.pct} ink={ink} left="Paid off" right={`${Math.round(debtPlan.pct * 100)}%`} />,
     onPress: () => router.push('/debts' as Href),
   });
 
