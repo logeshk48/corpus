@@ -391,39 +391,48 @@ export default function HomeScreen() {
   // Wealth Builder Score (Day 5)
   const wscore = wealthScore(scoreInputs({ tx: yearTx, investments, ious, bills, items: nwItems, totals: nwTotals, cardDues: accTotals.cardDues, hasAccounts: accounts.length > 0, streams: incomeStreams, protection: settings.protection }));
   const budgetPct = overall && overall.limit > 0 ? Math.round((overall.spent / overall.limit) * 100) : null;
+  const jarsSaved = jarsTotal + investments.filter((h) => h.goalId && vaults.some((v) => v.id === h.goalId)).reduce((sum, h) => sum + h.value, 0);
+  const goalJars = vaults.filter((v) => v.goal);
+  const goalShare = goalJars.length ? goalJars.reduce((sum, v) => sum + Math.min(savedOf(v), v.goal!), 0) / goalJars.reduce((sum, v) => sum + v.goal!, 0) : undefined;
+  const budgetLeft = overall && overall.limit > 0 ? overall.limit - overall.spent : null;
   const shortcuts: Shortcut[] = [
     {
-      key: 'accounts', label: 'Accounts', icon: 'wallet-outline',
-      value: accounts.length === 0 ? 'Add cash & bank' : accStale ? 'Update balances' : `${compactINR(accHave)} you have`,
+      key: 'accounts', label: 'Accounts', icon: 'wallet-outline', wide: true,
+      figure: accounts.length ? formatINR(Math.round(accHave)) : undefined,
+      status: accounts.length === 0 ? 'Add your cash and bank accounts' : accStale ? 'Balances look old. Tap to update' : `across ${accounts.length} account${accounts.length === 1 ? '' : 's'}`,
       tone: accStale ? 'warn' : 'normal',
       spark: accounts.length ? moneyCandles(accList, yearTx, 'days', 14).map((c) => c.close) : undefined,
       onPress: () => router.push('/accounts' as Href),
     },
     {
       key: 'budgets', label: 'Budgets', icon: 'pie-chart-outline',
-      value: budgetPct === null ? 'Set a limit' : `${budgetPct}% used`,
-      tone: budgetPct === null ? 'normal' : budgetPct > 100 ? 'danger' : budgetPct > 80 ? 'warn' : 'good',
+      figure: budgetPct === null ? undefined : `${budgetPct}%`,
+      status: budgetPct === null || budgetLeft === null ? 'Set a monthly limit' : budgetLeft >= 0 ? `used, ${compactINR(budgetLeft)} left` : `used, ${compactINR(-budgetLeft)} over`,
+      tone: budgetPct === null ? 'normal' : budgetPct > 100 ? 'danger' : budgetPct > 80 ? 'warn' : 'normal',
+      progress: budgetPct === null ? undefined : budgetPct / 100,
       onPress: () => router.push('/budgets' as Href),
     },
     {
+      key: 'jars', label: 'Jars', icon: 'file-tray-stacked-outline',
+      figure: vaults.length ? compactINR(jarsSaved) : undefined,
+      status: vaults.length === 0 ? 'Start saving for a goal' : goalShare != null ? `saved, ${goalShare > 0 && goalShare < 0.01 ? 'under 1%' : `${Math.round(goalShare * 100)}%`} of goals` : `saved in ${vaults.length} jar${vaults.length === 1 ? '' : 's'}`,
+      progress: goalShare,
+      onPress: () => router.push('/vaults' as Href),
+    },
+    {
       key: 'people', label: 'People', icon: 'swap-horizontal',
-      value: repayNudge
-        ? `Repay ${repayNudge.borrowed.person}`
-        : iouTotals.toGet > 0 ? `${compactINR(iouTotals.toGet)} to get`
-        : iouTotals.toPay > 0 ? `${compactINR(iouTotals.toPay)} to pay` : 'All square',
+      // lead with the bigger side, mention the other
+      figure: repayNudge ? undefined : Math.max(iouTotals.toGet, iouTotals.toPay) > 0 ? compactINR(Math.max(iouTotals.toGet, iouTotals.toPay)) : undefined,
+      status: repayNudge ? `Time to repay ${repayNudge.borrowed.person}`
+        : iouTotals.toPay > iouTotals.toGet ? `to pay back${iouTotals.toGet > 0 ? `, ${compactINR(iouTotals.toGet)} to get` : ''}`
+        : iouTotals.toGet > 0 ? `to get back${iouTotals.toPay > 0 ? `, ${compactINR(iouTotals.toPay)} to pay` : ''}` : 'All square with everyone',
       tone: repayNudge ? 'warn' : 'normal',
       onPress: () => router.push('/ious' as Href),
     },
     {
-      key: 'jars', label: 'Jars', icon: 'file-tray-stacked-outline',
-      // jars hold cash + linked investments (one goal = one jar)
-      value: vaults.length > 0 ? `${compactINR(jarsTotal + investments.filter((h) => h.goalId && vaults.some((v) => v.id === h.goalId)).reduce((s, h) => s + h.value, 0))} saved` : 'Start saving',
-      onPress: () => router.push('/vaults' as Href),
-    },
-    {
       key: 'income', label: 'Income', icon: 'git-branch-outline',
-      value: income > 0 ? `${compactINR(income)} this month` : 'Add income',
-      tone: income > 0 ? 'good' : 'normal',
+      figure: income > 0 ? compactINR(income) : undefined,
+      status: income > 0 ? 'came in this month' : 'Nothing logged yet this month',
       onPress: () => router.push('/income' as Href),
     },
   ];
@@ -533,6 +542,7 @@ export default function HomeScreen() {
           ]} />
         )}
         {!loading && !yearLoading && <YourNumbers cards={numberCards} />}
+        {!loading && <Shortcuts items={shortcuts} />}
         <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
         {needsCount > 0 && (
           <View style={styles.needsHead}>
@@ -579,7 +589,6 @@ export default function HomeScreen() {
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
         <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
         {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
-        <Shortcuts items={shortcuts} />
         <InsightsCard items={insights} />
         <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
         {(investedThisMonth > 0 || nextSipAll) && (

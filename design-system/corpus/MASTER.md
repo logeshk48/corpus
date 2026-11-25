@@ -386,3 +386,9 @@ Cards and text stay clean; the life is in the background and in moments.
 - It glides to the next card every 5 s and back to the first at the end; it waits 7 s after you touch it. Reduce Motion stops it. Page dots under the row stretch with the scroll position.
 - Cards use `minHeight` (not a fixed height) with overflow hidden, so long lines never push the picture over the text. A card can set `side` to put its picture next to the number (Wealth score ring). The score line keeps only the first sentence of the next fix.
 - Each card has a quiet background picture (`CardArt.tsx`), original SVG shapes in the card's own colour at low opacity, anchored bottom right so the words stay clear: hills and a moon (net worth), a dial (score), a low sun with bands (this month vs last), a sprout (kept), stacked coins (goal), steps down to a flag (debt-free). No photos to load, works in both themes.
+
+## Your money (Today), upgrade and placement
+- Moved up to sit right under Your numbers: first the figures you are curious about, then where your money lives. It was below Up next and This week.
+- Layout: Accounts leads across the full width with the money you have in big type (and a 14-day spark when balances moved); Budgets, Jars, People and Income sit in a 2 by 2 grid under it. No more odd fifth tile.
+- Each tile: coloured icon, name and a chevron, then the figure and a short line saying what it means ("used, ₹2.96K left", "saved, 3% of goals", "to pay back, ₹10K to get", "came in this month"). Budgets and Jars get a thin progress bar. Alerts (old balances, over budget, time to repay) turn the line amber or red with an alert icon.
+- Data now comes as separate `figure` and `status` instead of parsing one string.

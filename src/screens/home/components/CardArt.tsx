@@ -22,10 +22,9 @@ function Scene({ kind, c }: { kind: string; c: string }) {
     case 'score': // a dial seen from the side: how close you are to 100
       return (
         <G fill="none" stroke={c}>
-          <Circle cx={300} cy={190} r={150} strokeWidth={18} strokeOpacity={a} />
-          <Circle cx={300} cy={190} r={110} strokeWidth={18} strokeOpacity={b} />
-          <Circle cx={300} cy={190} r={70} strokeWidth={18} strokeOpacity={d} />
-          <Circle cx={300} cy={190} r={30} fill={c} fillOpacity={d} stroke="none" />
+          <Circle cx={290} cy={260} r={150} strokeWidth={16} strokeOpacity={a} />
+          <Circle cx={290} cy={260} r={112} strokeWidth={16} strokeOpacity={b} />
+          <Circle cx={290} cy={260} r={74} strokeWidth={16} strokeOpacity={d} />
         </G>
       );
     case 'vs': // a low sun with its bands: this month against the last
