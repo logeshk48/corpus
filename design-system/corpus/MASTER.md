@@ -392,3 +392,10 @@ Cards and text stay clean; the life is in the background and in moments.
 - Layout: Accounts leads across the full width with the money you have in big type (and a 14-day spark when balances moved); Budgets, Jars, People and Income sit in a 2 by 2 grid under it. No more odd fifth tile.
 - Each tile: coloured icon, name and a chevron, then the figure and a short line saying what it means ("used, ₹2.96K left", "saved, 3% of goals", "to pay back, ₹10K to get", "came in this month"). Budgets and Jars get a thin progress bar. Alerts (old balances, over budget, time to repay) turn the line amber or red with an alert icon.
 - Data now comes as separate `figure` and `status` instead of parsing one string.
+
+## Today, second block: usuals, needs you, up next, this week
+- Your usuals: small cards (icon, name, amount, a plus) in a row that runs to the screen edge, ending in a dashed "Other" card that opens Add. Tapping logs it and the card shows a green tick and "Logged" for a moment. Header says "One tap logs it".
+- Needs you: one shared card look (`needStyles` in CatchUpCard): icon, what it is, one action. Catch-up card says "Last entry 18 Nov" with a "Catch up" button. Money reminders: icon header with the count, rows with a status tag (Overdue, Today, Soon, Later) instead of coloured dots.
+- Up next: a short calendar. Each bill has a date block (day and month) on the left, turning amber when due today or tomorrow; the total due this week sits by the heading; the footer reads "All bills, ₹x a month".
+- This week: no black tracks, no glow or sheen. Bars only on days with spending (today orange, other days indigo, amount above each), a short grey dash for days with nothing, a faint dot for days still to come. The total is big, with a line comparing last week up to the same day (amber when more, green when less).
+- Your usuals removed from Today (the user found it didn't make sense there). The same one-tap picks still show on the Add screen as chips when the amount is empty, which is where you are when you log.

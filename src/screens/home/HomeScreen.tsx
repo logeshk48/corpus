@@ -46,9 +46,7 @@ import { overallBudget } from '@/utils/budgets';
 import { computeSafeToSpend, cycleBounds } from '@/utils/safeToSpend';
 import { nextSip, sipInvested, sipsDueBefore, sipReminders } from '@/utils/sip';
 import { catchUp } from '@/utils/catchUp';
-import { frequentPicks, type QuickPick } from '@/utils/quickAdd';
 import { addTransactionNow, deleteTransaction, restoreTransaction, updateTransaction } from '@/services/transactions';
-import QuickAdd from './components/QuickAdd';
 import Shortcuts, { type Shortcut } from './components/Shortcuts';
 import { compactINR } from '@/utils/format';
 import CatchUpCard from './components/CatchUpCard';
@@ -317,18 +315,7 @@ export default function HomeScreen() {
       no: { label: r.increase ? 'Keep, not a bill' : 'Not a bill', run: async () => dismiss(r.key) },
     };
   });
-  const picks = frequentPicks(yearTx, 'expense', new Date(), 4);
   const behind = catchUp(yearTx);
-
-  // One tap on Home logs it — the fastest path there is
-  const quickLog = async (p: QuickPick) => {
-    const id = addTransactionNow({ type: 'expense', amount: p.amount, category: p.category, note: p.note || undefined, date: new Date().toISOString() });
-    showToast({
-      message: `${p.note || 'Expense'} ${formatINR(p.amount)} logged`,
-      actionLabel: 'Undo',
-      onAction: () => deleteTransaction(id),
-    });
-  };
 
   const safe = computeSafeToSpend({
     monthTransactions: transactions,
@@ -543,7 +530,6 @@ export default function HomeScreen() {
         )}
         {!loading && !yearLoading && <YourNumbers cards={numberCards} />}
         {!loading && <Shortcuts items={shortcuts} />}
-        <QuickAdd picks={picks} onLog={quickLog} onMore={() => router.push('/add' as Href)} />
         {needsCount > 0 && (
           <View style={styles.needsHead}>
             <Text style={styles.needsTitle} accessibilityRole="header">Needs you</Text>

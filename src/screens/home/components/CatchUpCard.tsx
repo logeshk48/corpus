@@ -1,11 +1,10 @@
-import { IconChip } from '@/components/ui';
-import { Chip, Corpus, Font, Space, Type } from '@/constants/theme';
+import { IconChip, Tap } from '@/components/ui';
+import { Chip, Corpus, Font, Type } from '@/constants/theme';
 import type { CatchUp } from '@/utils/catchUp';
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-// Missing a few days is the #1 reason people quit trackers: they feel behind and
-// delete the app. No guilt, no streak — just an easy way back in.
+// Missing a few days is the top reason people quit trackers: they feel behind and delete the app.
+// No guilt, no streak, just an easy way back in.
 export default function CatchUpCard({ data, onPress }: { data: CatchUp; onPress: () => void }) {
   const since = data.lastLogged
     ? data.missedDays <= 6
@@ -13,24 +12,22 @@ export default function CatchUpCard({ data, onPress }: { data: CatchUp; onPress:
       : data.lastLogged.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
     : '';
   return (
-    <Pressable style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }]} onPress={onPress} accessibilityRole="button">
-      <View style={styles.row}>
-        <IconChip icon="time" color={Chip.orange} size={34} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Nothing logged since {since}</Text>
-          <Text style={styles.text}>
-            Add what you remember. A rough amount beats a gap.
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={Corpus.textFaint} />
+    <Tap onPress={onPress} scaleTo={0.98} style={needStyles.card} accessibilityRole="button" accessibilityLabel={`Nothing logged since ${since}. Catch up`}>
+      <IconChip icon="time" color={Chip.orange} size={38} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={needStyles.title}>Last entry {since}</Text>
+        <Text style={needStyles.text}>Add what you remember. A rough amount beats a gap.</Text>
       </View>
-    </Pressable>
+      <View style={needStyles.btn}><Text style={needStyles.btnText}>Catch up</Text></View>
+    </Tap>
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: Space.md - 2 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+// Shared look for the cards under "Needs you": icon, what it is, one action
+export const needStyles = StyleSheet.create({
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Corpus.card, borderRadius: 22, padding: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: Corpus.border },
   title: { fontSize: Type.label, fontFamily: Font.display, color: Corpus.text },
-  text: { fontSize: Type.body, color: Corpus.textMuted, marginTop: 2, lineHeight: 18 },
+  text: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 18 },
+  btn: { paddingHorizontal: 14, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: Corpus.text },
+  btnText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.bg },
 });
