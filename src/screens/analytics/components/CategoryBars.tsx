@@ -87,6 +87,7 @@ export default function CategoryBars({ data, tx, monthKey, previous, budgets, pr
               <View style={s.top}>
                 <Ionicons name={d.icon as keyof typeof Ionicons.glyphMap} size={14} color={isOpen ? tone : Corpus.textMuted} />
                 <Text style={s.label}>{d.label}</Text>
+                <View style={s.leader} />
                 <Text style={s.amount}>{formatINR(d.amount)}</Text>
                 <Text style={s.share}>{d.share}%</Text>
                 <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={13} color={Corpus.textFaint} />
@@ -155,7 +156,8 @@ const s = StyleSheet.create({
   row: { gap: 6, paddingVertical: 6, paddingHorizontal: 8, marginHorizontal: -8, borderRadius: 14 },
   rowOpen: { backgroundColor: Corpus.cardAlt + '66' },
   top: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  label: { flex: 1, fontSize: Type.body, color: Corpus.text },
+  label: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text },
+  leader: { flex: 1, alignSelf: 'flex-end', marginBottom: 4, marginHorizontal: 2, borderBottomWidth: 2, borderStyle: 'dotted', borderColor: Corpus.textFaint },
   amount: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text, ...tabular },
   share: { width: 34, textAlign: 'right', fontSize: Type.small, color: Corpus.textMuted, ...tabular },
   track: { height: 8, borderRadius: 4, backgroundColor: Corpus.cardAlt },

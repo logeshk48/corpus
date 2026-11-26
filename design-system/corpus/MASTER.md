@@ -428,3 +428,8 @@ Cards and text stay clean; the life is in the background and in moments.
 - Jars: a small liquid jar in the corner filled to your goals' progress; the line says "goals not started yet" at 0%.
 - People: the net in big type ("₹40K, you owe, all in") with a two-sided bar, green for what you get and pink for what you pay, each labelled.
 - Income: three small bars for the last three months, this month solid.
+
+## Insights: talking hero, receipt, story badge
+- Hero reads "You spent / ₹7,545 (rolling digits) / so far." with "so far." or "in October." in the serif italic.
+- Where it went is a receipt (`Receipt.tsx`): header with the dates ("1 to 26 Nov. Tap a line"), each category name joined to its amount by a dotted leader, a dashed rule, "Total spent", and a torn zigzag bottom edge. The rows still open in place.
+- `WrappedPromo.tsx`: lilac card "Your October story" with a round yellow "open me" badge (text around the edge, gift in the middle) tilted like a sticker. Shown on Overview for any past month you open, and for last month during the first 10 days of a new month. Opens /wrapped for that month.

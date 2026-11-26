@@ -25,6 +25,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import CalendarHeatmap from './components/CalendarHeatmap';
 import CashFlowBar from './components/CashFlowBar';
 import CategoryBars from './components/CategoryBars';
+import Receipt from './components/Receipt';
+import WrappedPromo from './components/WrappedPromo';
 import DailyChart from './components/DailyChart';
 import IncomeSources from './components/IncomeSources';
 import { Movers, Pace, Rates, SmallDots, Weekdays } from './components/InsightWidgets';
@@ -98,7 +100,12 @@ export default function AnalyticsScreen() {
   const avgRate = kept.length ? Math.round(kept.reduce((a, r) => a + (r.rate ?? 0), 0) / kept.length) : null;
 
   const sections: ReactNode[] = [];
-  const at: Record<string, Tab> = { pace: 'overview', notes: 'overview', flow: 'overview', cats: 'spending', daily: 'spending', week: 'spending', small: 'spending', big: 'spending', src: 'income', rates: 'income', heat: 'trends', trend: 'trends', movers: 'trends' };
+  const at: Record<string, Tab> = { wrapped: 'overview', pace: 'overview', notes: 'overview', flow: 'overview', cats: 'spending', daily: 'spending', week: 'spending', small: 'spending', big: 'spending', src: 'income', rates: 'income', heat: 'trends', trend: 'trends', movers: 'trends' };
+  // the story of a finished month: any past month you open, or last month during the first 10 days
+  const storyKey = !isCurrent ? month : today <= 10 ? shiftMonth(month, -1) : null;
+  if (storyKey && !empty) sections.push(
+    <WrappedPromo key="wrapped" month={monthLabel(storyKey, 'long').split(' ')[0]} onPress={() => router.push(`/wrapped?month=${storyKey}` as Href)} />,
+  );
   if (!empty && totals.spent > 0) sections.push(
     <Card key="pace" title="Where the month is heading" meta={pace.isCurrent ? `Day ${pace.day} of ${pace.days}` : undefined}><Pace p={pace} daily={days.map((x) => x.amount)} /></Card>,
   );
@@ -119,10 +126,10 @@ export default function AnalyticsScreen() {
     </View>,
   );
   if (!empty && categories.length > 0) sections.push(
-    <Card key="cats" title="Where your money went" meta="Tap a row">
+    <Receipt key="cats" title="Where it went" meta={isCurrent ? `1 to ${today} ${short(month)}. Tap a line` : `All of ${short(month)}. Tap a line`} total={totals.spent}>
       <CategoryBars data={categories} tx={transactions} monthKey={month} previous={prevCategories} previousLabel={vs} budgets={settings.categoryBudgets}
         onOpen={(id) => router.push(`/category/${id}?month=${month}` as Href)} />
-    </Card>,
+    </Receipt>,
   );
   if (!empty && totals.spent > 0) sections.push(
     <Card key="daily" title="Day by day" meta={`About ${formatINR(Math.round(avg))} a day`}>
@@ -220,8 +227,9 @@ export default function AnalyticsScreen() {
               <>
                 <View style={s.heroRow}>
                   <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={s.meta}>{isCurrent ? 'Spent so far' : `Spent in ${monthLabel(month, 'short')}`}</Text>
+                    <Text style={s.lead}>You spent</Text>
                     <Odometer value={formatINR(Math.round(totals.spent))} style={s.big} lineHeight={48} />
+                    <Text style={s.soft}>{isCurrent ? 'so far.' : `in ${monthLabel(month, 'long').split(' ')[0]}.`}</Text>
                     {d !== null && (
                       <View style={[s.delta, { backgroundColor: d > 0 ? Corpus.dangerTint : Corpus.incomeTint }]}>
                         <Ionicons name={d > 0 ? 'arrow-up' : d < 0 ? 'arrow-down' : 'remove'} size={13} color={d > 0 ? Corpus.danger : Corpus.income} />
@@ -291,6 +299,8 @@ const s = StyleSheet.create({
   card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 18, gap: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: Corpus.border },
   hero: { overflow: 'hidden', gap: 16 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lead: { fontSize: Type.title, fontFamily: Font.displayBold, color: Corpus.text },
+  soft: { fontSize: Type.h2, fontFamily: Font.serif, color: Corpus.text, marginTop: -4, marginBottom: 4 },
   big: { fontSize: Type.hero, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -1.4, ...tabular },
   delta: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   deltaText: { fontSize: Type.small, fontFamily: Font.display, ...tabular },
