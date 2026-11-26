@@ -17,7 +17,7 @@ import { useInvestments } from '@/hooks/useInvestments';
 import { netWorthItems, netWorthTotals } from '@/utils/netWorth';
 import { scoreInputs } from '@/utils/wealthInputs';
 import { wealthScore } from '@/utils/wealthScore';
-import DebtPlanCard from './components/DebtPlanCard';
+import DebtPlanCard, { debtNeedsYou } from './components/DebtPlanCard';
 import { debtPlanSummary, planStart } from '@/utils/debtPlan';
 import { saveCategoryBudgets, saveSettings } from '@/services/settings';
 import { byPerson, totals } from '@/utils/iou';
@@ -92,8 +92,7 @@ export default function HomeScreen() {
   const { investments } = useInvestments();
   const cyc = cycleBounds(new Date(), settings.cycleStartDay);
   const sipThisCycle = sipInvested(investments, cyc.start) + sipsDueBefore(investments, cyc.end);
-  const investedThisMonth = sipInvested(investments, cyc.start);
-  const nextSipAll = investments.map((h) => nextSip(h)).filter(Boolean).sort((a, b) => a!.date.getTime() - b!.date.getTime())[0] ?? null;
+  const upcomingSips = investments.flatMap((h) => { const n = nextSip(h); return n ? [{ key: h.id, name: h.name, amount: n.amount, date: n.date }] : []; });
   const accTotals = accountTotals(accList);
   const health = accounts.length ? moneyHealth(accTotals.have, accTotals.cardDues, bills, transactions) : null;
   const shortAlert = health?.short
@@ -370,7 +369,7 @@ export default function HomeScreen() {
   // Jar plans too big for this month's income: paused, and shown as a card you can act on
   const pausedPlans = safe.status === 'noData' ? [] : safe.plansPaused.map((pp) => ({ ...pp, jar: vaults.find((v) => v.name === pp.name) })).filter((x) => x.jar);
   // Time-sensitive things you can act on, gathered under one "Needs you" heading right below the actions
-  const needsCount = billsNeedingAttention(bills, 3).slice(0, 3).length + (smsWaiting > 0 ? 1 : 0) + (behind ? 1 : 0) + (showMonth ? 1 : 0) + (reminders.length > 0 ? 1 : 0) + pausedPlans.length;
+  const needsCount = billsNeedingAttention(bills, 3).slice(0, 3).length + (smsWaiting > 0 ? 1 : 0) + (behind ? 1 : 0) + (showMonth ? 1 : 0) + (reminders.length > 0 ? 1 : 0) + pausedPlans.length + (debtNeedsYou(debtPlan) ? 1 : 0);
   const gold = useGoldRate();
   const nwItems = netWorthItems({ accounts: accList, ious, bills, assets, investments, goldRate: gold.rate ? { rate: gold.rate, mode: gold.mode } : null });
   const nwTotals = netWorthTotals(nwItems);
@@ -560,6 +559,7 @@ export default function HomeScreen() {
           </Pressable>
         ))}
         {behind && <CatchUpCard data={behind} onPress={() => router.push(`/add?catchup=1` as Href)} />}
+        <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
         {showMonth && (
           <MonthReportCard
             r={mReport}
@@ -573,20 +573,9 @@ export default function HomeScreen() {
           />
         )}
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
-        <UpcomingBills bills={bills} onPress={() => router.push('/bills' as Href)} />
+        <UpcomingBills bills={bills} sips={upcomingSips} onPress={() => router.push('/bills' as Href)} onSip={() => router.push('/invest' as Href)} />
         {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
         <InsightsCard items={insights} />
-        <DebtPlanCard s={debtPlan} onOpen={() => router.push('/debts' as Href)} onAnswer={answerExtra} onSeenCleared={seenCleared} />
-        {(investedThisMonth > 0 || nextSipAll) && (
-          <Pressable style={({ pressed }) => [styles.linkCard, pressed && { opacity: 0.8 }]} accessibilityRole="button" onPress={() => router.push('/invest' as Href)}>
-            <IconChip icon="trending-up" color={Chip.indigo} size={32} />
-            <Text style={styles.linkText}>
-              {investedThisMonth > 0 ? `Invested ${formatINR(investedThisMonth)} this month` : 'SIPs'}
-              {nextSipAll ? `. Next ${formatINR(nextSipAll.amount)} on ${nextSipAll.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={Corpus.textFaint} />
-          </Pressable>
-        )}
         {loading ? (
           <ActivityIndicator color={Corpus.gold} style={styles.loader} />
         ) : error ? (
@@ -598,7 +587,7 @@ export default function HomeScreen() {
         ) : (
           <Group animate title="Recent" action="See all" onAction={() => router.push('/transactions' as Href)}>
             {recent.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })} />
+              <TransactionRow key={tx.id} tx={tx} withDay onPress={() => router.push({ pathname: '/edit/[id]', params: { id: tx.id } })} />
             ))}
           </Group>
         )}

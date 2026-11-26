@@ -399,3 +399,19 @@ Cards and text stay clean; the life is in the background and in moments.
 - Up next: a short calendar. Each bill has a date block (day and month) on the left, turning amber when due today or tomorrow; the total due this week sits by the heading; the footer reads "All bills, ₹x a month".
 - This week: no black tracks, no glow or sheen. Bars only on days with spending (today orange, other days indigo, amount above each), a short grey dash for days with nothing, a faint dot for days still to come. The total is big, with a line comparing last week up to the same day (amber when more, green when less).
 - Your usuals removed from Today (the user found it didn't make sense there). The same one-tap picks still show on the Add screen as chips when the amount is empty, which is where you are when you log.
+
+## Today, last block: up next, for you, debt plan, recent
+- SIPs due in the next 7 days now sit in Up next next to bills, with a green date block and "SIP, in 6 days"; the heading shows what goes out this week. The separate "SIPs. Next ₹200 on 1 Dec" link card is gone.
+- For you: icon and title on one line, the body and actions indented under the title, actions as small pills (filled for the main one, outlined for the other) instead of two full-width buttons. "2 more" opens the rest in place.
+- Debt plan card shows only when it needs you (a debt just cleared, this month's extra payment to confirm, or a debt that won't clear) and now sits in Needs you with the shared card look. The debt-free date already lives in Your numbers, so the always-on card was a repeat.
+- This week shrinks to a slim row of dashes when nothing has been spent yet.
+- Recent shows the day for older entries: "Food, Wed 18 Nov, 9:11 pm", "Yesterday, 9:11 pm".
+
+## Today hero, upgraded (kept the rings)
+- Font: Instrument Serif italic (`Font.serif`, loaded from @expo-google-fonts/instrument-serif) for the one soft word, "to spend", under the amount. Never body text.
+- Status chip now says how far ahead or behind you are: "On track, ₹1,205 ahead" (money left against what would be left if every day cost the same), with a small dot.
+- Dial: one tick per day of the money month around the rings. Past days light up one by one as the rings sweep in, today is a longer bright tick, days ahead stay faint.
+- Even-pace dot: a white dot on the money ring at the share of the month gone. Ring short of the dot means you are ahead. The legend explains it ("Even pace").
+- Jarvy (`components/fx/Jarvy.tsx`): tiny jar in the top right, liquid = money left, eyes = mood (happy when well ahead, calm, look when tight, worried with a sweat drop when over, sleepy). One blink on arrival, nothing loops. Eyes use `Corpus.jarInk`.
+- Under the dial: one sentence ("You're ₹1,205 ahead of an even month.") and a stats strip: Left this month, A day from here, Kept for bills or jars (or Spent today). The old chips are folded into one quiet note line.
+- Fixed nested buttons in Up next: the card is a plain container; each bill row, SIP row and the footer is its own tap target.

@@ -20,6 +20,7 @@ export default function RootLayout() {
     'Inter-SemiBold': require('../../assets/fonts/Inter_600SemiBold.ttf'),
     'Inter-Bold': require('../../assets/fonts/Inter_700Bold.ttf'),
     'Bricolage-Bold': require('../../assets/fonts/BricolageGrotesque_700Bold.ttf'),
+    'InstrumentSerif-Italic': require('@expo-google-fonts/instrument-serif/400Regular_Italic/InstrumentSerif_400Regular_Italic.ttf'),
   });
   if (!mounted || (!fontsReady && !fontError)) return null; // a blink on first launch; system font if loading fails
   return (

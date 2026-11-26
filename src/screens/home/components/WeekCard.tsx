@@ -64,7 +64,7 @@ export default function WeekCard({ tx, onPress }: { tx: Transaction[]; onPress: 
           return (
             <View key={i} style={st.col}>
               <Text style={[st.val, today && st.valOn]} numberOfLines={1}>{v > 0 ? compactINR(Math.round(v)) : ''}</Text>
-              <View style={st.slot}>
+              <View style={[st.slot, w.total === 0 && { height: 12 }]}>
                 {future ? <View style={st.dot} />
                   : v > 0 ? <Bar h={Math.max(6, (v / max) * H)} i={i} color={today ? Chip.orange : Chip.indigo} />
                   : <View style={st.zero} />}

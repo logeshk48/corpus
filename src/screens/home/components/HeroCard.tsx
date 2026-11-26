@@ -1,15 +1,17 @@
+import Jarvy, { type JarvyMood } from '@/components/fx/Jarvy';
 import Shine from '@/components/fx/Shine';
 import { Tap } from '@/components/ui';
 import RadialRings from '@/components/charts/RadialRings';
 import { useEntrance } from '@/hooks/useEntrance';
 import { useTween } from '@/hooks/useTween';
-import { Chip, Corpus, Type } from '@/constants/theme';
+import { Chip, Corpus, Font, Type } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import type { SafeToSpendResult } from '@/utils/safeToSpend';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Svg, { Circle, Line } from 'react-native-svg';
 import { styles } from './HeroCard.styles';
 
 const STATUS_COLOR = {
@@ -38,6 +40,36 @@ function Rings({ used, through, tone = 'ok', size = 92, children }: { used: numb
         ]} />
       </View>
       {children}
+    </View>
+  );
+}
+
+
+// The dial: one tick per day of your money month around the rings (past days dim, today bright, days ahead
+// faint) and a dot on the money ring where you would be if you spent evenly. Ring behind the dot = ahead.
+function Dial({ days, today, through, used, tone, t, children }: { days: number; today: number; through: number; used: number; tone: 'ok' | 'tight' | 'over'; t: number; children: React.ReactNode }) {
+  const D = 232, R = 196, c = D / 2;
+  const stroke = Math.round(R / 13);
+  const rMoney = R / 2 - stroke / 2 - 4;
+  const ticks = Array.from({ length: days }, (_, i) => {
+    const a = ((i + 0.5) / days) * Math.PI * 2 - Math.PI / 2;
+    const now = i === today - 1 && t > 0.95;
+    const lit = i < Math.floor(t * (today - 1)) ; // past days light up one by one as the rings sweep in
+    const r1 = now ? 103 : 107, r2 = now ? 115 : 112;
+    return { k: i, x1: c + Math.cos(a) * r1, y1: c + Math.sin(a) * r1, x2: c + Math.cos(a) * r2, y2: c + Math.sin(a) * r2, now, past: lit };
+  });
+  const pa = through * Math.PI * 2 - Math.PI / 2;
+  return (
+    <View style={{ width: D, height: D, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={D} height={D} style={{ position: 'absolute' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        {ticks.map((k) => (
+          <Line key={k.k} x1={k.x1} y1={k.y1} x2={k.x2} y2={k.y2} stroke={k.now ? Corpus.text : k.past ? Corpus.textFaint : Corpus.border} strokeWidth={k.now ? 3 : 2} strokeLinecap="round" />
+        ))}
+      </Svg>
+      <Rings used={used} through={through * t} tone={tone} size={R}>{children}</Rings>
+      {t > 0.95 && (
+        <Animated.View entering={FadeIn.delay(200).duration(300)} pointerEvents="none" style={{ position: 'absolute', left: c + Math.cos(pa) * rMoney - 7, top: c + Math.sin(pa) * rMoney - 7, width: 14, height: 14, borderRadius: 7, backgroundColor: Corpus.text, borderWidth: 3, borderColor: Corpus.card }} />
+      )}
     </View>
   );
 }
@@ -107,48 +139,77 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
   const label = over ? "Over today's limit by" : asRange ? 'Today you can spend about' : 'Safe to spend today';
   const amount = asRange ? `${formatINR(low)}–${formatINR(high).replace('₹', '')}` : formatINR(Math.round(Math.abs(safeV)));
 
-  let context = `${formatINR(result.dailyAllowance)}/day for the next ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'}`;
+  let context = `${formatINR(result.dailyAllowance)} a day for the next ${result.daysLeft} day${result.daysLeft === 1 ? '' : 's'}`;
   if (result.available < 0) context = `You've used ${formatINR(-result.available)} more than this month allows`;
   else if (result.status === 'tight') context = `Most of today's ${formatINR(result.dailyAllowance)} is used. Go easy`;
-  else if (over) context = `Tomorrow's allowance adjusts to ${formatINR(result.tomorrowAllowance)}/day`;
+  else if (over) context = `From tomorrow it's ${formatINR(result.tomorrowAllowance)} a day`;
 
   const used = result.income + (result.monthlyBudget ?? 0) > 0 ? Math.min(1, Math.max(0, 1 - Math.max(result.available, 0) / Math.max(1, result.available + result.spent))) : 0;
   const through = Math.min(1, Math.max(0, (result.cycleDays - result.daysLeft + 1) / Math.max(1, result.cycleDays)));
 
+  // How far ahead of an even month you are: money left now against what would be left if every day cost the same
+  const total = Math.max(1, result.available + result.spent);
+  const evenLeft = (total * result.daysLeft) / Math.max(1, result.cycleDays);
+  const ahead = Math.round(result.available - evenLeft);
+  const day = result.cycleDays - result.daysLeft + 1;
+  const mood: JarvyMood = result.status === 'over' ? 'worried' : result.status === 'tight' ? 'look' : ahead > total * 0.08 ? 'happy' : 'calm';
+  const chip = result.status === 'ok'
+    ? (ahead >= 50 ? `On track, ${formatINR(ahead)} ahead` : 'On track')
+    : result.status === 'tight' ? (ahead < 0 ? `Go easy, ${formatINR(-ahead)} behind` : 'Go easy') : 'Over today';
+  const third = result.billsDue > 0 ? { label: 'Kept for bills', value: formatINR(result.billsDue) }
+    : result.plansDue > 0 ? { label: 'Kept for jars', value: formatINR(result.plansDue) }
+    : { label: 'Spent today', value: formatINR(result.spentToday) };
+
   // inside the rings there is room for about 9 characters at the big size
   const inner = amount.length <= 7 ? Type.amount : amount.length <= 10 ? Type.h2 : Type.title;
   return (
-    <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" style={[styles.card, styles.cardCol, { alignItems: 'center' }]}>
+    <Tap onPress={onPress} scaleTo={0.985} accessibilityRole="button" accessibilityLabel={`${chip}. ${over ? 'Over today by' : 'You can spend'} ${amount} today. ${context}`} style={[styles.card, styles.cardCol]}>
       <Shine />
-      <View style={[styles.pill, { backgroundColor: PILL[result.status].bg, alignSelf: 'center' }]}>
-        <Text style={[styles.pillText, { color: PILL[result.status].fg }]}>{PILL[result.status].text}</Text>
+      <View style={styles.headRow}>
+        <View style={[styles.pill, { backgroundColor: PILL[result.status].bg }]}>
+          <View style={[styles.liveDot, { backgroundColor: PILL[result.status].fg }]} />
+          <Text style={[styles.pillText, { color: PILL[result.status].fg }]}>{chip}</Text>
+        </View>
+        <Jarvy mood={mood} level={1 - used} color={result.status === 'over' ? Corpus.danger : result.status === 'tight' ? Corpus.warning : Corpus.income} size={34} />
       </View>
-      <Rings used={used * t} through={through * t} tone={result.status} size={196}>
-        <View style={styles.center}>
-          <Text style={styles.centerLabel}>{over ? 'Over today by' : asRange ? 'Spend about' : 'Safe to spend'}</Text>
-          <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text, fontSize: inner, textAlign: 'center' }]} numberOfLines={1}>{amount}</Text>
-          <Text style={styles.centerLabel}>today</Text>
-        </View>
-      </Rings>
-      <Text style={[styles.context, { color: result.status === 'ok' ? Corpus.textMuted : color, textAlign: 'center' }]}>{context}</Text>
 
-      {(result.limitedByBudget || result.billsDue > 0 || result.plansDue > 0 || result.plansPaused.length > 0) && (
-        <View style={styles.chips}>
-          {result.limitedByBudget && <View style={styles.chip}><Text style={styles.chipText}>Capped by your monthly budget</Text></View>}
-          {result.billsDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.billsDue)} kept for bills</Text></View>}
-          {result.plansDue > 0 && <View style={styles.chip}><Text style={styles.chipText}>{formatINR(result.plansDue)} kept for jar goals</Text></View>}
-          {result.plansPaused.length > 0 && (
-            <View style={styles.chip}><Text style={styles.chipText}>{result.plansPaused.length === 1 ? `${result.plansPaused[0].name} plan paused this month` : `${result.plansPaused.length} jar plans paused this month`}</Text></View>
-          )}
-        </View>
+      <View style={{ alignItems: 'center' }}>
+        <Dial days={result.cycleDays} today={day} through={through} used={used * t} tone={result.status} t={t}>
+          <View style={styles.center}>
+            <Text style={styles.centerLabel}>{over ? 'Over today by' : 'Today'}</Text>
+            <Text style={[styles.amount, { color: over ? Corpus.danger : Corpus.text, fontSize: inner, textAlign: 'center' }]} numberOfLines={1}>{amount}</Text>
+            {!over && <Text style={styles.soft}>to spend</Text>}
+          </View>
+        </Dial>
+      </View>
+
+      <Text style={[styles.context, { textAlign: 'center' }]}>
+        {result.status === 'ok' && ahead >= 50
+          ? <>You're <Text style={{ color: Corpus.income, fontFamily: Font.display }}>{formatINR(ahead)} ahead</Text> of an even month.</>
+          : <Text style={{ color: result.status === 'ok' ? Corpus.textMuted : color }}>{context}</Text>}
+      </Text>
+
+      <View style={styles.stats}>
+        <View style={styles.stat}><Text style={styles.statLabel}>Left this month</Text><Text style={styles.statValue}>{formatINR(Math.max(0, Math.round(result.available)))}</Text></View>
+        <View style={[styles.stat, styles.statRule]}><Text style={styles.statLabel}>A day from here</Text><Text style={styles.statValue}>{formatINR(result.dailyAllowance)}</Text></View>
+        <View style={[styles.stat, styles.statRule]}><Text style={styles.statLabel}>{third.label}</Text><Text style={styles.statValue}>{third.value}</Text></View>
+      </View>
+
+      {(result.limitedByBudget || result.plansPaused.length > 0) && (
+        <Text style={styles.note}>
+          {[
+            result.limitedByBudget ? 'Capped by your monthly budget' : '',
+            result.plansPaused.length === 1 ? `${result.plansPaused[0].name} plan paused this month` : result.plansPaused.length > 1 ? `${result.plansPaused.length} jar plans paused this month` : '',
+          ].filter(Boolean).join('. ')}
+        </Text>
       )}
 
       <View style={styles.legend}>
-        <View style={[styles.key, { backgroundColor: result.status === 'over' ? Corpus.danger : result.status === 'tight' ? Corpus.warning : Corpus.income }]} /><Text style={styles.legendText}>Money used {Math.round(used * 100)}%</Text>
-        <View style={[styles.key, { backgroundColor: Chip.blue }]} /><Text style={styles.legendText}>Day {result.cycleDays - result.daysLeft + 1} of {result.cycleDays}</Text>
+        <View style={[styles.key, { backgroundColor: result.status === 'over' ? Corpus.danger : result.status === 'tight' ? Corpus.warning : Corpus.income }]} /><Text style={styles.legendText}>Used {Math.round(used * 100)}%</Text>
+        <View style={[styles.key, styles.keyDot]} /><Text style={styles.legendText}>Even pace</Text>
+        <View style={[styles.key, { backgroundColor: Chip.blue }]} /><Text style={styles.legendText}>Day {day} of {result.cycleDays}</Text>
         <View style={{ flex: 1 }} />
-        <Text style={styles.howText}>How it works</Text>
-        <Ionicons name="chevron-forward" size={13} color={Corpus.gold} />
+        <Ionicons name="information-circle-outline" size={16} color={Corpus.textMuted} />
       </View>
     </Tap>
   );

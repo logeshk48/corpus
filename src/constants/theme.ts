@@ -47,6 +47,7 @@ const LIGHT = {
   glassEdge: 'rgba(255,255,255,0.92)',
   shadow: 'rgba(0,0,0,0.12)',
   sheen: '#FFFFFF',          // the light catching glass (jars)
+  jarInk: '#141218',         // Jarvy's eyes: always dark, the jar is always light
   scrim: 'rgba(0,0,0,0.38)',  // behind sheets
   glow: 0.55,           // living-background strength
 };
@@ -80,6 +81,7 @@ const DARK: typeof LIGHT = {
   glass: 'rgba(36,36,38,0.78)',
   glassEdge: 'rgba(255,255,255,0.14)',
   shadow: 'rgba(0,0,0,0.55)',
+  jarInk: '#141218',
   sheen: '#FFFFFF',
   scrim: 'rgba(0,0,0,0.66)',
   glow: 0.5,
@@ -95,6 +97,7 @@ export const Font = {
   display: 'Inter-SemiBold',   // headings, card titles
   displayBold: 'Inter-Bold',   // amounts, large titles
   brand: 'Bricolage-Bold',     // the Corpus wordmark only
+  serif: 'InstrumentSerif-Italic', // one soft word in a hero line, never body text
 };
 // Amounts line up and don't jiggle while counting up
 export const tabular = { fontVariant: ['tabular-nums'] as ('tabular-nums')[] };
