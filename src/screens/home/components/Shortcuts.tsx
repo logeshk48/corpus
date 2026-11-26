@@ -2,7 +2,8 @@ import Spark from '@/components/charts/Spark';
 import { IconChip, Tap } from '@/components/ui';
 import { Chip, Corpus, Font, tabular, Type } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { compactINR } from '@/utils/format';
 import { StyleSheet, Text, View } from 'react-native';
 
 export type Shortcut = {
@@ -15,6 +16,8 @@ export type Shortcut = {
   spark?: number[];     // last 14 days
   progress?: number;    // 0 to 1, drawn as a thin bar (budget used, jar goals reached)
   wide?: boolean;       // full width: the money you have leads
+  visual?: ReactNode;   // a small picture of the figure, drawn along the bottom
+  corner?: ReactNode;   // replaces the chevron in the top right
   onPress: () => void;
 };
 
@@ -32,7 +35,7 @@ function Tile({ s, width }: { s: Shortcut; width: number }) {
       <View style={st.head}>
         <IconChip icon={solid(s.icon)} color={color} size={28} />
         <Text style={st.label} numberOfLines={1}>{s.label}</Text>
-        <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />
+        {s.corner ?? <Ionicons name="chevron-forward" size={15} color={Corpus.textFaint} />}
       </View>
       <View style={s.wide ? st.wideBody : st.body}>
         <View style={{ flex: 1, gap: 2 }}>
@@ -44,12 +47,89 @@ function Tile({ s, width }: { s: Shortcut; width: number }) {
         </View>
         {s.wide && s.spark && s.spark.length > 2 ? <Spark values={s.spark} color={color} width={112} height={40} /> : null}
       </View>
-      {s.progress != null && (
+      {s.visual}
+      {s.visual == null && s.progress != null && (
         <View style={st.track}>
           <View style={[st.fill, { width: `${Math.min(1, Math.max(0, s.progress)) * 100}%`, backgroundColor: barColor }]} />
         </View>
       )}
     </Tap>
+  );
+}
+
+// Where the money you have sits: one bar split by account, the biggest named under it,
+// and card dues called out on their own line
+const SPLIT = [Chip.blue, Chip.teal, Chip.indigo, Chip.purple, Chip.green];
+export function AccountSplit({ parts, due }: { parts: { name: string; amount: number }[]; due?: { name: string; amount: number } }) {
+  const shown = parts.filter((p) => p.amount > 0).sort((a, b) => b.amount - a.amount);
+  const total = shown.reduce((a, p) => a + p.amount, 0) || 1;
+  return (
+    <View style={{ gap: 8 }}>
+      {shown.length > 0 && (
+        <View style={st.split}>
+          {shown.map((p, i) => <View key={p.name} style={{ flex: p.amount / total, minWidth: 6, height: 10, borderRadius: 5, backgroundColor: SPLIT[i % SPLIT.length] }} />)}
+        </View>
+      )}
+      <View style={st.legend}>
+        {shown.slice(0, 3).map((p, i) => (
+          <View key={p.name} style={st.legendItem}>
+            <View style={[st.legendDot, { backgroundColor: SPLIT[i % SPLIT.length] }]} />
+            <Text style={st.legendText} numberOfLines={1}>{p.name} {compactINR(Math.round(p.amount))}</Text>
+          </View>
+        ))}
+      </View>
+      {due && due.amount > 0 && (
+        <View style={st.dueRow}>
+          <Ionicons name="card" size={13} color={Corpus.danger} />
+          <Text style={st.dueText}>{compactINR(Math.round(due.amount))} due on {due.name}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// A bar with a tick where you'd be if you spent evenly through the month
+export function PaceBar({ frac, pace, color }: { frac: number; pace: number; color: string }) {
+  return (
+    <View style={st.paceTrack}>
+      <View style={[st.paceFill, { width: `${Math.min(1, Math.max(0, frac)) * 100}%`, backgroundColor: color }]} />
+      <View style={[st.paceTick, { left: `${Math.min(1, Math.max(0, pace)) * 100}%` }]} />
+    </View>
+  );
+}
+
+// Money people owe you against money you owe them
+export function TwoSide({ get, pay }: { get: number; pay: number }) {
+  const total = get + pay || 1;
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={st.split}>
+        {get > 0 && <View style={{ flex: get / total, height: 10, borderRadius: 5, backgroundColor: Corpus.income }} />}
+        {pay > 0 && <View style={{ flex: pay / total, height: 10, borderRadius: 5, backgroundColor: Chip.pink }} />}
+        {get + pay === 0 && <View style={{ flex: 1, height: 10, borderRadius: 5, backgroundColor: Corpus.cardAlt }} />}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Text style={[st.legendText, { color: Corpus.income }]}>Get {compactINR(Math.round(get))}</Text>
+        <Text style={[st.legendText, { color: Chip.pink }]}>Pay {compactINR(Math.round(pay))}</Text>
+      </View>
+    </View>
+  );
+}
+
+// The last few months side by side, this month solid
+export function MiniBars({ values, labels, color }: { values: number[]; labels: string[]; color: string }) {
+  const max = Math.max(...values, 1);
+  return (
+    <View style={st.bars}>
+      {values.map((v, i) => (
+        <View key={labels[i]} style={st.barCol}>
+          <View style={st.barSlot}>
+            <View style={{ width: '100%', height: `${Math.max(6, (v / max) * 100)}%`, borderRadius: 4, backgroundColor: color, opacity: i === values.length - 1 ? 1 : 0.35 }} />
+          </View>
+          <Text style={st.barLabel}>{labels[i]}</Text>
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -85,4 +165,18 @@ const st = StyleSheet.create({
   statusOnly: { fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.text },
   track: { height: 5, borderRadius: 3, backgroundColor: Corpus.cardAlt, overflow: 'hidden' },
   fill: { height: 5, borderRadius: 3 },
+  split: { flexDirection: 'row', gap: 3 },
+  paceTrack: { height: 6, borderRadius: 3, backgroundColor: Corpus.cardAlt, marginTop: 2 },
+  paceFill: { height: 6, borderRadius: 3 },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, rowGap: 4 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5, maxWidth: '48%' },
+  legendDot: { width: 8, height: 8, borderRadius: 3 },
+  legendText: { fontSize: Type.small, color: Corpus.textMuted, ...tabular },
+  dueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dueText: { fontSize: Type.small, fontFamily: Font.display, color: Corpus.danger, ...tabular },
+  paceTick: { position: 'absolute', top: -3, width: 2, height: 11, marginLeft: -1, borderRadius: 1, backgroundColor: Corpus.text },
+  bars: { flexDirection: 'row', gap: 6, height: 44 },
+  barCol: { flex: 1, alignItems: 'center', gap: 3 },
+  barSlot: { flex: 1, width: '100%', justifyContent: 'flex-end' },
+  barLabel: { fontSize: Type.micro, color: Corpus.textMuted },
 });

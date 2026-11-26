@@ -415,3 +415,16 @@ Cards and text stay clean; the life is in the background and in moments.
 - Jarvy (`components/fx/Jarvy.tsx`): tiny jar in the top right, liquid = money left, eyes = mood (happy when well ahead, calm, look when tight, worried with a sweat drop when over, sleepy). One blink on arrival, nothing loops. Eyes use `Corpus.jarInk`.
 - Under the dial: one sentence ("You're ₹1,205 ahead of an even month.") and a stats strip: Left this month, A day from here, Kept for bills or jars (or Spent today). The old chips are folded into one quiet note line.
 - Fixed nested buttons in Up next: the card is a plain container; each bill row, SIP row and the footer is its own tap target.
+
+## Today: month sentence, sticky note, tickets (from style board version 4)
+- Month sentence (`MonthSentence.tsx`) under the three quick tiles: "November so far: ₹7,545, mostly [Bills] and [Shopping]. You kept 48% of what came in." Words laid out one by one so pills wrap with the text; punctuation hugs the word before it. Numbers get a marker colour (`Marker.fact`, `good`, `look`); category pills open that category for this month.
+- For you is a yellow sticky note (`Note` tokens, same paper in both themes) with a strip of tape, tilted 1.2 degrees, one tip at a time with "1 of 3" and "Next". Actions are a filled ink pill and an outlined one.
+- Up next bills and SIPs are ticket stubs: the date on a tinted stub (amber when due today or tomorrow, green for SIPs), a dashed tear line with two notches, then name, when, amount. "All bills, ₹x a month" sits under the tickets as a plain link.
+
+## Your money, upgrade 2: a picture in every tile
+- Tiles take an optional `visual` (drawn along the bottom) and `corner` (replaces the chevron), exported from `Shortcuts.tsx`.
+- Accounts: one bar split by account (biggest first, each its own colour), the top three named under it ("Bank account ₹5K, Cash ₹100"), and card dues on their own red line ("₹25K due on SBI").
+- Budgets: a bar with a white tick at the even pace for today's date; the line says under, on or ahead of the even pace, amber when ahead, red when over.
+- Jars: a small liquid jar in the corner filled to your goals' progress; the line says "goals not started yet" at 0%.
+- People: the net in big type ("₹40K, you owe, all in") with a two-sided bar, green for what you get and pink for what you pay, each labelled.
+- Income: three small bars for the last three months, this month solid.

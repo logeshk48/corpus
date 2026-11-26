@@ -27,7 +27,8 @@ import MoneyReminders from './components/MoneyReminders';
 import UpcomingBills from './components/UpcomingBills';
 import PulseStrip, { PULSE_COLORS } from './components/PulseStrip';
 import YourNumbers, { fmtDelta, JarVisual, Meter, NetWorthLine, ScoreRing, Versus, type NumberCard } from './components/YourNumbers';
-import { monthLabel, monthTotals, shiftMonth, ym as ymKey } from '@/utils/analytics';
+import { byCategory, monthLabel, monthTotals, shiftMonth, ym as ymKey } from '@/utils/analytics';
+import { MonthSentence, monthBits } from './components/MonthSentence';
 import { savedOf } from '@/types/vault';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
@@ -47,14 +48,14 @@ import { computeSafeToSpend, cycleBounds } from '@/utils/safeToSpend';
 import { nextSip, sipInvested, sipsDueBefore, sipReminders } from '@/utils/sip';
 import { catchUp } from '@/utils/catchUp';
 import { addTransactionNow, deleteTransaction, restoreTransaction, updateTransaction } from '@/services/transactions';
-import Shortcuts, { type Shortcut } from './components/Shortcuts';
+import Shortcuts, { AccountSplit, MiniBars, PaceBar, TwoSide, type Shortcut } from './components/Shortcuts';
+import LiquidJar from '@/components/charts/LiquidJar';
 import { compactINR } from '@/utils/format';
 import CatchUpCard from './components/CatchUpCard';
 import { unpaidThisMonth } from '@/utils/bills';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import WeekCard, { weekSpend } from './components/WeekCard';
 import { upcomingBills as billsAhead } from '@/utils/bills';
-import { moneyCandles } from '@/utils/candles';
 import { billsNeedingAttention } from '@/utils/bills';
 import SafeToSpendSheet from './components/SafeToSpendSheet';
 import Aura from '@/components/fx/Aura';
@@ -381,44 +382,56 @@ export default function HomeScreen() {
   const goalJars = vaults.filter((v) => v.goal);
   const goalShare = goalJars.length ? goalJars.reduce((sum, v) => sum + Math.min(savedOf(v), v.goal!), 0) / goalJars.reduce((sum, v) => sum + v.goal!, 0) : undefined;
   const budgetLeft = overall && overall.limit > 0 ? overall.limit - overall.spent : null;
+  // how far through the calendar month we are, for the even-pace tick on Budgets
+  const now_ = new Date();
+  const monthThrough = now_.getDate() / new Date(now_.getFullYear(), now_.getMonth() + 1, 0).getDate();
+  const budgetAhead = budgetPct !== null ? monthThrough * 100 - budgetPct : 0; // points under (positive) or over the even pace
+  const liveAcc = accList.filter((a) => !a.archived);
+  const cardDue = liveAcc.filter((a) => a.type === 'credit' && a.balance > 0).sort((a, b) => b.balance - a.balance)[0];
+  const incomeKey = ymKey(new Date());
+  const incomeMonths = [2, 1, 0].map((k) => shiftMonth(incomeKey, -k));
+  const incomeHistory = incomeMonths.map((k) => monthTotals(yearTx, k).income);
   const shortcuts: Shortcut[] = [
     {
       key: 'accounts', label: 'Accounts', icon: 'wallet-outline', wide: true,
       figure: accounts.length ? formatINR(Math.round(accHave)) : undefined,
       status: accounts.length === 0 ? 'Add your cash and bank accounts' : accStale ? 'Balances look old. Tap to update' : `across ${accounts.length} account${accounts.length === 1 ? '' : 's'}`,
       tone: accStale ? 'warn' : 'normal',
-      spark: accounts.length ? moneyCandles(accList, yearTx, 'days', 14).map((c) => c.close) : undefined,
+      visual: liveAcc.length ? <AccountSplit parts={liveAcc.filter((a) => a.type !== 'credit').map((a) => ({ name: a.name, amount: a.balance }))} due={cardDue ? { name: cardDue.name, amount: accTotals.cardDues } : undefined} /> : undefined,
       onPress: () => router.push('/accounts' as Href),
     },
     {
       key: 'budgets', label: 'Budgets', icon: 'pie-chart-outline',
       figure: budgetPct === null ? undefined : `${budgetPct}%`,
-      status: budgetPct === null || budgetLeft === null ? 'Set a monthly limit' : budgetLeft >= 0 ? `used, ${compactINR(budgetLeft)} left` : `used, ${compactINR(-budgetLeft)} over`,
+      status: budgetPct === null || budgetLeft === null ? 'Set a monthly limit' : budgetLeft < 0 ? `used, ${compactINR(-budgetLeft)} over` : budgetAhead >= 3 ? `used, under the even pace` : budgetAhead <= -3 ? `used, ahead of the even pace` : `used, right on pace`,
       tone: budgetPct === null ? 'normal' : budgetPct > 100 ? 'danger' : budgetPct > 80 ? 'warn' : 'normal',
-      progress: budgetPct === null ? undefined : budgetPct / 100,
+      visual: budgetPct === null ? undefined : <PaceBar frac={budgetPct / 100} pace={monthThrough} color={budgetPct > 100 ? Corpus.danger : budgetAhead <= -3 ? Corpus.warning : Chip.orange} />,
       onPress: () => router.push('/budgets' as Href),
     },
     {
       key: 'jars', label: 'Jars', icon: 'file-tray-stacked-outline',
       figure: vaults.length ? compactINR(jarsSaved) : undefined,
-      status: vaults.length === 0 ? 'Start saving for a goal' : goalShare != null ? `saved, ${goalShare > 0 && goalShare < 0.01 ? 'under 1%' : `${Math.round(goalShare * 100)}%`} of goals` : `saved in ${vaults.length} jar${vaults.length === 1 ? '' : 's'}`,
+      status: vaults.length === 0 ? 'Start saving for a goal' : goalShare != null ? (goalShare === 0 ? 'saved, goals not started yet' : `saved, ${goalShare < 0.01 ? 'under 1%' : `${Math.round(goalShare * 100)}%`} of goals`) : `saved in ${vaults.length} jar${vaults.length === 1 ? '' : 's'}`,
       progress: goalShare,
+      corner: vaults.length ? <LiquidJar level={Math.max(0.04, goalShare ?? 0.3)} color={Chip.yellow} width={26} height={34} /> : undefined,
       onPress: () => router.push('/vaults' as Href),
     },
     {
       key: 'people', label: 'People', icon: 'swap-horizontal',
-      // lead with the bigger side, mention the other
-      figure: repayNudge ? undefined : Math.max(iouTotals.toGet, iouTotals.toPay) > 0 ? compactINR(Math.max(iouTotals.toGet, iouTotals.toPay)) : undefined,
+      // the net in big type; the bar under it shows both sides
+      figure: repayNudge || iouTotals.toGet + iouTotals.toPay === 0 ? undefined : compactINR(Math.abs(iouTotals.toGet - iouTotals.toPay)),
       status: repayNudge ? `Time to repay ${repayNudge.borrowed.person}`
-        : iouTotals.toPay > iouTotals.toGet ? `to pay back${iouTotals.toGet > 0 ? `, ${compactINR(iouTotals.toGet)} to get` : ''}`
-        : iouTotals.toGet > 0 ? `to get back${iouTotals.toPay > 0 ? `, ${compactINR(iouTotals.toPay)} to pay` : ''}` : 'All square with everyone',
+        : iouTotals.toGet + iouTotals.toPay === 0 ? 'All square with everyone'
+        : iouTotals.toGet === iouTotals.toPay ? 'evens out' : iouTotals.toPay > iouTotals.toGet ? 'you owe, all in' : 'owed to you, all in',
       tone: repayNudge ? 'warn' : 'normal',
+      visual: iouTotals.toGet + iouTotals.toPay > 0 ? <TwoSide get={iouTotals.toGet} pay={iouTotals.toPay} /> : undefined,
       onPress: () => router.push('/ious' as Href),
     },
     {
       key: 'income', label: 'Income', icon: 'git-branch-outline',
       figure: income > 0 ? compactINR(income) : undefined,
       status: income > 0 ? 'came in this month' : 'Nothing logged yet this month',
+      visual: incomeHistory.some((v) => v > 0) ? <MiniBars values={incomeHistory} labels={incomeMonths.map((k) => monthLabel(k, 'short').split(' ')[0])} color={Chip.green} /> : undefined,
       onPress: () => router.push('/income' as Href),
     },
   ];
@@ -429,6 +442,7 @@ export default function HomeScreen() {
   const dayN = new Date().getDate();
   const mNow = monthTotals(yearTx, nowKey);
   const mPrev = monthTotals(yearTx, prevKey, dayN);
+  const topCats = byCategory(yearTx, nowKey).slice(0, 2).map((c) => ({ id: c.id, label: c.label }));
   const snapKeys = Object.keys(nwSnaps ?? {}).sort().filter((k) => k < nowKey);
   const lastSnap = snapKeys[snapKeys.length - 1];
   const nwFrom = lastSnap ? nwSnaps[lastSnap].total : null;
@@ -526,6 +540,13 @@ export default function HomeScreen() {
               ? { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: nextBill.daysAway <= 0 ? 'Due today' : nextBill.daysAway === 1 ? 'Due tomorrow' : `In ${nextBill.daysAway} days`, value: formatINR(nextBill.bill.amount), sub: nextBill.bill.name, tone: nextBill.daysAway <= 1 ? Corpus.warning : undefined, onPress: () => router.push('/bills' as Href) }
               : { key: 'bill', icon: 'receipt', color: PULSE_COLORS.bill, label: 'Next bill', value: 'None', sub: 'in the next 30 days', onPress: () => router.push('/bills' as Href) },
           ]} />
+        )}
+        {!loading && !yearLoading && mNow.spent > 0 && (
+          <MonthSentence
+            label={`${monthLabel(nowKey, 'long').split(' ')[0]} so far`}
+            bits={monthBits({ spent: mNow.spent, income: mNow.income, rate: mNow.savingsRate, top: topCats })}
+            onPill={(id) => router.push(`/category/${id}?month=${nowKey}` as Href)}
+          />
         )}
         {!loading && !yearLoading && <YourNumbers cards={numberCards} />}
         {!loading && <Shortcuts items={shortcuts} />}

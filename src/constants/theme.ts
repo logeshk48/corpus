@@ -123,6 +123,11 @@ const PASTEL_DARK: typeof PASTEL_LIGHT = {
 export const Pastel = isDark ? PASTEL_DARK : PASTEL_LIGHT;
 export type PastelName = keyof typeof PASTEL_LIGHT;
 
+// A sticky note (For you tips): the same yellow paper in both themes, with its own ink
+export const Note = { bg: '#FFE27A', ink: '#1A1400', sub: '#3D3300', label: '#6B5200', tape: 'rgba(255,255,255,0.55)' };
+// Marker-pen highlight behind one number in a sentence: a fact, good news, or worth a look
+export const Marker = { fact: 'rgba(168,151,255,0.38)', good: 'rgba(48,209,88,0.32)', look: 'rgba(255,159,10,0.34)' };
+
 // Year heatmap: four steps from faint to bright, made for a dark card
 export const Heat = {
   good: ['#0F3D2A', '#13704A', '#22B36B', '#4BE58F'],

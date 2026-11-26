@@ -1,9 +1,8 @@
-import { IconChip } from '@/components/ui';
-import { Chip, Corpus, Font, Type } from '@/constants/theme';
-import type { Ionicons } from '@expo/vector-icons';
+import { Corpus, Font, Note, Type } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, LinearTransition, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 
 export type Insight = {
   key: string;
@@ -14,64 +13,64 @@ export type Insight = {
   yes: { label: string; run: () => Promise<void> };
   no?: { label: string; run: () => Promise<void> };
 };
-const C = { gold: Chip.blue, warn: Chip.orange, danger: Chip.red, good: Chip.green };
 
-// "For you": things Corpus noticed, each with one action and a way to wave it off.
-// Two show at first; the rest open in place.
+// "For you": things Corpus noticed, as a sticky note. One note at a time so Today stays calm;
+// "Next" flips to the next one.
 export default function InsightsCard({ items }: { items: Insight[] }) {
   const [busy, setBusy] = useState<string | null>(null);
-  const [all, setAll] = useState(false);
+  const [at, setAt] = useState(0);
   const reduce = useReducedMotion();
   if (!items.length) return null;
-  const show = all ? items : items.slice(0, 2);
+  const i = Math.min(at, items.length - 1);
+  const n = items[i];
   const run = async (k: string, fn: () => Promise<void>) => {
     setBusy(k);
     try { await fn(); } finally { setBusy(null); }
   };
   return (
-    <View style={{ gap: 10 }}>
-      <View style={st.head}>
-        <Text style={st.headText} accessibilityRole="header">For you</Text>
-        {items.length > 2 && (
-          <Pressable onPress={() => setAll(!all)} hitSlop={8} accessibilityRole="button">
-            <Text style={st.more}>{all ? 'Show less' : `${items.length - 2} more`}</Text>
-          </Pressable>
-        )}
-      </View>
-      {show.map((i) => (
-        <Animated.View key={i.key} entering={reduce ? undefined : FadeIn.duration(200)} layout={reduce ? undefined : LinearTransition.duration(220)} style={st.card}>
-          <View style={st.row}>
-            <IconChip icon={String(i.icon).replace(/-outline$/, '')} color={C[i.tone]} size={38} />
-            <Text style={st.title}>{i.title}</Text>
-          </View>
-          <Text style={st.body}>{i.body}</Text>
-          <View style={st.actions}>
-            <Pressable onPress={() => run(`${i.key}:y`, i.yes.run)} disabled={!!busy} style={({ pressed }) => [st.pill, st.pillOn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
-              {busy === `${i.key}:y` ? <ActivityIndicator size="small" color={Corpus.bg} /> : <Text style={[st.pillText, { color: Corpus.bg }]}>{i.yes.label}</Text>}
+    <View style={{ gap: 14 }}>
+      <Text style={st.head} accessibilityRole="header">For you</Text>
+      <Animated.View key={n.key} entering={reduce ? undefined : FadeIn.duration(220)} style={st.note}>
+        <View style={st.tape} pointerEvents="none" />
+        <View style={st.top}>
+          <Text style={st.label}>{items.length > 1 ? `${i + 1} of ${items.length}` : 'Noticed'}</Text>
+          {items.length > 1 && (
+            <Pressable onPress={() => setAt((i + 1) % items.length)} hitSlop={10} style={st.next} accessibilityRole="button" accessibilityLabel="Next tip">
+              <Text style={st.nextText}>Next</Text>
+              <Ionicons name="arrow-forward" size={14} color={Note.ink} />
             </Pressable>
-            {i.no && (
-              <Pressable onPress={() => run(`${i.key}:n`, i.no!.run)} disabled={!!busy} style={({ pressed }) => [st.pill, st.pillOff, pressed && { opacity: 0.8 }]} accessibilityRole="button">
-                {busy === `${i.key}:n` ? <ActivityIndicator size="small" color={Corpus.text} /> : <Text style={st.pillText}>{i.no.label}</Text>}
-              </Pressable>
-            )}
-          </View>
-        </Animated.View>
-      ))}
+          )}
+        </View>
+        <Text style={st.title}>{n.title}</Text>
+        <Text style={st.body}>{n.body}</Text>
+        <View style={st.actions}>
+          <Pressable onPress={() => run(`${n.key}:y`, n.yes.run)} disabled={!!busy} style={({ pressed }) => [st.btn, st.btnOn, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+            {busy === `${n.key}:y` ? <ActivityIndicator size="small" color={Note.bg} /> : <Text style={[st.btnText, { color: Note.bg }]}>{n.yes.label}</Text>}
+          </Pressable>
+          {n.no && (
+            <Pressable onPress={() => run(`${n.key}:n`, n.no!.run)} disabled={!!busy} style={({ pressed }) => [st.btn, st.btnOff, pressed && { opacity: 0.8 }]} accessibilityRole="button">
+              {busy === `${n.key}:n` ? <ActivityIndicator size="small" color={Note.ink} /> : <Text style={st.btnText}>{n.no.label}</Text>}
+            </Pressable>
+          )}
+        </View>
+      </Animated.View>
     </View>
   );
 }
 
 const st = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 4 },
-  headText: { flex: 1, fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text },
-  more: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.textMuted },
-  card: { backgroundColor: Corpus.card, borderRadius: 22, padding: 14, gap: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: Corpus.border },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { flex: 1, fontSize: Type.label, fontFamily: Font.display, color: Corpus.text },
-  body: { fontSize: Type.body, color: Corpus.textMuted, lineHeight: 19, paddingLeft: 50 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingLeft: 50 },
-  pill: { height: 34, paddingHorizontal: 14, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  pillOn: { backgroundColor: Corpus.text },
-  pillOff: { borderWidth: 1, borderColor: Corpus.border },
-  pillText: { fontSize: Type.body, fontFamily: Font.display, color: Corpus.text },
+  head: { fontSize: Type.h3, fontFamily: Font.displayBold, color: Corpus.text, paddingHorizontal: 4 },
+  note: { marginHorizontal: 6, marginTop: 6, backgroundColor: Note.bg, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderBottomLeftRadius: 6, borderBottomRightRadius: 20, paddingTop: 22, paddingHorizontal: 16, paddingBottom: 16, gap: 8, transform: [{ rotate: '-1.2deg' }] },
+  tape: { position: 'absolute', top: -10, left: '50%', width: 80, height: 20, marginLeft: -40, backgroundColor: Note.tape, transform: [{ rotate: '3deg' }] },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  label: { fontSize: Type.small, fontFamily: Font.displayBold, color: Note.label },
+  next: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 },
+  nextText: { fontSize: Type.body, fontFamily: Font.displayBold, color: Note.ink },
+  title: { fontSize: Type.title, lineHeight: 23, fontFamily: Font.displayBold, color: Note.ink },
+  body: { fontSize: Type.bodyLg, lineHeight: 20, color: Note.sub },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  btn: { height: 36, paddingHorizontal: 15, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  btnOn: { backgroundColor: Note.ink },
+  btnOff: { borderWidth: 1.5, borderColor: Note.ink },
+  btnText: { fontSize: Type.body, fontFamily: Font.displayBold, color: Note.ink },
 });
