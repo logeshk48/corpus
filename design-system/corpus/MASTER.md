@@ -433,3 +433,19 @@ Cards and text stay clean; the life is in the background and in moments.
 - Hero reads "You spent / ₹7,545 (rolling digits) / so far." with "so far." or "in October." in the serif italic.
 - Where it went is a receipt (`Receipt.tsx`): header with the dates ("1 to 26 Nov. Tap a line"), each category name joined to its amount by a dotted leader, a dashed rule, "Total spent", and a torn zigzag bottom edge. The rows still open in place.
 - `WrappedPromo.tsx`: lilac card "Your October story" with a round yellow "open me" badge (text around the edge, gift in the middle) tilted like a sticker. Shown on Overview for any past month you open, and for last month during the first 10 days of a new month. Opens /wrapped for that month.
+
+## Challenges
+- Five short goals, checked automatically from what you log (`utils/challenges.ts`), saved in `settings.challenges` (active, at most 2, and done):
+  - 7 days under budget: each day at or under the daily budget (monthly budget split over the month's days, or a usual day over the last 30 days). Autopay bills don't count.
+  - No-spend weekend: the next Saturday and Sunday with nothing spent.
+  - No [shopping, food, fun or travel] for 7 days: you pick the category.
+  - Log every day for a week: at least one entry each day.
+  - ₹1,000 into a jar within 14 days: net jar deposits.
+- Card (`ChallengeCard.tsx`): the yellow sticky-note paper, tilted slightly, with a "Challenge" tag, days left, the title, a big count (Bricolage) and one round mark per day: filled with a tick when passed, red with a cross when missed, dashed for today, faint for days ahead. Money challenges show a bar instead. Won: "Collect badge" (confetti, moves to badges). Missed: "Start again" or "Let it go".
+- Screen /challenges: intro line, the running ones, "Pick one to start" with a Start pill on each, then "Your badges", round stickers tilted at different angles, locked and dashed until earned, with a 2x count when earned again.
+- Today: the first running challenge shows as a compact card under the month sentence; with none running and none earned, a "Try a 7-day challenge" row links to the screen.
+- Challenges, round 2 (UI and UX):
+  - Each challenge has its own pastel tone, a length ("7 days") and a level (Easy, Medium, Hard).
+  - Screen: a yellow hero "Small wins, *every week.*" with Jarvy, a stats strip (badges x/5, running x/2, finished), the running cards, then "Pick your first" as a swipeable row of tall cards in each challenge's tone: the badge you'd earn, length and level chips, title, what counts (with your daily budget for the budget one), category chips for the skip one, and a full-width Start. A "badge shelf" sets the badges on two planks. Three small steps close the page: Pick one, Live as usual, Corpus checks each day.
+  - Today: with nothing running, a yellow `ChallengeInvite` banner ("Try a 7-day challenge", Pick one) with three badges fanned out on the right, placed right under the month sentence. With one running, the yellow challenge card sits there instead.
+  - Badges under 70 px show only their icon.

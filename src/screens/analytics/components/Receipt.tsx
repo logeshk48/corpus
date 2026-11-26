@@ -25,7 +25,7 @@ export default function Receipt({ title, meta, total, children }: { title: strin
         </View>
       </View>
       {w > 0 && (
-        <Svg width={w} height={12} style={{ marginTop: -1 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Svg width={w} height={12} style={{ marginTop: -1 }} aria-hidden>
           <Path d={d} fill={Corpus.card} stroke={Corpus.border} strokeWidth={1} strokeLinejoin="round" />
         </Svg>
       )}

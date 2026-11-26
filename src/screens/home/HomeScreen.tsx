@@ -29,6 +29,9 @@ import PulseStrip, { PULSE_COLORS } from './components/PulseStrip';
 import YourNumbers, { fmtDelta, JarVisual, Meter, NetWorthLine, ScoreRing, Versus, type NumberCard } from './components/YourNumbers';
 import { byCategory, monthLabel, monthTotals, shiftMonth, ym as ymKey } from '@/utils/analytics';
 import { MonthSentence, monthBits } from './components/MonthSentence';
+import ChallengeCard from '@/screens/challenges/ChallengeCard';
+import ChallengeInvite from '@/screens/challenges/ChallengeInvite';
+import { dailyLimitFor, evaluate } from '@/utils/challenges';
 import { savedOf } from '@/types/vault';
 import BillAlerts from './components/BillAlerts';
 import PayBillSheet from '@/screens/bills/components/PayBillSheet';
@@ -81,7 +84,7 @@ export default function HomeScreen() {
   const { transactions, loading, error } = useTransactions('month');
   const { settings, loading: settingsLoading } = useSettings();
   const { streams: incomeStreams } = useIncomeStreams();
-  const { vaults, total: jarsTotal, loading: jarsLoading } = useVaults();
+  const { vaults, total: jarsTotal, loading: jarsLoading, entries: jarEntries } = useVaults();
   const { ious } = useIous();
   const { accounts } = useAccounts();
   // balances come from check-ins; tagged entries since then (rare) still count
@@ -443,6 +446,8 @@ export default function HomeScreen() {
   const mNow = monthTotals(yearTx, nowKey);
   const mPrev = monthTotals(yearTx, prevKey, dayN);
   const topCats = byCategory(yearTx, nowKey).slice(0, 2).map((c) => ({ id: c.id, label: c.label }));
+  const challenge = settings.challenges?.active?.[0];
+  const challengeState = challenge ? evaluate(challenge, yearTx, jarEntries, dailyLimitFor(yearTx, settings.monthlyBudget)) : null;
   const snapKeys = Object.keys(nwSnaps ?? {}).sort().filter((k) => k < nowKey);
   const lastSnap = snapKeys[snapKeys.length - 1];
   const nwFrom = lastSnap ? nwSnaps[lastSnap].total : null;
@@ -547,6 +552,12 @@ export default function HomeScreen() {
             bits={monthBits({ spent: mNow.spent, income: mNow.income, rate: mNow.savingsRate, top: topCats })}
             onPill={(id) => router.push(`/category/${id}?month=${nowKey}` as Href)}
           />
+        )}
+        {!loading && !yearLoading && challenge && challengeState && (
+          <ChallengeCard c={challenge} st={challengeState} compact onPress={() => router.push('/challenges' as Href)} />
+        )}
+        {!loading && !yearLoading && !challenge && (
+          <ChallengeInvite onPress={() => router.push('/challenges' as Href)} />
         )}
         {!loading && !yearLoading && <YourNumbers cards={numberCards} />}
         {!loading && <Shortcuts items={shortcuts} />}

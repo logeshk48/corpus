@@ -31,6 +31,7 @@ export type Settings = {
   phones?: Record<string, string>; // person key (lowercase name) → mobile number, for WhatsApp reminders   // ISO — set when first-run setup is finished or skipped
   monthlyBudget?: number; // total spending budget per month, in INR
   categoryBudgets?: Record<string, number>; // expense category id → monthly limit, e.g. { food: 8000 }
+  challenges?: { active?: ActiveChallenge[]; done?: DoneChallenge[] }; // short goals Corpus checks from what you log
   currency: 'INR';
 };
 
@@ -52,3 +53,7 @@ export type DebtPlanSettings = {
 };
 
 export type InboxMark = { done?: string; snooze?: string }; // ISO times: when marked done / snoozed until
+
+export type ChallengeKind = 'under7' | 'weekend' | 'skip7' | 'log7' | 'jar1k';
+export type ActiveChallenge = { id: string; kind: ChallengeKind; start: string; category?: string }; // start: YYYY-MM-DD
+export type DoneChallenge = { id: string; kind: ChallengeKind; start: string; end: string; category?: string };

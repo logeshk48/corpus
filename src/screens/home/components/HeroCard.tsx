@@ -61,7 +61,7 @@ function Dial({ days, today, through, used, tone, t, children }: { days: number;
   const pa = through * Math.PI * 2 - Math.PI / 2;
   return (
     <View style={{ width: D, height: D, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={D} height={D} style={{ position: 'absolute' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={D} height={D} style={{ position: 'absolute' }} aria-hidden>
         {ticks.map((k) => (
           <Line key={k.k} x1={k.x1} y1={k.y1} x2={k.x2} y2={k.y2} stroke={k.now ? Corpus.text : k.past ? Corpus.textFaint : Corpus.border} strokeWidth={k.now ? 3 : 2} strokeLinecap="round" />
         ))}
