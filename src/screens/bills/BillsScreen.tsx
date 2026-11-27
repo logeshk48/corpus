@@ -1,11 +1,13 @@
 import Bullet from '@/components/charts/Bullet';
 import Shine from '@/components/fx/Shine';
-import { Button, Group, IconChip, Screen } from '@/components/ui';
+import { Button, Group, IconChip, Screen, Tap } from '@/components/ui';
+import { useSettings } from '@/hooks/useSettings';
+import { subscriptionRadar } from '@/utils/subscriptions';
 import { useAccounts } from '@/hooks/useAccounts';
 import { useEntrance } from '@/hooks/useEntrance';
 import { useTween } from '@/hooks/useTween';
 import { accountBalances, accountTotals } from '@/utils/accounts';
-import { Chip, Corpus } from '@/constants/theme';
+import { Chip, Corpus, Pastel } from '@/constants/theme';
 import { useToast } from '@/context/ToastContext';
 import { useBills } from '@/hooks/useBills';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -29,7 +31,6 @@ import {
   needsAmount,
   nextDue,
   thisMonthBills,
-  yearlyCost,
   upcomingBills,
   unpaidThisMonth,
   yearlyBillsTotal,
@@ -88,9 +89,8 @@ export default function BillsScreen() {
   const paidAmount = dueTotal - unpaid;
   const income = averageIncome(yearTx);
   const ratio = income > 0 ? Math.round((monthly / income) * 100) : null;
-  const subscriptionsYearly = bills
-    .filter((b) => b.active && b.category === 'fun')
-    .reduce((s, b) => s + yearlyCost(b), 0);
+  const { settings } = useSettings();
+  const subs = subscriptionRadar(bills, yearTx, settings.dismissedInsights ?? []);
 
   // ── Loans overview ──
   const loans = bills
@@ -271,6 +271,19 @@ export default function BillsScreen() {
               </View>
             )}
 
+            {bills.length > 0 && (
+              <Tap onPress={() => router.push('/subscriptions' as Href)} scaleTo={0.98} style={styles.subs} accessibilityRole="button">
+                <IconChip icon="radio-outline" color={Pastel.lilac.icon} size={36} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subsTitle}>Subscriptions</Text>
+                  <Text style={styles.subsText}>
+                    {subs.active.length ? `${subs.active.length} plan${subs.active.length === 1 ? '' : 's'}, ${formatINR(subs.monthly)} a month, ${formatINR(subs.yearly)} a year` : 'Streaming, recharges, gym. See what they cost a year.'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={Pastel.lilac.fg} />
+              </Tap>
+            )}
+
             {ratio !== null && (
               <View style={styles.card}>
                 <View style={styles.cardHead}>
@@ -280,7 +293,6 @@ export default function BillsScreen() {
                 <Bullet value={Math.min(ratio, 100)} limit={100} pace={0.5} color={ratio > 50 ? Corpus.warning : Corpus.income} height={10} appear={t} />
                 <Text style={styles.rowNote}>
                   {ratio <= 50 ? 'Healthy. The tick marks 50%, a common upper limit for fixed costs.' : 'Above 50%, the common upper limit for fixed costs (the tick). Worth reviewing subscriptions.'}
-                  {subscriptionsYearly > 0 ? ` Entertainment subscriptions cost ${formatINR(subscriptionsYearly)} a year.` : ''}
                 </Text>
               </View>
             )}

@@ -18,7 +18,7 @@ const DAY = 86_400_000;
 
 // "Up next": the bills and SIPs due in the next 7 days as a short calendar, each with its date on the left,
 // then a line into all bills with what they cost a month.
-export default function UpcomingBills({ bills, sips = [], onPress, onSip }: { bills: Bill[]; sips?: UpcomingSip[]; onPress: () => void; onSip?: () => void }) {
+export default function UpcomingBills({ bills, sips = [], subs, onPress, onSip, onSubs }: { bills: Bill[]; sips?: UpcomingSip[]; subs?: { monthly: number; count: number }; onPress: () => void; onSip?: () => void; onSubs?: () => void }) {
   const active = bills.filter((b) => b.active);
   const today = new Date(new Date().toDateString()).getTime();
   const soonSips = sips
@@ -61,6 +61,12 @@ export default function UpcomingBills({ bills, sips = [], onPress, onSip }: { bi
           {soonSips.slice(0, 2).map((x) => (
             <Ticket key={x.key} date={x.date} tone="sip" name={x.name} sub={`SIP, ${when(x.daysAway).text.toLowerCase()}`} amount={formatINR(x.amount)} onPress={onSip ?? onPress} />
           ))}
+          {subs && subs.count > 0 && onSubs && (
+            <Tap onPress={onSubs} scaleTo={0.98} style={s.foot} accessibilityRole="button">
+              <Text style={s.footText}>Subscriptions, {subs.count} plan{subs.count === 1 ? '' : 's'}, {formatINR(subs.monthly)} a month</Text>
+              <Ionicons name="chevron-forward" size={15} color={Corpus.textMuted} />
+            </Tap>
+          )}
           <Tap onPress={onPress} scaleTo={0.98} style={s.foot} accessibilityRole="button">
             <Text style={s.footText}>All bills, {formatINR(monthlyBillsTotal(bills))} a month</Text>
             <Ionicons name="chevron-forward" size={15} color={Corpus.textMuted} />

@@ -460,3 +460,16 @@ Small fixes, section by section. No new components.
 - Money reminders: a shortfall for the next 30 days is no longer marked Overdue. It shows "Plan ahead" in amber, titled "short for bills and card dues".
 - Up next: smaller ticket notches (14px) and 12px between tickets.
 - This week: when nothing is spent yet, the empty bars are hidden; only the total and the last-week line remain.
+
+## Subscription radar (27 Nov)
+
+New screen at /subscriptions: every plan you pay for again and again in one place.
+
+- What counts: bills that aren't loans, rent, utilities, insurance, fees, tax or SIPs, and aren't variable or fixed-term. Plus repeating payments found in your spends that aren't bills yet (from detect.ts).
+- Radar dial (lilac hero): the next 30 days as a clock face, today at the top, going clockwise. Each plan is a dot on the day it charges, bigger when it costs more; found-but-not-a-bill dots have a dashed edge. Tap a dot and the centre shows its name, amount and when. Otherwise the centre shows the monthly total with "a month" in the serif. Dots pop in one after another once; nothing loops.
+- Stats strip: a year, a day, share of your pay (or the plan count when there's no income).
+- Price went up: a sticky note per bill whose last charge was more than 3% above the one before.
+- Found in your spends: dashed cards with "Add as a bill" and "Not a plan" (same dismiss key as For you).
+- Your plans: costliest first, the charge and the yearly cost, a thin share bar (hidden with one plan). Paused plans sit below, dimmed, with what pausing saves a year.
+- Ways in: a lilac Subscriptions card on Bills (replaces the old "entertainment subscriptions" sentence) and a line under Up next on Today when you have any.
+- Logic in src/utils/subscriptions.ts (subscriptionRadar, isSubscription, usualIncome).

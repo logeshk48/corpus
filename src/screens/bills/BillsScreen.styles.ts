@@ -1,4 +1,4 @@
-import { Corpus, Font, tabular, Type } from '@/constants/theme';
+import { Corpus, Font, Pastel, tabular, Type } from '@/constants/theme';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -21,6 +21,9 @@ export const styles = StyleSheet.create({
   statLabel: { fontSize: Type.small, color: Corpus.textMuted },
   statValue: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text, ...tabular },
   card: { backgroundColor: Corpus.card, borderRadius: 24, padding: 16, gap: 10 },
+  subs: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Pastel.lilac.bg, borderRadius: 24, padding: 16 },
+  subsTitle: { fontSize: Type.title, fontFamily: Font.displayBold, color: Pastel.lilac.fg },
+  subsText: { fontSize: Type.body, lineHeight: 18, color: Pastel.lilac.fg, opacity: 0.85, marginTop: 2 },
   cardWarn: { borderWidth: 1.5, borderColor: Corpus.warning },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 },
   cardTitle: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },

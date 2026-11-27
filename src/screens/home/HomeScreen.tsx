@@ -40,6 +40,7 @@ import InsightsCard, { type Insight } from './components/InsightsCard';
 import MonthReportCard from './components/MonthReportCard';
 import { lastMonthKey, monthReport } from '@/utils/monthReport';
 import { findCategory } from '@/constants/categories';
+import { subscriptionRadar } from '@/utils/subscriptions';
 import { findings } from '@/utils/insights';
 import { addVault, deleteVault } from '@/services/vaults';
 import { VAULT_COLORS, VAULT_ICONS } from '@/types/vault';
@@ -153,6 +154,7 @@ export default function HomeScreen() {
 
   // Smart detection (Day 7): things Corpus noticed, each with a one-tap action
   const dismissed = settings.dismissedInsights ?? [];
+  const subs = subscriptionRadar(bills, yearTx, dismissed);
   const dismiss = (key: string) => saveSettings({ dismissedInsights: [...dismissed, key] }).catch(() => {});
   const thisYm = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
   const insights: Insight[] = findings({ tx: yearTx, bills, dismissed, budgets: settings.categoryBudgets, cycleStartDay: settings.cycleStartDay }).map((f): Insight => {
@@ -605,7 +607,7 @@ export default function HomeScreen() {
           />
         )}
         <MoneyReminders items={reminders} onPress={(r) => router.push((r?.href ?? (reminders.every((x) => x.href) ? reminders[0].href : '/ious')) as Href)} />
-        <UpcomingBills bills={bills} sips={upcomingSips} onPress={() => router.push('/bills' as Href)} onSip={() => router.push('/invest' as Href)} />
+        <UpcomingBills bills={bills} sips={upcomingSips} subs={{ monthly: subs.monthly, count: subs.active.length }} onPress={() => router.push('/bills' as Href)} onSip={() => router.push('/invest' as Href)} onSubs={() => router.push('/subscriptions' as Href)} />
         {yearTx.length > 0 && <WeekCard tx={yearTx} onPress={() => router.push('/analytics' as Href)} />}
         <InsightsCard items={insights} />
         {loading ? (
