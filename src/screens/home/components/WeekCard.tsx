@@ -57,6 +57,7 @@ export default function WeekCard({ tx, onPress }: { tx: Transaction[]; onPress: 
         </View>
         <Ionicons name="chevron-forward" size={17} color={Corpus.textFaint} />
       </View>
+      {w.total > 0 && (
       <View style={st.bars}>
         {w.sums.map((v, i) => {
           const future = i > w.todayIdx;
@@ -64,7 +65,7 @@ export default function WeekCard({ tx, onPress }: { tx: Transaction[]; onPress: 
           return (
             <View key={i} style={st.col}>
               <Text style={[st.val, today && st.valOn]} numberOfLines={1}>{v > 0 ? compactINR(Math.round(v)) : ''}</Text>
-              <View style={[st.slot, w.total === 0 && { height: 12 }]}>
+              <View style={st.slot}>
                 {future ? <View style={st.dot} />
                   : v > 0 ? <Bar h={Math.max(6, (v / max) * H)} i={i} color={today ? Chip.orange : Chip.indigo} />
                   : <View style={st.zero} />}
@@ -74,6 +75,7 @@ export default function WeekCard({ tx, onPress }: { tx: Transaction[]; onPress: 
           );
         })}
       </View>
+      )}
     </Tap>
   );
 }

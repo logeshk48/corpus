@@ -26,7 +26,8 @@ export default function MoneyReminders({ items, onPress }: { items: MoneyReminde
         <Ionicons name="chevron-forward" size={17} color={Corpus.textFaint} />
       </Tap>
       {items.slice(0, 3).map((r) => {
-        const t = TAG[r.urgency];
+        // a money shortfall isn't late, it's something to plan for
+        const t = r.id === 'short' ? { text: 'Plan ahead', color: Corpus.warning, bg: Corpus.warningTint } : TAG[r.urgency];
         return (
           <Pressable key={r.id} onPress={() => onPress(r)} style={({ pressed }) => [s.row, pressed && { opacity: 0.7 }]} accessibilityRole="button">
             <View style={{ flex: 1, gap: 2 }}>

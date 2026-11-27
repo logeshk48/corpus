@@ -198,7 +198,7 @@ export default function HeroCard({ result, loading, onPress }: HeroCardProps) {
       {(result.limitedByBudget || result.plansPaused.length > 0) && (
         <Text style={styles.note}>
           {[
-            result.limitedByBudget ? 'Capped by your monthly budget' : '',
+            result.limitedByBudget ? 'Set by your monthly budget, which is lower than what came in' : '',
             result.plansPaused.length === 1 ? `${result.plansPaused[0].name} plan paused this month` : result.plansPaused.length > 1 ? `${result.plansPaused.length} jar plans paused this month` : '',
           ].filter(Boolean).join('. ')}
         </Text>

@@ -44,7 +44,7 @@ export default function UpcomingBills({ bills, sips = [], onPress, onSip }: { bi
           </Tap>
         </View>
       ) : (
-        <View style={{ gap: 10 }}>
+        <View style={{ gap: 12 }}>
           {upcoming.length === 0 && soonSips.length === 0 && (
             <View style={[s.card, s.row]}>
               <IconChip icon="checkmark" color={Chip.green} size={38} />
@@ -82,8 +82,8 @@ function Ticket({ date, tone, name, sub, subColor, amount, onPress }: { date: Da
         <Text style={[s.dateMon, { color: stubFg }]}>{date.toLocaleDateString('en-IN', { month: 'short' })}</Text>
       </View>
       <View style={s.perf} />
-      <View style={[s.notch, { top: -9 }]} />
-      <View style={[s.notch, { bottom: -9 }]} />
+      <View style={[s.notch, { top: -7 }]} />
+      <View style={[s.notch, { bottom: -7 }]} />
       <View style={s.body}>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={s.name} numberOfLines={1}>{name}</Text>
@@ -112,7 +112,7 @@ const s = StyleSheet.create({
   ticket: { flexDirection: 'row', alignItems: 'stretch', backgroundColor: Corpus.card, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, borderColor: Corpus.border, minHeight: 66 },
   stub: { width: 66, alignItems: 'center', justifyContent: 'center', borderTopLeftRadius: 18, borderBottomLeftRadius: 18 },
   perf: { width: 0, borderLeftWidth: 1.5, borderStyle: 'dashed', borderColor: Corpus.textFaint, marginVertical: 10 },
-  notch: { position: 'absolute', left: 57, width: 18, height: 18, borderRadius: 9, backgroundColor: Corpus.bg },
+  notch: { position: 'absolute', left: 59, width: 14, height: 14, borderRadius: 7, backgroundColor: Corpus.bg },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
   footText: { fontSize: Type.body, color: Corpus.textMuted, ...tabular },
 });

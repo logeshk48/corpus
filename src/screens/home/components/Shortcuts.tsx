@@ -123,6 +123,7 @@ export function MiniBars({ values, labels, color }: { values: number[]; labels: 
     <View style={st.bars}>
       {values.map((v, i) => (
         <View key={labels[i]} style={st.barCol}>
+          <Text style={[st.barLabel, i === values.length - 1 && { color: Corpus.text }]} numberOfLines={1}>{v > 0 ? compactINR(Math.round(v)).replace('₹', '') : ''}</Text>
           <View style={st.barSlot}>
             <View style={{ width: '100%', height: `${Math.max(6, (v / max) * 100)}%`, borderRadius: 4, backgroundColor: color, opacity: i === values.length - 1 ? 1 : 0.35 }} />
           </View>
@@ -175,7 +176,7 @@ const st = StyleSheet.create({
   dueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dueText: { fontSize: Type.small, fontFamily: Font.display, color: Corpus.danger, ...tabular },
   paceTick: { position: 'absolute', top: -3, width: 2, height: 11, marginLeft: -1, borderRadius: 1, backgroundColor: Corpus.text },
-  bars: { flexDirection: 'row', gap: 6, height: 44 },
+  bars: { flexDirection: 'row', gap: 6, height: 58 },
   barCol: { flex: 1, alignItems: 'center', gap: 3 },
   barSlot: { flex: 1, width: '100%', justifyContent: 'flex-end' },
   barLabel: { fontSize: Type.micro, color: Corpus.textMuted },

@@ -100,7 +100,7 @@ export default function HomeScreen() {
   const accTotals = accountTotals(accList);
   const health = accounts.length ? moneyHealth(accTotals.have, accTotals.cardDues, bills, transactions) : null;
   const shortAlert = health?.short
-    ? [{ id: 'short', iouId: '', when: new Date(), title: `${formatINR(-health.free)} short for bills & card dues`, body: `You have ${formatINR(health.have)}, but ${formatINR(health.billsDue + health.cardDues)} is due in the next 30 days`, urgency: 'overdue' as const }]
+    ? [{ id: 'short', iouId: '', when: new Date(), title: `${formatINR(-health.free)} short for bills and card dues`, body: `You have ${formatINR(health.have)}, but ${formatINR(health.billsDue + health.cardDues)} is due in the next 30 days`, urgency: 'soon' as const }]
     : [];
   // Debt plan (Day 6): progress, monthly "did you pay the extra?", cleared celebrations
   const debtPlan = debtPlanSummary({ ious, bills, accounts: accList, plan: settings.debtPlan, cycleStartDay: settings.cycleStartDay });
@@ -414,7 +414,7 @@ export default function HomeScreen() {
     {
       key: 'jars', label: 'Jars', icon: 'file-tray-stacked-outline',
       figure: vaults.length ? compactINR(jarsSaved) : undefined,
-      status: vaults.length === 0 ? 'Start saving for a goal' : goalShare != null ? (goalShare === 0 ? 'saved, goals not started yet' : `saved, ${goalShare < 0.01 ? 'under 1%' : `${Math.round(goalShare * 100)}%`} of goals`) : `saved in ${vaults.length} jar${vaults.length === 1 ? '' : 's'}`,
+      status: vaults.length === 0 ? 'Start saving for a goal' : goalShare != null ? (goalShare === 0 ? 'saved, goals at 0%' : `saved, ${goalShare < 0.01 ? 'under 1%' : `${Math.round(goalShare * 100)}%`} of goals`) : `saved in ${vaults.length} jar${vaults.length === 1 ? '' : 's'}`,
       progress: goalShare,
       corner: vaults.length ? <LiquidJar level={Math.max(0.04, goalShare ?? 0.3)} color={Chip.yellow} width={26} height={34} /> : undefined,
       onPress: () => router.push('/vaults' as Href),

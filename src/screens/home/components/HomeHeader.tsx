@@ -29,13 +29,14 @@ export default function HomeHeader({ streak = 0, loggedToday = true }: { streak?
   const router = useRouter();
   const { attention } = useInbox();
 
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const d = new Date();
+  const today = `${d.toLocaleDateString('en-IN', { weekday: 'short' })} ${d.getDate()} ${d.toLocaleDateString('en-IN', { month: 'short' })}`;
 
   // Apple large-title header: date line + round glass buttons, then a big "Today"
   return (
     <View style={styles.wrap}>
       <View style={styles.container}>
-        <Text style={styles.greeting} numberOfLines={1}>{today}</Text>
+        <Text style={styles.greeting} numberOfLines={1}>{getGreeting()}, {name}</Text>
         <View style={styles.actions}>
           <Pressable style={styles.round} hitSlop={4} onPress={() => router.push('/inbox' as Href)} accessibilityLabel={`Reminders${attention ? `, ${attention} need attention` : ''}`}>
             <Ionicons name="notifications-outline" size={19} color={Corpus.text} />
@@ -47,7 +48,10 @@ export default function HomeHeader({ streak = 0, loggedToday = true }: { streak?
         </View>
       </View>
       <View style={styles.titleRow}>
-        <Text style={styles.name} accessibilityRole="header">Today</Text>
+        <View style={styles.titleLeft}>
+          <Text style={styles.name} accessibilityRole="header">Today</Text>
+          <Text style={styles.date}>{today}</Text>
+        </View>
         {streak >= 2 && (
           <View style={[styles.streak, !loggedToday && styles.streakDim]} accessibilityLabel={`${streak} day logging streak${loggedToday ? '' : ', log something today to keep it'}`}>
             <Ionicons name="flame" size={15} color={Pastel.peach.icon} />

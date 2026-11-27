@@ -4,9 +4,11 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   wrap: { gap: 2 },
   container: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  greeting: { flex: 1, fontSize: Type.body, fontWeight: '500', color: Corpus.textMuted },
+  greeting: { flex: 1, fontSize: Type.bodyLg, fontFamily: Font.display, color: Corpus.textMuted },
   name: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: 0.3 },
   actions: { flexDirection: 'row', gap: 8 },
+  titleLeft: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  date: { fontSize: Type.label, fontFamily: Font.display, color: Corpus.textMuted },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   streak: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, minHeight: 32, borderRadius: 999, backgroundColor: Pastel.peach.bg },
   streakDim: { opacity: 0.6 },

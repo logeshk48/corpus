@@ -449,3 +449,14 @@ Cards and text stay clean; the life is in the background and in moments.
   - Screen: a yellow hero "Small wins, *every week.*" with Jarvy, a stats strip (badges x/5, running x/2, finished), the running cards, then "Pick your first" as a swipeable row of tall cards in each challenge's tone: the badge you'd earn, length and level chips, title, what counts (with your daily budget for the budget one), category chips for the skip one, and a full-width Start. A "badge shelf" sets the badges on two planks. Three small steps close the page: Pick one, Live as usual, Corpus checks each day.
   - Today: with nothing running, a yellow `ChallengeInvite` banner ("Try a 7-day challenge", Pick one) with three badges fanned out on the right, placed right under the month sentence. With one running, the yellow challenge card sits there instead.
   - Badges under 70 px show only their icon.
+
+## Today polish pass (26 Nov)
+
+Small fixes, section by section. No new components.
+
+- Header: greeting and name on the top line, then "Today" with the short date beside it ("Thu 26 Nov").
+- Hero: the budget note now reads "Set by your monthly budget, which is lower than what came in".
+- Your money: Jars status reads "saved, goals at 0%". Income bars show the amount above each bar.
+- Money reminders: a shortfall for the next 30 days is no longer marked Overdue. It shows "Plan ahead" in amber, titled "short for bills and card dues".
+- Up next: smaller ticket notches (14px) and 12px between tickets.
+- This week: when nothing is spent yet, the empty bars are hidden; only the total and the last-week line remain.
