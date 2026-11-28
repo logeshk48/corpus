@@ -10,13 +10,14 @@ import IndexStrip from './IndexStrip';
 import UnderlineTabs from './UnderlineTabs';
 import { askWeb } from '@/services/confirm';
 import { ChartColors } from '@/constants/chartColors';
-import { Chip, Corpus } from '@/constants/theme';
+import { Chip, Corpus, Pastel, type PastelName } from '@/constants/theme';
+import { MonthSentence, type Bit } from '@/screens/home/components/MonthSentence';
 import { useToast } from '@/context/ToastContext';
 import { isLinked, liveRefOf, useInvestments } from '@/hooks/useInvestments';
 import { useSettings } from '@/hooks/useSettings';
 import { saveSettings } from '@/services/settings';
 import { addInvestment, addMoney, buyUnits, deleteInvestment, sellUnits, updateInvestment, updateValue } from '@/services/investments';
-import { investMeta, type Investment, type NewInvestment } from '@/types/investment';
+import { investMeta, type InvestType, type Investment, type NewInvestment } from '@/types/investment';
 import { compactINR, formatINR, formatINRLong, ordinal as dayLabel } from '@/utils/format';
 import { currentValue, daysOld, gain, isStale, needsCheckup, portfolio, yearlyReturn } from '@/utils/investments';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,6 +58,9 @@ const CLASS: Record<string, { label: string; color: string }> = {
   crypto: { label: 'Crypto', color: ChartColors.netWorth.vehicle },
   other: { label: 'Other', color: Corpus.textMuted },
 };
+
+// Each asset type has its sticker colour
+const TONE_OF: Record<InvestType, PastelName> = { mf: 'lilac', stock: 'sky', goldbond: 'butter', crypto: 'peach', nps: 'rose', fd: 'mint', epf: 'mint', ppf: 'mint', other: 'mint' };
 
 export default function InvestScreen() {
   const router = useRouter();
@@ -204,6 +208,7 @@ export default function InvestScreen() {
           spark: ref ? sparks[refKey(ref)] : undefined,
           note: [h.sip?.active ? `SIP ${formatINR(sipAmount(h.sip, new Date()))}${ns ? `, next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : null, jar ? `For ${jar.name}` : null].filter(Boolean).join('. '),
           warn: old,
+          tone: TONE_OF[h.type],
         } as RowData,
       };
     });
@@ -220,6 +225,15 @@ export default function InvestScreen() {
   const sipList = investments.filter((h) => h.sip);
   const sipMonthly = sipList.filter((h) => h.sip?.active).reduce((a, h) => a + sipAmount(h.sip!, new Date()), 0);
   const invested = pf.invested;
+  // "So far: You put in ₹5,108. It grew ₹223, and Parag Parikh did the most. Today it moved +₹90."
+  const lead = rows.filter((r) => Math.abs(r.g.gain) >= 1).sort((a, b) => (pf.gain >= 0 ? b.g.gain - a.g.gain : a.g.gain - b.g.gain))[0];
+  const pfBits: Bit[] = [
+    'You put in', { mark: formatINR(Math.round(invested)), tone: 'fact' }, '.',
+    pf.gain >= 0 ? 'It grew' : 'It is down', { mark: formatINR(Math.abs(Math.round(pf.gain))), tone: pf.gain >= 0 ? 'good' : 'look' },
+    ...(lead && rows.length > 1
+      ? [', and', { pill: lead.d.title.split(' ').slice(0, 2).join(' '), id: lead.h.id, color: Pastel[TONE_OF[lead.h.type]].icon }, pf.gain >= 0 ? 'did the most.' : 'fell the most.'] as Bit[]
+      : ['.']),
+  ];
   const totalUp = pf.gain >= 0;
   const valueV = useTween(loading ? 0 : pf.value);
 
@@ -227,7 +241,7 @@ export default function InvestScreen() {
     <View style={styles.safe}>
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 420 }} pointerEvents="none"><Aura color={totalUp ? Chip.green : Chip.red} second={Chip.teal} /></View>
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_SPACE + 40 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={investments.length ? [3] : undefined}
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_SPACE + 40 }]} showsVerticalScrollIndicator={false} stickyHeaderIndices={investments.length ? [4] : undefined}
         refreshControl={<RefreshControl refreshing={pulling} onRefresh={pull} tintColor={Corpus.gold} colors={[Corpus.gold]} />}>
         <View style={styles.headRow}>
           <Text style={styles.heading} accessibilityRole="header">Invest</Text>
@@ -268,10 +282,6 @@ export default function InvestScreen() {
             </View>
             <Text style={styles.bigValue} adjustsFontSizeToFit numberOfLines={1}>{hide ? HIDDEN : formatINR(Math.round(valueV))}</Text>
             <View style={styles.pfRows}>
-              <View style={styles.pfRow}>
-                <Text style={styles.pfLabel}>Invested</Text>
-                <Text style={styles.pfNum}>{money(invested)}</Text>
-              </View>
               {hasStockLive && (
                 <View style={styles.pfRow}>
                   <Text style={styles.pfLabel}>1D returns</Text>
@@ -302,6 +312,16 @@ export default function InvestScreen() {
           </View>
         )}
 
+        {/* always a View here, so the sticky tabs below keep their index */}
+        <View>
+          {investments.length > 0 && !hide && invested > 0 && (
+            <MonthSentence label="So far" bits={pfBits} onPill={(id) => {
+              const r = rows.find((x) => x.h.id === id);
+              if (r) (r.linked && targetOf(r.h) ? setTarget(targetOf(r.h)) : setMode({ kind: 'edit', h: r.h }));
+            }} />
+          )}
+        </View>
+
         {investments.length > 0 && (
           <View style={{ backgroundColor: Corpus.bg }}>
             <UnderlineTabs value={tab} onChange={setTab} tabs={[
@@ -315,7 +335,7 @@ export default function InvestScreen() {
 
         {investments.length > 0 && tab === 'holdings' && (
           <Animated.View key="h" entering={FadeIn.duration(120)} style={{ gap: 12 }}>
-            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
+            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} onOpen={setSipFor} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {([['value', 'Current value'], ['returns', 'Returns %'], ['today', 'Today'], ['name', 'A to Z']] as const).map(([k, label]) => (
                 <Tap key={k} onPress={() => (sort === k ? setAsc(!asc) : (setSort(k), setAsc(false)))} style={[styles.chip, sort === k && styles.chipOn, { flexDirection: 'row', alignItems: 'center', gap: 4 }]} accessibilityRole="radio" accessibilityState={{ selected: sort === k }} accessibilityHint={sort === k ? 'Tap again to reverse the order' : undefined}>
@@ -376,7 +396,7 @@ export default function InvestScreen() {
 
         {investments.length > 0 && tab === 'sips' && (
           <Animated.View key="s" entering={FadeIn.duration(120)} style={{ gap: 12 }}>
-            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} />
+            <SipCards pending={pending} list={investments} onYes={sipYes} onSkip={sipSkip} onOpen={setSipFor} />
             <View style={[styles.card, styles.row]}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.meta}>Going in every month</Text>

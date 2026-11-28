@@ -478,3 +478,13 @@ New screen at /subscriptions: every plan you pay for again and again in one plac
 
 - Categories: a grid of four instead of a sideways row, so all eight spend categories are in view (income's four fit one row). The picked one still lifts and gets a ring; the shake on a missing category stays.
 - Safe-to-spend line under the arc: a small Jarvy (32px) replaces the dot. Its jar holds what's left of today and drains as you type; eyes go calm, then look when it takes over 75%, then worried past the line. Colour follows the arc tone. TodayArc takes a `jar` prop, so other uses keep the dot.
+
+## Invest tab pass (28 Nov)
+
+The first try (a put-in vs grew bar with a key) was the generic dashboard look and was dropped. Invest now uses the same objects as Today:
+
+- Header: "Invest" uses the large bold title like Insights and Today.
+- A talking sentence under the portfolio card, the same MonthSentence as Today: "So far: You put in ₹5,108. It grew ₹223, and [Parag Parikh] did the most." Numbers get the marker highlight (green for a gain, amber for a loss). The holding is a pill in its sticker colour; tap it to open that holding. Hidden when amounts are hidden.
+- Holdings: each row starts with a round, slightly tilted sticker with the initials (PP, SI, KG), coloured by asset type: funds lilac, stocks and ETFs sky, gold butter, crypto peach, NPS rose, FD, EPF and PPF mint. Names and the units line wrap to two lines.
+- SIPs: "SIPs coming up" as ticket stubs, the same Ticket as Up next on Today (green stub with the date, perforation, notches). Tap one to open that SIP. The "did it go through?" check stays as a card above the tickets.
+- The sticky tab bar stays at index 4: the sentence slot is always a View so the index doesn't shift.

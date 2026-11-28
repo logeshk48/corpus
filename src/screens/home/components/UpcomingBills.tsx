@@ -78,7 +78,7 @@ export default function UpcomingBills({ bills, sips = [], subs, onPress, onSip, 
 }
 
 // A ticket stub: the date torn off on the left, what it is and how much on the right
-function Ticket({ date, tone, name, sub, subColor, amount, onPress }: { date: Date; tone: 'bill' | 'near' | 'sip'; name: string; sub: string; subColor?: string; amount: string; onPress: () => void }) {
+export function Ticket({ date, tone, name, sub, subColor, amount, onPress }: { date: Date; tone: 'bill' | 'near' | 'sip'; name: string; sub: string; subColor?: string; amount: string; onPress: () => void }) {
   const stubBg = tone === 'near' ? Corpus.warningTint : tone === 'sip' ? Corpus.incomeTint : Corpus.cardAlt;
   const stubFg = tone === 'near' ? Corpus.warning : tone === 'sip' ? Corpus.income : Corpus.text;
   return (

@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Corpus.bg },
   content: { padding: Space.lg, paddingBottom: 120, gap: Space.md },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontSize: Type.title, fontFamily: Font.display, color: Corpus.text },
+  heading: { fontSize: Type.h1 + 4, fontFamily: Font.displayBold, color: Corpus.text, letterSpacing: -0.6 },
   hero: { backgroundColor: Corpus.card, borderRadius: Radius.lg, borderWidth: 0.5, borderColor: Corpus.border, padding: Space.lg, alignItems: 'center', gap: 4 },
   heroLabel: { fontSize: Type.small, color: Corpus.textMuted, letterSpacing: 0.6 },
   heroValue: { fontSize: Type.amount, fontFamily: Font.displayBold, color: Corpus.text },
