@@ -206,7 +206,7 @@ export default function AddScreen() {
           {/* the digits you see animate; the real input sits invisibly on top, so tapping the amount opens the number keyboard */}
           <View>
             {type === 'expense' && safe ? (
-              <TodayArc amount={amt} safeToday={safe.safeToday}>
+              <TodayArc amount={amt} safeToday={safe.safeToday} jar>
                 <AmountDisplay amount={amount} income={false} shake={shakeAmount} />
               </TodayArc>
             ) : <AmountDisplay amount={amount} income={type === 'income'} shake={shakeAmount} />}

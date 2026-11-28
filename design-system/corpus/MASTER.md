@@ -473,3 +473,8 @@ New screen at /subscriptions: every plan you pay for again and again in one plac
 - Your plans: costliest first, the charge and the yearly cost, a thin share bar (hidden with one plan). Paused plans sit below, dimmed, with what pausing saves a year.
 - Ways in: a lilac Subscriptions card on Bills (replaces the old "entertainment subscriptions" sentence) and a line under Up next on Today when you have any.
 - Logic in src/utils/subscriptions.ts (subscriptionRadar, isSubscription, usualIncome).
+
+## Add tab pass (28 Nov)
+
+- Categories: a grid of four instead of a sideways row, so all eight spend categories are in view (income's four fit one row). The picked one still lifts and gets a ring; the shake on a missing category stays.
+- Safe-to-spend line under the arc: a small Jarvy (32px) replaces the dot. Its jar holds what's left of today and drains as you type; eyes go calm, then look when it takes over 75%, then worried past the line. Colour follows the arc tone. TodayArc takes a `jar` prop, so other uses keep the dot.

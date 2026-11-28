@@ -3,7 +3,7 @@ import type { Category } from '@/constants/categories';
 import { Spring } from '@/constants/motion';
 import { CategoryChip, Chip, Corpus, Font, Type } from '@/constants/theme';
 import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 function CatChip({ c, on, onPress }: { c: Category; on: boolean; onPress: () => void }) {
@@ -22,7 +22,7 @@ function CatChip({ c, on, onPress }: { c: Category; on: boolean; onPress: () => 
   );
 }
 
-// Categories in one swipeable row. The picked one lifts and gets a ring in its own colour.
+// Categories in a grid of four, so every one is in view. The picked one lifts and gets a ring in its own colour.
 // `shake` is bumped by the parent when Save is tapped before a category is picked.
 export default function CategoryRow({ categories, selected, onSelect, shake }: { categories: Category[]; selected: string | null; onSelect: (id: string) => void; shake: number }) {
   const reduce = useReducedMotion();
@@ -34,16 +34,16 @@ export default function CategoryRow({ categories, selected, onSelect, shake }: {
   const st = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
   return (
     <Animated.View style={st}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row} keyboardShouldPersistTaps="handled" accessibilityRole="radiogroup">
+      <View style={s.grid} accessibilityRole="radiogroup">
         {categories.map((c) => <CatChip key={c.id} c={c} on={c.id === selected} onPress={() => onSelect(c.id)} />)}
-      </ScrollView>
+      </View>
     </Animated.View>
   );
 }
 
 const s = StyleSheet.create({
-  row: { gap: 6, paddingHorizontal: 2, paddingVertical: 4 },
-  chip: { width: 72, alignItems: 'center', gap: 6 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, paddingVertical: 4 },
+  chip: { width: '25%', alignItems: 'center', gap: 6 },
   ring: { padding: 3, borderRadius: 18, borderWidth: 2, borderColor: 'transparent' },
   label: { fontSize: Type.small, color: Corpus.textMuted },
 });
