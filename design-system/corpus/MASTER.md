@@ -488,3 +488,9 @@ The first try (a put-in vs grew bar with a key) was the generic dashboard look a
 - Holdings: each row starts with a round, slightly tilted sticker with the initials (PP, SI, KG), coloured by asset type: funds lilac, stocks and ETFs sky, gold butter, crypto peach, NPS rose, FD, EPF and PPF mint. Names and the units line wrap to two lines.
 - SIPs: "SIPs coming up" as ticket stubs, the same Ticket as Up next on Today (green stub with the date, perforation, notches). Tap one to open that SIP. The "did it go through?" check stays as a card above the tickets.
 - The sticky tab bar stays at index 4: the sentence slot is always a View so the index doesn't shift.
+
+## Holding logos (28 Nov)
+
+- The holding sticker now shows the real logo when there is one: the icon sits on a white round badge with a ring in the asset type's colour, tilted like the initials sticker. If there is no match, or the image fails, the initials sticker shows instead.
+- Matching (src/utils/logos.ts): mutual funds and NPS by fund house words in the name (about 45 houses); ETFs by symbol (anything ending in BEES is Nippon India, SETF is SBI, and so on); about 150 bigger NSE companies by symbol; the top coins by CoinGecko id; FDs by bank name; EPF to the EPFO. PPF and small companies keep their initials.
+- Privacy: in the app the icon comes through our own /api/logo function on Vercel (api/logo.js), which asks Google's favicon service and caches the result for 30 days. Only a website name goes to the server, never the user's data, and no outside service sees which holdings a person has. While developing on localhost the icon loads from Google directly, because the function only exists once deployed.

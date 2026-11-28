@@ -12,6 +12,7 @@ import { askWeb } from '@/services/confirm';
 import { ChartColors } from '@/constants/chartColors';
 import { Chip, Corpus, Pastel, type PastelName } from '@/constants/theme';
 import { MonthSentence, type Bit } from '@/screens/home/components/MonthSentence';
+import { logoFor } from '@/utils/logos';
 import { useToast } from '@/context/ToastContext';
 import { isLinked, liveRefOf, useInvestments } from '@/hooks/useInvestments';
 import { useSettings } from '@/hooks/useSettings';
@@ -209,6 +210,7 @@ export default function InvestScreen() {
           note: [h.sip?.active ? `SIP ${formatINR(sipAmount(h.sip, new Date()))}${ns ? `, next ${ns.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}` : null, jar ? `For ${jar.name}` : null].filter(Boolean).join('. '),
           warn: old,
           tone: TONE_OF[h.type],
+          logo: logoFor({ type: h.type, name: h.name, symbol: h.symbol, coinId: h.coinId }),
         } as RowData,
       };
     });
@@ -386,7 +388,7 @@ export default function InvestScreen() {
                   const sub = ref.kind === 'stock' ? x?.name ?? 'Stock' : { fund: 'Mutual fund, NAV', nps: 'NPS, NAV', crypto: 'Crypto, 24h' }[ref.kind];
                   return (
                     <HoldingRow key={w} first={i === 0} onPress={() => setTarget({ ...ref, name: x?.name ?? title })}
-                      d={{ key: w, title, sub, value: x?.price ?? null, valueIsPrice: true, dayPct: x?.changePct ?? null, dayChange: ref.kind === 'stock' ? x?.change ?? null : null, spark: sparks[refKey(ref)], ltp: x?.price ?? null }} />
+                      d={{ key: w, title, sub, logo: logoFor({ type: ref.kind === 'stock' ? 'stock' : ref.kind, name: x?.name ?? title, symbol: ref.kind === 'stock' ? ref.id : undefined, coinId: ref.kind === 'crypto' ? ref.id : undefined }), value: x?.price ?? null, valueIsPrice: true, dayPct: x?.changePct ?? null, dayChange: ref.kind === 'stock' ? x?.change ?? null : null, spark: sparks[refKey(ref)], ltp: x?.price ?? null }} />
                   );
                 })}
               </View>

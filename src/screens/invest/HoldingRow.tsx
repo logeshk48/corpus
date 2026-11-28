@@ -2,8 +2,8 @@ import Sparkline from '@/components/charts/Sparkline';
 import { Corpus, Font, Pastel, tabular, Type, type PastelName } from '@/constants/theme';
 import { formatINR } from '@/utils/format';
 import { formatChange, formatPct, formatPrice } from '@/utils/market';
-import { Children, useEffect, useRef, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { interpolateColor, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
 export type RowData = {
@@ -22,6 +22,7 @@ export type RowData = {
   note?: string;          // a small line under the row (SIP, jar, stale)
   warn?: boolean;
   tone?: PastelName;      // the sticker's colour (by asset type)
+  logo?: string | null;   // the company's or fund house's icon; the initials show if it fails
 };
 
 // One line of a holdings or watchlist table, like a broker app: name and quantity on the left, a month's
@@ -37,12 +38,22 @@ const initials = (t: string) => {
   return (w.length > 1 ? w[0][0] + w[1][0] : (w[0] ?? '?').slice(0, 2)).toUpperCase();
 };
 
-// A round sticker with the holding's initials, slightly tilted, in its asset type's colour
-function Sticker({ title, tone }: { title: string; tone?: PastelName }) {
+// A round sticker, slightly tilted: the company's logo on white when we have one, else the initials
+// in the asset type's colour
+function Sticker({ title, tone, logo }: { title: string; tone?: PastelName; logo?: string | null }) {
+  const [failed, setFailed] = useState(false);
   const h = hash(title);
   const t = Pastel[tone ?? TONES[h % TONES.length]];
+  const tilt = { transform: [{ rotate: `${(h % 13) - 6}deg` }] };
+  if (logo && !failed) {
+    return (
+      <View style={[s.sticker, s.logoBadge, { borderColor: t.icon }, tilt]} aria-hidden>
+        <Image source={{ uri: logo }} style={s.logo} resizeMode="contain" onError={() => setFailed(true)} />
+      </View>
+    );
+  }
   return (
-    <View style={[s.sticker, { backgroundColor: t.bg, borderColor: t.icon, transform: [{ rotate: `${(h % 13) - 6}deg` }] }]} aria-hidden>
+    <View style={[s.sticker, { backgroundColor: t.bg, borderColor: t.icon }, tilt]} aria-hidden>
       <Text style={[s.stickerText, { color: t.fg }]}>{initials(title)}</Text>
     </View>
   );
@@ -67,7 +78,7 @@ export default function HoldingRow({ d, first, hide, onPress, onLongPress, child
       accessibilityRole="button"
       accessibilityLabel={`${d.title}. ${d.sub}. ${d.value != null && !hide ? formatINR(Math.round(d.value)) : ''}${d.pnl != null && !hide ? `, ${up ? 'up' : 'down'} ${formatINR(Math.abs(Math.round(d.pnl)))}` : ''}${d.dayPct != null ? `, ${formatPct(d.dayPct)} ${d.dayLabel ?? 'today'}` : ''}`}>
       <View style={s.top}>
-        <Sticker title={d.title} tone={d.tone} />
+        <Sticker title={d.title} tone={d.tone} logo={d.logo} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={s.title} numberOfLines={2}>{d.title}</Text>
           <Text style={[s.sub, d.warn && { color: Corpus.warning }]} numberOfLines={2}>{d.sub}</Text>
@@ -111,6 +122,8 @@ const s = StyleSheet.create({
   pnl: { fontSize: Type.small, fontFamily: Font.display, ...tabular },
   bottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingLeft: 46 },
   sticker: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  logoBadge: { backgroundColor: Corpus.sheen, overflow: 'hidden' },
+  logo: { width: 22, height: 22, borderRadius: 4 },
   stickerText: { fontSize: Type.small, fontFamily: Font.displayBold, letterSpacing: 0.3 },
   ltpBox: { flexDirection: 'row', gap: 4, borderRadius: 6, paddingHorizontal: 4, marginLeft: -4 },
   extra: { paddingLeft: 62, paddingRight: 16, paddingBottom: 12, marginTop: -6, gap: 6 },
